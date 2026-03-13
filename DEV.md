@@ -25,17 +25,28 @@ webrpg
 
 ## Build
 
-### Build  Prerequisites
+### Build Prerequisites
 
 Install wasm32 Rust support:
   ```
   rustup target add wasm32-unknown-unknown
   ```
 
-Install sqlite3 (e.g. on debian):
+Install sqlite3 (e.g. on debian/ubuntu):
   ```
   sudo apt-get install sqlite3 sqlite3-tools libsqlite3-dev
   ```
+
+Install rust browser MCP (e.g. on debian/ubuntu):
+
+  ```
+  sudo apt install chromium-chromedriver
+  # DISABLED: sudo apt install firefox-geckodriver # see https://github.com/mozilla/geckodriver/releases
+  git clone https://github.com/EmilLindfors/rust-browser-mcp.git
+  cd rust-browser-mcp
+  cargo build --release
+  ```
+
 
 ## Components
 
