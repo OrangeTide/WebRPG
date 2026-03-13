@@ -36,11 +36,27 @@ migrations/           # Diesel SQL migrations
 
 ## Build Prerequisites
 
-- Rust (stable, 1.85+)
-- `wasm32-unknown-unknown` target: `rustup target add wasm32-unknown-unknown`
-- `cargo-leptos`: `cargo install cargo-leptos`
-- SQLite3 development libraries (e.g. `libsqlite3-dev` on Debian/Ubuntu)
-- Diesel CLI: `cargo install diesel_cli --no-default-features --features sqlite`
+For general development:
+
+  - Rust (stable, 1.85+)
+  - `wasm32-unknown-unknown` target: `rustup target add wasm32-unknown-unknown`
+  - `cargo-leptos`: `cargo install cargo-leptos`
+  - SQLite3 development libraries (e.g. `libsqlite3-dev` on Debian/Ubuntu)
+  - Diesel CLI: `cargo install diesel_cli --no-default-features --features sqlite`
+
+For AI and MCP, commands to check and install requirements (idempotent):
+
+Debian/ubuntu commands: #TODO: setup environment: "WEBDRIVER_PREFERRED_DRIVER": "chrome", "WEBDRIVER_HEADLESS": "true"
+  ```bash
+  geckodriver --version || sudo apt install firefox                   # Install Firefox (for geckodriver)
+  chromedriver --version || sudo apt install chromium-chromedriver    # Install Chromium's chromedriver
+  # build from source:
+  git clone https://github.com/EmilLindfors/rust-browser-mcp.git
+  cd rust-browser-mcp
+  cargo build --release
+  # add the MCP to the config
+  claude mcp add rust-browser-mcp -- rust-browser-mcp --transport stdio
+  ```
 
 ## Testing
 
