@@ -1,0 +1,13 @@
+DROP TABLE initiative;
+DROP TABLE inventory_items;
+DROP TABLE chat_messages;
+DROP TABLE token_instances;
+DROP TABLE tokens;
+DROP TABLE creatures;
+DROP TABLE fog_of_war;
+DROP TABLE maps;
+DROP TABLE character_resources;
+DROP TABLE characters;
+DROP TABLE session_players;
+DROP TABLE sessions;
+DROP TABLE rpg_templates;

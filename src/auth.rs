@@ -1,48 +1,78 @@
-use argon2::{self | Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
-use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation};
-use rand::Rng;
-use chrono::{Utc, Duration};
+use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
-mod secrets {
-    use once_cell::sync::Lazy;
 
-    // Private static variable
-    static SECRET_KEY: Lazy<String> = Lazy::new(|| {
-        std::env::var("SECRET_KEY").expect("SECRET_KEY not set")
-    });
+static SECRET_KEY: Lazy<String> = Lazy::new(|| {
+    std::env::var("SECRET_KEY").expect("SECRET_KEY must be set")
+});
 
-    // Public getter (controlled access)
-    pub fn get_api_key() -> &'static str {
-        &SECRET_KEY
-    }
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Claims {
+    pub sub: String,
+    pub exp: usize,
 }
+
 pub fn hash_password(password: &str) -> Result<String, Box<dyn Error>> {
-    let salt: [u8; 16] = rand::thread_rng().gen();
-    let config = argon2::Config::default();
-    let hash = Argon2::default().hash_password(password.as_bytes(), &salt, &config)?;
-    Ok(hash.to_string())
+    use argon2::password_hash::rand_core::OsRng;
+    use argon2::password_hash::SaltString;
+    use argon2::{Argon2, PasswordHasher};
+
+    let salt = SaltString::generate(&mut OsRng);
+    let argon2 = Argon2::default();
+    let hash = argon2
+        .hash_password(password.as_bytes(), &salt)
+        .map_err(|e| format!("Password hashing failed: {e}"))?
+        .to_string();
+    Ok(hash)
 }
+
 pub fn verify_password(hash: &str, password: &str) -> Result<bool, Box<dyn Error>> {
-    let parsed_hash = PasswordHash::new(hash)?;
-    Ok(Argon2::default().verify_password(password.as_bytes(), &parsed_hash).is_ok())
+    use argon2::{Argon2, PasswordHash, PasswordVerifier};
+
+    let parsed_hash =
+        PasswordHash::new(hash).map_err(|e| format!("Invalid password hash: {e}"))?;
+    Ok(Argon2::default()
+        .verify_password(password.as_bytes(), &parsed_hash)
+        .is_ok())
 }
-pub fn generate_jwt(username: &str) -> Result<String, Box<dyn Error>> {
+
+pub fn generate_jwt(user_id: i32, username: &str) -> Result<String, Box<dyn Error>> {
+    use chrono::{Duration, Utc};
+    use jsonwebtoken::{encode, EncodingKey, Header};
+
     let expiration = Utc::now()
         .checked_add_signed(Duration::hours(24))
         .expect("valid timestamp")
         .timestamp() as usize;
+
     let claims = Claims {
-        sub: username.to_string(),
+        sub: format!("{}:{}", user_id, username),
         exp: expiration,
     };
-    let token = encode(&Header::default(), &claims, &EncodingKey::from_secret(SECRET_KEY))?;
+
+    let token = encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(SECRET_KEY.as_bytes()),
+    )?;
     Ok(token)
 }
+
 pub fn verify_jwt(token: &str) -> Result<Claims, Box<dyn Error>> {
+    use jsonwebtoken::{decode, DecodingKey, Validation};
+
     let token_data = decode::<Claims>(
         token,
-        &DecodingKey::from_secret(SECRET_KEY),
+        &DecodingKey::from_secret(SECRET_KEY.as_bytes()),
         &Validation::default(),
     )?;
     Ok(token_data.claims)
+}
+
+/// Parse user_id and username from JWT claims subject ("id:username")
+pub fn parse_claims_sub(sub: &str) -> Option<(i32, String)> {
+    let mut parts = sub.splitn(2, ':');
+    let id = parts.next()?.parse::<i32>().ok()?;
+    let username = parts.next()?.to_string();
+    Some((id, username))
 }

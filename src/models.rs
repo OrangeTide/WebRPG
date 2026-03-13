@@ -1,29 +1,268 @@
 use serde::{Deserialize, Serialize};
-#[derive(Debug, Serialize, Deserialize)]
-pub struct User {
+
+// ===== Shared DTOs (compiled for both server and client) =====
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserInfo {
+    pub id: i32,
     pub username: String,
-    pub displayName: String,
-    pub passcrypt: Nullable<String>,
-    pub email: String,
-    pub accessLevel: i32,
-    pub locked: bool,
+    pub display_name: String,
 }
-#[derive(Debug, Deserialize)]
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoginRequest {
     pub username: String,
     pub password: String,
 }
-#[derive(Debug, Deserialize)]
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignupRequest {
     pub username: String,
     pub password: String,
+    pub display_name: String,
+    pub email: String,
 }
-#[derive(Debug, Serialize)]
-pub struct Claims {
-    pub sub: String, // Subject (username)
-    pub exp: usize,  // Expiration timestamp
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionInfo {
+    pub id: i32,
+    pub name: String,
+    pub gm_username: String,
+    pub active: bool,
 }
-#[derive(Debug, Serialize)]
-pub struct AuthResponse {
-    pub token: String,
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatMessageInfo {
+    pub id: i32,
+    pub username: String,
+    pub message: String,
+    pub is_dice_roll: bool,
+    pub dice_result: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MapInfo {
+    pub id: i32,
+    pub name: String,
+    pub width: i32,
+    pub height: i32,
+    pub cell_size: i32,
+    pub background_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TokenInfo {
+    pub id: i32,
+    pub label: String,
+    pub x: f32,
+    pub y: f32,
+    pub color: String,
+    pub size: i32,
+    pub visible: bool,
+    pub current_hp: Option<i32>,
+    pub max_hp: Option<i32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreatureInfo {
+    pub id: i32,
+    pub name: String,
+    pub stat_data: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InventoryItemInfo {
+    pub id: i32,
+    pub name: String,
+    pub description: String,
+    pub quantity: i32,
+    pub is_party_item: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InitiativeEntryInfo {
+    pub id: i32,
+    pub label: String,
+    pub initiative_value: f32,
+    pub is_current_turn: bool,
+}
+
+// ===== Diesel models (server only) =====
+
+#[cfg(feature = "ssr")]
+pub mod db_models {
+    use diesel::prelude::*;
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::users)]
+    pub struct User {
+        pub id: i32,
+        pub username: String,
+        pub display_name: String,
+        pub email: String,
+        pub access_level: i32,
+        pub locked: bool,
+        pub passcrypt: Option<String>,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::users)]
+    pub struct NewUser<'a> {
+        pub username: &'a str,
+        pub display_name: &'a str,
+        pub email: &'a str,
+        pub passcrypt: &'a str,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::sessions)]
+    pub struct Session {
+        pub id: i32,
+        pub name: String,
+        pub gm_user_id: i32,
+        pub template_id: Option<i32>,
+        pub active: bool,
+        pub created_at: String,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::sessions)]
+    pub struct NewSession<'a> {
+        pub name: &'a str,
+        pub gm_user_id: i32,
+        pub template_id: Option<i32>,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::session_players)]
+    pub struct SessionPlayer {
+        pub id: i32,
+        pub session_id: i32,
+        pub user_id: i32,
+        pub role: String,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::session_players)]
+    pub struct NewSessionPlayer {
+        pub session_id: i32,
+        pub user_id: i32,
+        pub role: String,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::characters)]
+    pub struct Character {
+        pub id: i32,
+        pub session_id: i32,
+        pub user_id: i32,
+        pub name: String,
+        pub data_json: String,
+        pub created_at: String,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::maps)]
+    pub struct Map {
+        pub id: i32,
+        pub session_id: i32,
+        pub name: String,
+        pub width: i32,
+        pub height: i32,
+        pub cell_size: i32,
+        pub background_url: Option<String>,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::maps)]
+    pub struct NewMap<'a> {
+        pub session_id: i32,
+        pub name: &'a str,
+        pub width: i32,
+        pub height: i32,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::creatures)]
+    pub struct Creature {
+        pub id: i32,
+        pub session_id: i32,
+        pub template_id: Option<i32>,
+        pub name: String,
+        pub stat_data_json: String,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::tokens)]
+    pub struct Token {
+        pub id: i32,
+        pub map_id: i32,
+        pub label: String,
+        pub x: f32,
+        pub y: f32,
+        pub color: String,
+        pub size: i32,
+        pub visible: bool,
+        pub character_id: Option<i32>,
+        pub creature_id: Option<i32>,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::token_instances)]
+    pub struct TokenInstance {
+        pub id: i32,
+        pub token_id: i32,
+        pub creature_id: i32,
+        pub current_hp: i32,
+        pub max_hp: i32,
+        pub conditions_json: String,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::chat_messages)]
+    pub struct ChatMessage {
+        pub id: i32,
+        pub session_id: i32,
+        pub user_id: i32,
+        pub message: String,
+        pub is_dice_roll: bool,
+        pub dice_result: Option<String>,
+        pub created_at: String,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::chat_messages)]
+    pub struct NewChatMessage<'a> {
+        pub session_id: i32,
+        pub user_id: i32,
+        pub message: &'a str,
+        pub is_dice_roll: bool,
+        pub dice_result: Option<&'a str>,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::inventory_items)]
+    pub struct InventoryItem {
+        pub id: i32,
+        pub session_id: i32,
+        pub name: String,
+        pub description: String,
+        pub quantity: i32,
+        pub owner_character_id: Option<i32>,
+        pub is_party_item: bool,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::initiative)]
+    pub struct InitiativeEntry {
+        pub id: i32,
+        pub session_id: i32,
+        pub label: String,
+        pub initiative_value: f32,
+        pub is_current_turn: bool,
+        pub token_id: Option<i32>,
+        pub character_id: Option<i32>,
+        pub sort_order: i32,
+    }
 }

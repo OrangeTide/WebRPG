@@ -1,83 +1,110 @@
 # Developer Information
 
-## Overview
+## Architecture
 
-Server is built with Rust + leptos.
+- **Server:** Rust with [Leptos](https://leptos.dev/) SSR and
+  [Axum](https://github.com/tokio-rs/axum)
+- **Client:** WASM via Leptos hydration
+- **Database:** SQLite via [Diesel](https://diesel.rs/) ORM
+- **Real-time:** WebSocket with JSON messages (snapshot + event model)
+- **Auth:** JWT tokens in HttpOnly cookies, Argon2 password hashing
 
-Clients connect with a browser and receive a WASM payload developed with leptos.
-
-Authentication is performed with JWT. This is handled using jsonwebtoken with chrono to handle JWT expiration.
-
-TODO: describe what this server does.
+The project uses `ssr` and `hydrate` feature flags. `cargo-leptos` builds the
+server binary with `--features ssr` and the WASM client with
+`--features hydrate --target wasm32-unknown-unknown`. Server-only code (auth,
+database, WebSocket handler) is gated behind `#[cfg(feature = "ssr")]`. Shared
+types (DTOs, WebSocket message enums) compile for both targets. Server functions
+use Leptos `#[server]` which generates client-side RPC stubs automatically.
 
 ## Project Structure
 
 ```
-webrpg
-├── src/
-│   ├── auth.rs        # Authentication logic (hashing, JWT)
-│   ├── models.rs      # User models and structs
-│   ├── routes.rs      # API routes (login, signup, protected)
-│   ├── main.rs        # Entry point and server setup
-│   └── schema.rs      # Diesel's SQL schema mappings to Rust
-└── Cargo.toml
+src/
+├── main.rs           # Axum server entry point (SSR)
+├── lib.rs            # Module declarations + WASM hydrate entry
+├── app.rs            # Root App component, router, SSR shell
+├── auth.rs           # JWT + Argon2 auth (server only)
+├── db.rs             # Diesel/SQLite connection pool (server only)
+├── schema.rs         # Diesel table definitions (auto-generated)
+├── models.rs         # Shared DTOs + Diesel models
+├── pages/            # Page components (landing, login, sessions, game)
+├── components/       # UI components (map, chat, inventory, initiative)
+├── server/           # Server functions + WebSocket upgrade handler
+└── ws/               # WebSocket message types + session state manager
+migrations/           # Diesel SQL migrations
 ```
 
-## Build
+## Build Prerequisites
 
-### Build Prerequisites
-
-Install wasm32 Rust support:
-  ```
-  rustup target add wasm32-unknown-unknown
-  ```
-
-Install sqlite3 (e.g. on debian/ubuntu):
-  ```
-  sudo apt-get install sqlite3 sqlite3-tools libsqlite3-dev
-  ```
-
-Install rust browser MCP (e.g. on debian/ubuntu):
-
-  ```
-  sudo apt install chromium-chromedriver
-  # DISABLED: sudo apt install firefox-geckodriver # see https://github.com/mozilla/geckodriver/releases
-  git clone https://github.com/EmilLindfors/rust-browser-mcp.git
-  cd rust-browser-mcp
-  cargo build --release
-  ```
-
-
-## Components
-
-### Configuration
-
-Uses [Crate config](https://docs.rs/config/latest/config/) to load configuration from a settings file and from the environment.
-
-### models.rs
-
-In src/models.rs, define the user model and structs for API requests:
+- Rust (stable, 1.85+)
+- `wasm32-unknown-unknown` target: `rustup target add wasm32-unknown-unknown`
+- `cargo-leptos`: `cargo install cargo-leptos`
+- SQLite3 development libraries (e.g. `libsqlite3-dev` on Debian/Ubuntu)
+- Diesel CLI: `cargo install diesel_cli --no-default-features --features sqlite`
 
 ## Testing
+
+```sh
+cargo test
+```
 
 ### Supported Platforms
 
   * [Firefox 115.32.0 ESR](https://ftp.mozilla.org/pub/firefox/releases/115.32.0esr/)
-    * Install this in a temporary directory or container. (tested as working on Zorin OS 17)
   * Chrome 138.0 (LTS-138) [Long Term Support](https://support.google.com/chrome/a/answer/11333726)
 
 ## Design Details
 
 ### Pages
 
-Landing page - this page provides an introduction to the website, and information on the current status. It is publicly visible. A link to the login page is here.
-
-Login page - Handles user authentication via JWT. It returns user back to the previous page after successful login.
-
-Game session selection page - Lists sessions visible to the current user.
+- **Landing page** — introduction to the site with links to log in or sign up.
+- **Login page** — handles user authentication via JWT. Supports login and signup with a toggle.
+- **Sessions page** — lists active game sessions; lets users create or join sessions.
+- **Game page** — main game view with map, chat, initiative tracker, and inventory.
 
 ### Authentication
 
-TBD
+JWT tokens are stored in HttpOnly cookies set by the login/signup server
+functions. The `get_current_user` server function extracts and validates the
+token from the cookie header. WebSocket connections authenticate via a `token`
+query parameter.
 
+The login page requires HTTPS. This is enforced in two ways depending on
+deployment:
 
+- **Built-in TLS:** Set `TLS_CERT_PATH` and `TLS_KEY_PATH` env vars. The
+  server runs HTTPS on port 3443 (or `TLS_PORT`) and an HTTP redirect server
+  on the normal port that sends all traffic to HTTPS.
+- **Reverse proxy:** When behind a proxy that sets `X-Forwarded-Proto`, the
+  server redirects `/login` requests that arrive over plain HTTP to HTTPS.
+- **Development:** With no TLS config and no proxy headers, the server runs
+  plain HTTP with no redirects.
+
+### HTTPS / TLS Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TLS_CERT_PATH` | (none) | Path to PEM certificate file. Enables built-in TLS when set with `TLS_KEY_PATH`. |
+| `TLS_KEY_PATH` | (none) | Path to PEM private key file. |
+| `TLS_PORT` | `3443` | Port for the HTTPS listener. |
+
+To generate a self-signed certificate for development:
+
+```sh
+openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem \
+  -days 365 -nodes -subj '/CN=localhost'
+```
+
+Then run with:
+
+```sh
+TLS_CERT_PATH=cert.pem TLS_KEY_PATH=key.pem cargo leptos serve
+```
+
+### WebSocket Protocol
+
+On connect, the client sends a `JoinSession` message. The server responds with
+a `SessionJoined` message containing a full `GameStateSnapshot`. After that,
+incremental events are broadcast to all connected clients. The server is the
+single source of truth — clients send requests, the server validates and
+broadcasts results.
