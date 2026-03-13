@@ -1,7 +1,9 @@
 use leptos::prelude::*;
 use leptos::reactive::owner::LocalStorage;
 
+use crate::components::charsheet::CharacterSheet;
 use crate::components::chat::ChatPanel;
+use crate::components::creatures::CreaturePanel;
 use crate::components::initiative::InitiativeTracker;
 use crate::components::inventory::InventoryPanel;
 use crate::components::map::MapCanvas;
@@ -302,11 +304,13 @@ pub fn GamePage() -> impl IntoView {
             <div class="game-layout">
                 <div class="game-main">
                     <MapCanvas />
+                    <CharacterSheet />
                 </div>
                 <div class="game-sidebar">
                     <ChatPanel />
                     <InitiativeTracker />
                     <InventoryPanel />
+                    <CreaturePanel />
                 </div>
             </div>
         </div>

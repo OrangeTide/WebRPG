@@ -1,6 +1,8 @@
 use leptos::prelude::*;
 
-use crate::models::{SessionInfo, UserInfo};
+use crate::models::{
+    CharacterInfo, CreatureInfo, ResourceInfo, SessionInfo, TemplateInfo, UserInfo,
+};
 
 #[server]
 pub async fn login(username: String, password: String) -> Result<UserInfo, ServerFnError> {
@@ -340,4 +342,537 @@ pub async fn join_session(session_id: i32) -> Result<(), ServerFnError> {
     }
 
     Ok(())
+}
+
+// ===== Template functions =====
+
+#[server]
+pub async fn list_templates() -> Result<Vec<TemplateInfo>, ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::RpgTemplate;
+    use crate::models::TemplateField;
+    use crate::schema::rpg_templates;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    let templates: Vec<RpgTemplate> = rpg_templates::table
+        .select(RpgTemplate::as_select())
+        .load(conn)
+        .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
+
+    Ok(templates
+        .into_iter()
+        .map(|t| {
+            let fields: Vec<TemplateField> =
+                serde_json::from_str(&t.schema_json).unwrap_or_default();
+            TemplateInfo {
+                id: t.id,
+                name: t.name,
+                description: t.description,
+                fields,
+            }
+        })
+        .collect())
+}
+
+#[server]
+pub async fn get_template(template_id: i32) -> Result<TemplateInfo, ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::RpgTemplate;
+    use crate::models::TemplateField;
+    use crate::schema::rpg_templates;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    let t: RpgTemplate = rpg_templates::table
+        .find(template_id)
+        .select(RpgTemplate::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Template not found"))?;
+
+    let fields: Vec<TemplateField> = serde_json::from_str(&t.schema_json).unwrap_or_default();
+
+    Ok(TemplateInfo {
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        fields,
+    })
+}
+
+#[server]
+pub async fn seed_default_template() -> Result<TemplateInfo, ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::{NewRpgTemplate, RpgTemplate};
+    use crate::models::TemplateField;
+    use crate::schema::rpg_templates;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    // Check if default already exists
+    let existing = rpg_templates::table
+        .filter(rpg_templates::name.eq("D&D 5e"))
+        .select(RpgTemplate::as_select())
+        .first(conn)
+        .optional()
+        .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
+
+    if let Some(t) = existing {
+        let fields: Vec<TemplateField> = serde_json::from_str(&t.schema_json).unwrap_or_default();
+        return Ok(TemplateInfo {
+            id: t.id,
+            name: t.name,
+            description: t.description,
+            fields,
+        });
+    }
+
+    let schema_json = serde_json::to_string(&default_5e_fields())
+        .map_err(|e| ServerFnError::new(format!("Serialization error: {e}")))?;
+
+    diesel::insert_into(rpg_templates::table)
+        .values(&NewRpgTemplate {
+            name: "D&D 5e",
+            description: "Dungeons & Dragons 5th Edition",
+            schema_json: &schema_json,
+        })
+        .execute(conn)
+        .map_err(|e| ServerFnError::new(format!("Failed to create template: {e}")))?;
+
+    let t: RpgTemplate = rpg_templates::table
+        .filter(rpg_templates::name.eq("D&D 5e"))
+        .select(RpgTemplate::as_select())
+        .first(conn)
+        .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
+
+    let fields: Vec<TemplateField> = serde_json::from_str(&t.schema_json).unwrap_or_default();
+
+    Ok(TemplateInfo {
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        fields,
+    })
+}
+
+#[cfg(feature = "ssr")]
+fn default_5e_fields() -> Vec<crate::models::TemplateField> {
+    use crate::models::{FieldType, TemplateField};
+
+    vec![
+        // Ability scores
+        TemplateField { name: "strength".into(), label: "Strength".into(), field_type: FieldType::Number, category: "Ability Scores".into(), default: serde_json::json!(10) },
+        TemplateField { name: "dexterity".into(), label: "Dexterity".into(), field_type: FieldType::Number, category: "Ability Scores".into(), default: serde_json::json!(10) },
+        TemplateField { name: "constitution".into(), label: "Constitution".into(), field_type: FieldType::Number, category: "Ability Scores".into(), default: serde_json::json!(10) },
+        TemplateField { name: "intelligence".into(), label: "Intelligence".into(), field_type: FieldType::Number, category: "Ability Scores".into(), default: serde_json::json!(10) },
+        TemplateField { name: "wisdom".into(), label: "Wisdom".into(), field_type: FieldType::Number, category: "Ability Scores".into(), default: serde_json::json!(10) },
+        TemplateField { name: "charisma".into(), label: "Charisma".into(), field_type: FieldType::Number, category: "Ability Scores".into(), default: serde_json::json!(10) },
+        // Core stats
+        TemplateField { name: "hp_max".into(), label: "Max HP".into(), field_type: FieldType::Number, category: "Combat".into(), default: serde_json::json!(10) },
+        TemplateField { name: "armor_class".into(), label: "Armor Class".into(), field_type: FieldType::Number, category: "Combat".into(), default: serde_json::json!(10) },
+        TemplateField { name: "speed".into(), label: "Speed".into(), field_type: FieldType::Number, category: "Combat".into(), default: serde_json::json!(30) },
+        TemplateField { name: "initiative_bonus".into(), label: "Initiative Bonus".into(), field_type: FieldType::Number, category: "Combat".into(), default: serde_json::json!(0) },
+        TemplateField { name: "proficiency_bonus".into(), label: "Proficiency Bonus".into(), field_type: FieldType::Number, category: "Combat".into(), default: serde_json::json!(2) },
+        // Character info
+        TemplateField { name: "race".into(), label: "Race".into(), field_type: FieldType::Text, category: "Info".into(), default: serde_json::json!("") },
+        TemplateField { name: "class".into(), label: "Class".into(), field_type: FieldType::Text, category: "Info".into(), default: serde_json::json!("") },
+        TemplateField { name: "level".into(), label: "Level".into(), field_type: FieldType::Number, category: "Info".into(), default: serde_json::json!(1) },
+        TemplateField { name: "background".into(), label: "Background".into(), field_type: FieldType::Text, category: "Info".into(), default: serde_json::json!("") },
+        TemplateField { name: "alignment".into(), label: "Alignment".into(), field_type: FieldType::Text, category: "Info".into(), default: serde_json::json!("") },
+        // Skills and notes
+        TemplateField { name: "skills".into(), label: "Skills & Proficiencies".into(), field_type: FieldType::Textarea, category: "Skills".into(), default: serde_json::json!("") },
+        TemplateField { name: "features".into(), label: "Features & Traits".into(), field_type: FieldType::Textarea, category: "Skills".into(), default: serde_json::json!("") },
+        TemplateField { name: "equipment".into(), label: "Equipment".into(), field_type: FieldType::Textarea, category: "Equipment".into(), default: serde_json::json!("") },
+        TemplateField { name: "spells".into(), label: "Spells".into(), field_type: FieldType::Textarea, category: "Spells".into(), default: serde_json::json!("") },
+        TemplateField { name: "notes".into(), label: "Notes".into(), field_type: FieldType::Textarea, category: "Notes".into(), default: serde_json::json!("") },
+    ]
+}
+
+// ===== Character functions =====
+
+#[server]
+pub async fn create_character(
+    session_id: i32,
+    name: String,
+) -> Result<CharacterInfo, ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::*;
+    use crate::models::TemplateField;
+    use crate::schema::*;
+    use diesel::prelude::*;
+
+    let user = get_current_user()
+        .await?
+        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
+
+    let conn = &mut db::get_conn();
+
+    // Check user is a member of the session
+    let is_member = session_players::table
+        .filter(session_players::session_id.eq(session_id))
+        .filter(session_players::user_id.eq(user.id))
+        .count()
+        .get_result::<i64>(conn)
+        .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?
+        > 0;
+
+    if !is_member {
+        return Err(ServerFnError::new("Not a member of this session"));
+    }
+
+    // Get session template to build default data
+    let session: Session = sessions::table
+        .find(session_id)
+        .select(Session::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Session not found"))?;
+
+    let default_data = if let Some(tid) = session.template_id {
+        let template: RpgTemplate = rpg_templates::table
+            .find(tid)
+            .select(RpgTemplate::as_select())
+            .first(conn)
+            .map_err(|_| ServerFnError::new("Template not found"))?;
+
+        let fields: Vec<TemplateField> =
+            serde_json::from_str(&template.schema_json).unwrap_or_default();
+
+        let mut data = serde_json::Map::new();
+        for field in &fields {
+            data.insert(field.name.clone(), field.default.clone());
+        }
+        serde_json::Value::Object(data)
+    } else {
+        serde_json::json!({})
+    };
+
+    let data_str = serde_json::to_string(&default_data)
+        .map_err(|e| ServerFnError::new(format!("Serialization error: {e}")))?;
+
+    diesel::insert_into(characters::table)
+        .values(&NewCharacter {
+            session_id,
+            user_id: user.id,
+            name: &name,
+            data_json: &data_str,
+        })
+        .execute(conn)
+        .map_err(|e| ServerFnError::new(format!("Failed to create character: {e}")))?;
+
+    let char_id: i32 = diesel::select(diesel::dsl::sql::<diesel::sql_types::Integer>(
+        "last_insert_rowid()",
+    ))
+    .get_result(conn)
+    .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
+
+    // Create default resources (HP)
+    if let Some(hp_max) = default_data.get("hp_max").and_then(|v| v.as_i64()) {
+        diesel::insert_into(character_resources::table)
+            .values(&NewCharacterResource {
+                character_id: char_id,
+                name: "HP",
+                current_value: hp_max as i32,
+                max_value: hp_max as i32,
+            })
+            .execute(conn)
+            .map_err(|e| ServerFnError::new(format!("Failed to create resource: {e}")))?;
+    }
+
+    Ok(CharacterInfo {
+        id: char_id,
+        session_id,
+        user_id: user.id,
+        name,
+        data: default_data,
+        resources: vec![],
+    })
+}
+
+#[server]
+pub async fn list_characters(session_id: i32) -> Result<Vec<CharacterInfo>, ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::*;
+    use crate::schema::*;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    let chars: Vec<Character> = characters::table
+        .filter(characters::session_id.eq(session_id))
+        .select(Character::as_select())
+        .load(conn)
+        .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
+
+    let mut result = Vec::new();
+    for c in chars {
+        let resources: Vec<CharacterResource> = character_resources::table
+            .filter(character_resources::character_id.eq(c.id))
+            .select(CharacterResource::as_select())
+            .load(conn)
+            .unwrap_or_default();
+
+        result.push(CharacterInfo {
+            id: c.id,
+            session_id: c.session_id,
+            user_id: c.user_id,
+            name: c.name,
+            data: serde_json::from_str(&c.data_json).unwrap_or(serde_json::json!({})),
+            resources: resources
+                .into_iter()
+                .map(|r| ResourceInfo {
+                    id: r.id,
+                    name: r.name,
+                    current_value: r.current_value,
+                    max_value: r.max_value,
+                })
+                .collect(),
+        });
+    }
+
+    Ok(result)
+}
+
+#[server]
+pub async fn update_character_resource(
+    resource_id: i32,
+    current_value: i32,
+) -> Result<(), ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::*;
+    use crate::schema::*;
+    use diesel::prelude::*;
+
+    let user = get_current_user()
+        .await?
+        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
+
+    let conn = &mut db::get_conn();
+
+    let resource: CharacterResource = character_resources::table
+        .find(resource_id)
+        .select(CharacterResource::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Resource not found"))?;
+
+    let character: Character = characters::table
+        .find(resource.character_id)
+        .select(Character::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Character not found"))?;
+
+    if character.user_id != user.id {
+        return Err(ServerFnError::new("Not your character"));
+    }
+
+    diesel::update(character_resources::table.find(resource_id))
+        .set(character_resources::current_value.eq(current_value))
+        .execute(conn)
+        .map_err(|e| ServerFnError::new(format!("Failed to update resource: {e}")))?;
+
+    Ok(())
+}
+
+// ===== Creature functions =====
+
+#[server]
+pub async fn list_creatures(session_id: i32) -> Result<Vec<CreatureInfo>, ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::Creature;
+    use crate::schema::creatures;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    let rows: Vec<Creature> = creatures::table
+        .filter(creatures::session_id.eq(session_id))
+        .select(Creature::as_select())
+        .load(conn)
+        .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
+
+    Ok(rows
+        .into_iter()
+        .map(|c| CreatureInfo {
+            id: c.id,
+            name: c.name,
+            stat_data: serde_json::from_str(&c.stat_data_json).unwrap_or_default(),
+        })
+        .collect())
+}
+
+#[server]
+pub async fn create_creature(
+    session_id: i32,
+    name: String,
+    stat_data: serde_json::Value,
+) -> Result<CreatureInfo, ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::*;
+    use crate::schema::*;
+    use diesel::prelude::*;
+
+    let user = get_current_user()
+        .await?
+        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
+
+    let conn = &mut db::get_conn();
+
+    let session: Session = sessions::table
+        .find(session_id)
+        .select(Session::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Session not found"))?;
+
+    if session.gm_user_id != user.id {
+        return Err(ServerFnError::new("Only the GM can create creatures"));
+    }
+
+    let stat_json = serde_json::to_string(&stat_data)
+        .map_err(|e| ServerFnError::new(format!("Serialization error: {e}")))?;
+
+    diesel::insert_into(creatures::table)
+        .values(&NewCreature {
+            session_id,
+            template_id: session.template_id,
+            name: &name,
+            stat_data_json: &stat_json,
+        })
+        .execute(conn)
+        .map_err(|e| ServerFnError::new(format!("Failed to create creature: {e}")))?;
+
+    let id: i32 = diesel::select(diesel::dsl::sql::<diesel::sql_types::Integer>(
+        "last_insert_rowid()",
+    ))
+    .get_result(conn)
+    .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
+
+    Ok(CreatureInfo {
+        id,
+        name,
+        stat_data,
+    })
+}
+
+#[server]
+pub async fn update_creature(
+    creature_id: i32,
+    name: String,
+    stat_data: serde_json::Value,
+) -> Result<(), ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::*;
+    use crate::schema::*;
+    use diesel::prelude::*;
+
+    let user = get_current_user()
+        .await?
+        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
+
+    let conn = &mut db::get_conn();
+
+    let creature: Creature = creatures::table
+        .find(creature_id)
+        .select(Creature::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Creature not found"))?;
+
+    let session: Session = sessions::table
+        .find(creature.session_id)
+        .select(Session::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Session not found"))?;
+
+    if session.gm_user_id != user.id {
+        return Err(ServerFnError::new("Only the GM can edit creatures"));
+    }
+
+    let stat_json = serde_json::to_string(&stat_data)
+        .map_err(|e| ServerFnError::new(format!("Serialization error: {e}")))?;
+
+    diesel::update(creatures::table.find(creature_id))
+        .set((
+            creatures::name.eq(&name),
+            creatures::stat_data_json.eq(&stat_json),
+        ))
+        .execute(conn)
+        .map_err(|e| ServerFnError::new(format!("Failed to update creature: {e}")))?;
+
+    Ok(())
+}
+
+#[server]
+pub async fn delete_creature(creature_id: i32) -> Result<(), ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::*;
+    use crate::schema::*;
+    use diesel::prelude::*;
+
+    let user = get_current_user()
+        .await?
+        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
+
+    let conn = &mut db::get_conn();
+
+    let creature: Creature = creatures::table
+        .find(creature_id)
+        .select(Creature::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Creature not found"))?;
+
+    let session: Session = sessions::table
+        .find(creature.session_id)
+        .select(Session::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Session not found"))?;
+
+    if session.gm_user_id != user.id {
+        return Err(ServerFnError::new("Only the GM can delete creatures"));
+    }
+
+    diesel::delete(creatures::table.find(creature_id))
+        .execute(conn)
+        .map_err(|e| ServerFnError::new(format!("Failed to delete creature: {e}")))?;
+
+    Ok(())
+}
+
+/// Get the template for a session (if one is assigned).
+#[server]
+pub async fn get_session_template(
+    session_id: i32,
+) -> Result<Option<TemplateInfo>, ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::*;
+    use crate::models::TemplateField;
+    use crate::schema::*;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    let session: Session = sessions::table
+        .find(session_id)
+        .select(Session::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Session not found"))?;
+
+    let Some(tid) = session.template_id else {
+        return Ok(None);
+    };
+
+    let t: RpgTemplate = rpg_templates::table
+        .find(tid)
+        .select(RpgTemplate::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Template not found"))?;
+
+    let fields: Vec<TemplateField> = serde_json::from_str(&t.schema_json).unwrap_or_default();
+
+    Ok(Some(TemplateInfo {
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        fields,
+    }))
 }

@@ -60,7 +60,7 @@ cargo test
 - **Landing page** — introduction to the site with links to log in or sign up.
 - **Login page** — handles user authentication via JWT. Supports login and signup with a toggle.
 - **Sessions page** — lists active game sessions; lets users create or join sessions.
-- **Game page** — main game view with map, chat, initiative tracker, and inventory.
+- **Game page** — main game view with map, chat, initiative tracker, inventory, character sheets, and creature stat blocks.
 
 ### Authentication
 
@@ -137,3 +137,20 @@ Components read state reactively and send messages through the context:
 - **ChatPanel** — message list, input field that auto-detects dice notation.
 - **InitiativeTracker** — sorted entry list with current-turn highlight, add/remove/advance.
 - **InventoryPanel** — item list with quantity controls, add/remove.
+- **CharacterSheet** — template-driven character sheet editor. Fields are
+  grouped by category and rendered by type (number, text, checkbox, textarea).
+  Includes resource tracking bars (HP, spell slots) with +/- buttons. Character
+  field edits are sent as `UpdateCharacterField` WebSocket messages for
+  real-time sync.
+- **CreaturePanel** — GM-only creature stat block CRUD. Create, edit, and
+  delete creature stat blocks with template-driven stat fields. Creature stat
+  blocks are linked to tokens for HP auto-initialization.
+
+### RPG Template System
+
+Templates define the fields available on character sheets and creature stat
+blocks via a JSON schema of `TemplateField` entries. Each field has a name,
+label, type (`number`, `text`, `boolean`, `textarea`), category, and default
+value. A default D&D 5e template is provided via the `seed_default_template`
+server function (idempotent). Sessions can be assigned a template; characters
+created in that session are initialized with the template's defaults.

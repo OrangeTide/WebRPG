@@ -64,6 +64,55 @@ pub struct TokenInfo {
     pub max_hp: Option<i32>,
 }
 
+/// A field definition within an RPG template schema.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TemplateField {
+    pub name: String,
+    pub label: String,
+    #[serde(rename = "type")]
+    pub field_type: FieldType,
+    pub category: String,
+    #[serde(default)]
+    pub default: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum FieldType {
+    Number,
+    Text,
+    Boolean,
+    Textarea,
+}
+
+/// An RPG template with its parsed field schema.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TemplateInfo {
+    pub id: i32,
+    pub name: String,
+    pub description: String,
+    pub fields: Vec<TemplateField>,
+}
+
+/// A character with its data parsed according to the template.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CharacterInfo {
+    pub id: i32,
+    pub session_id: i32,
+    pub user_id: i32,
+    pub name: String,
+    pub data: serde_json::Value,
+    pub resources: Vec<ResourceInfo>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResourceInfo {
+    pub id: i32,
+    pub name: String,
+    pub current_value: i32,
+    pub max_value: i32,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreatureInfo {
     pub id: i32,
@@ -152,6 +201,23 @@ pub mod db_models {
     }
 
     #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::rpg_templates)]
+    pub struct RpgTemplate {
+        pub id: i32,
+        pub name: String,
+        pub description: String,
+        pub schema_json: String,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::rpg_templates)]
+    pub struct NewRpgTemplate<'a> {
+        pub name: &'a str,
+        pub description: &'a str,
+        pub schema_json: &'a str,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
     #[diesel(table_name = crate::schema::characters)]
     pub struct Character {
         pub id: i32,
@@ -160,6 +226,43 @@ pub mod db_models {
         pub name: String,
         pub data_json: String,
         pub created_at: String,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::characters)]
+    pub struct NewCharacter<'a> {
+        pub session_id: i32,
+        pub user_id: i32,
+        pub name: &'a str,
+        pub data_json: &'a str,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::character_resources)]
+    pub struct CharacterResource {
+        pub id: i32,
+        pub character_id: i32,
+        pub name: String,
+        pub current_value: i32,
+        pub max_value: i32,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::character_resources)]
+    pub struct NewCharacterResource<'a> {
+        pub character_id: i32,
+        pub name: &'a str,
+        pub current_value: i32,
+        pub max_value: i32,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::creatures)]
+    pub struct NewCreature<'a> {
+        pub session_id: i32,
+        pub template_id: Option<i32>,
+        pub name: &'a str,
+        pub stat_data_json: &'a str,
     }
 
     #[derive(Debug, Queryable, Selectable)]
