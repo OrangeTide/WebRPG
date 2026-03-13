@@ -1,8 +1,6 @@
 use leptos::prelude::*;
 
-use crate::models::{
-    CharacterInfo, CreatureInfo, ResourceInfo, SessionInfo, TemplateInfo, UserInfo,
-};
+use crate::models::{CharacterInfo, CreatureInfo, SessionInfo, TemplateInfo, UserInfo};
 
 #[server]
 pub async fn login(username: String, password: String) -> Result<UserInfo, ServerFnError> {
@@ -595,6 +593,7 @@ pub async fn create_character(
 pub async fn list_characters(session_id: i32) -> Result<Vec<CharacterInfo>, ServerFnError> {
     use crate::db;
     use crate::models::db_models::*;
+    use crate::models::ResourceInfo;
     use crate::schema::*;
     use diesel::prelude::*;
 
