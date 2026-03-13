@@ -7,6 +7,7 @@ use crate::components::creatures::CreaturePanel;
 use crate::components::initiative::InitiativeTracker;
 use crate::components::inventory::InventoryPanel;
 use crate::components::map::MapCanvas;
+use crate::components::window_manager::{GameWindow, WindowId, WindowManager, WindowManagerContext};
 use crate::models::{
     ChatMessageInfo, InitiativeEntryInfo, InventoryItemInfo, MapInfo, TokenInfo,
 };
@@ -297,22 +298,86 @@ pub fn GamePage() -> impl IntoView {
                         name
                     }
                 }}</h1>
-                <span class="connection-status">
-                    {move || if connected.get() { "Connected" } else { "Connecting..." }}
-                </span>
+                <div class="game-header-right">
+                    <WindowToggleToolbar />
+                    <span class="connection-status">
+                        {move || if connected.get() { "Connected" } else { "Connecting..." }}
+                    </span>
+                </div>
             </div>
-            <div class="game-layout">
-                <div class="game-main">
+            <WindowManager>
+                <GameWindow id=WindowId::Map>
                     <MapCanvas />
-                    <CharacterSheet />
-                </div>
-                <div class="game-sidebar">
+                </GameWindow>
+                <GameWindow id=WindowId::Chat>
                     <ChatPanel />
+                </GameWindow>
+                <GameWindow id=WindowId::CharacterSheet>
+                    <CharacterSheet />
+                </GameWindow>
+                <GameWindow id=WindowId::Initiative>
                     <InitiativeTracker />
+                </GameWindow>
+                <GameWindow id=WindowId::Inventory>
                     <InventoryPanel />
+                </GameWindow>
+                <GameWindow id=WindowId::Creatures>
                     <CreaturePanel />
-                </div>
-            </div>
+                </GameWindow>
+            </WindowManager>
         </div>
+    }
+}
+
+/// Toolbar buttons to toggle window visibility.
+#[component]
+fn WindowToggleToolbar() -> impl IntoView {
+    // WindowManagerContext won't be available during SSR render (it's provided
+    // by WindowManager which renders after this). Use try_use_context to avoid panic.
+    // On the client after hydration, the context will be available via effects.
+
+    view! {
+        <div class="wm-toolbar">
+            {WindowId::all()
+                .iter()
+                .map(|&id| {
+                    view! { <WindowToggleButton id=id /> }
+                })
+                .collect::<Vec<_>>()}
+        </div>
+    }
+}
+
+/// A single toggle button for a window.
+#[component]
+fn WindowToggleButton(id: WindowId) -> impl IntoView {
+    let on_click = move |_| {
+        if let Some(wm) = use_context::<WindowManagerContext>() {
+            wm.toggle_window(id);
+        }
+    };
+
+    let is_active = move || {
+        use_context::<WindowManagerContext>()
+            .map(|wm| {
+                wm.windows.with(|wins| {
+                    wins.iter()
+                        .find(|w| w.id == id)
+                        .map(|w| w.visible && !w.minimized)
+                        .unwrap_or(false)
+                })
+            })
+            .unwrap_or(false)
+    };
+
+    view! {
+        <button
+            class="wm-toolbar-btn"
+            class:active=is_active
+            on:click=on_click
+            title=format!("Toggle {}", id.title())
+        >
+            {id.title()}
+        </button>
     }
 }

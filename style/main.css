@@ -246,35 +246,18 @@ h1, h2, h3, h4 {
     background: #0d1b30;
     border-bottom: 1px solid #0f3460;
     flex-shrink: 0;
+    z-index: 10000;
 }
 
-.game-header h2 {
+.game-header h1 {
     font-size: 1.1rem;
-}
-
-.game-layout {
-    display: flex;
-    flex: 1;
-    min-height: 0;
-}
-
-.game-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    position: relative;
-}
-
-.game-sidebar {
-    width: 320px;
     flex-shrink: 0;
+}
+
+.game-header-right {
     display: flex;
-    flex-direction: column;
-    gap: 0;
-    background: #16213e;
-    border-left: 1px solid #0f3460;
-    overflow-y: auto;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .connection-status {
@@ -283,10 +266,184 @@ h1, h2, h3, h4 {
     border-radius: 10px;
     background: #0f3460;
     color: #aaa;
+    flex-shrink: 0;
 }
 
 .connection-status.connected {
     color: #4ade80;
+}
+
+/* === Window Toggle Toolbar === */
+.wm-toolbar {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.wm-toolbar-btn {
+    font-size: 0.75rem;
+    padding: 0.2em 0.6em;
+    background: #0f3460;
+    border: 1px solid #1a4a7a;
+    border-radius: 4px;
+    color: #aaa;
+    cursor: pointer;
+}
+
+.wm-toolbar-btn:hover {
+    background: #1a4a7a;
+    color: #eee;
+}
+
+.wm-toolbar-btn.active {
+    background: #1a4a7a;
+    color: #eee;
+    border-color: #e94560;
+}
+
+/* === Window Manager Viewport === */
+.wm-viewport {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #1a1a2e;
+    user-select: none;
+}
+
+/* === Game Window === */
+.gw {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+.gw-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.3rem 0.6rem;
+    background: #0d1b30;
+    border-bottom: 1px solid #0f3460;
+    cursor: grab;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.gw-titlebar:active {
+    cursor: grabbing;
+}
+
+.gw-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #ccc;
+    pointer-events: none;
+}
+
+.gw-controls {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.gw-btn {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    font-size: 0.85rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: #888;
+    cursor: pointer;
+}
+
+.gw-btn:hover {
+    background: #1a4a7a;
+    color: #eee;
+}
+
+.gw-btn-close:hover {
+    background: #e94560;
+    color: #fff;
+}
+
+.gw-body {
+    flex: 1;
+    overflow: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Components fill their window body */
+.gw-body > .map-container,
+.gw-body > .chat-panel,
+.gw-body > .character-sheet-panel,
+.gw-body > .creature-panel,
+.gw-body > .initiative-panel,
+.gw-body > .inventory-panel {
+    flex: 1;
+    min-height: 0;
+}
+
+/* === Resize Handles === */
+.gw-resize {
+    position: absolute;
+    z-index: 1;
+}
+
+/* Edge handles */
+.gw-resize-t { top: -3px; left: 6px; right: 6px; height: 6px; cursor: n-resize; }
+.gw-resize-b { bottom: -3px; left: 6px; right: 6px; height: 6px; cursor: s-resize; }
+.gw-resize-l { left: -3px; top: 6px; bottom: 6px; width: 6px; cursor: w-resize; }
+.gw-resize-r { right: -3px; top: 6px; bottom: 6px; width: 6px; cursor: e-resize; }
+
+/* Corner handles */
+.gw-resize-tl { top: -3px; left: -3px; width: 10px; height: 10px; cursor: nw-resize; }
+.gw-resize-tr { top: -3px; right: -3px; width: 10px; height: 10px; cursor: ne-resize; }
+.gw-resize-bl { bottom: -3px; left: -3px; width: 10px; height: 10px; cursor: sw-resize; }
+.gw-resize-br { bottom: -3px; right: -3px; width: 10px; height: 10px; cursor: se-resize; }
+
+/* === Taskbar (minimized windows) === */
+.wm-taskbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: 0.3rem;
+    padding: 0.3rem 0.5rem;
+    background: #0d1b30;
+    border-top: 1px solid #0f3460;
+    z-index: 9999;
+    min-height: 0;
+}
+
+.wm-taskbar:empty {
+    display: none;
+}
+
+.wm-taskbar-btn {
+    font-size: 0.75rem;
+    padding: 0.25em 0.7em;
+    background: #0f3460;
+    border: 1px solid #1a4a7a;
+    border-radius: 4px;
+    color: #ccc;
+    cursor: pointer;
+}
+
+.wm-taskbar-btn:hover {
+    background: #1a4a7a;
+    color: #fff;
 }
 
 /* === Map === */
@@ -347,7 +504,6 @@ h1, h2, h3, h4 {
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    border-bottom: 1px solid #0f3460;
 }
 
 .chat-panel h3 {
