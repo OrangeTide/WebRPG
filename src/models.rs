@@ -241,6 +241,49 @@ pub mod db_models {
         pub dice_result: Option<&'a str>,
     }
 
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::tokens)]
+    pub struct NewToken<'a> {
+        pub map_id: i32,
+        pub label: &'a str,
+        pub x: f32,
+        pub y: f32,
+        pub color: &'a str,
+        pub size: i32,
+        pub visible: bool,
+        pub creature_id: Option<i32>,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::token_instances)]
+    pub struct NewTokenInstance {
+        pub token_id: i32,
+        pub creature_id: i32,
+        pub current_hp: i32,
+        pub max_hp: i32,
+        pub conditions_json: String,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::inventory_items)]
+    pub struct NewInventoryItem<'a> {
+        pub session_id: i32,
+        pub name: &'a str,
+        pub description: &'a str,
+        pub quantity: i32,
+        pub is_party_item: bool,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::initiative)]
+    pub struct NewInitiativeEntry<'a> {
+        pub session_id: i32,
+        pub label: &'a str,
+        pub initiative_value: f32,
+        pub is_current_turn: bool,
+        pub sort_order: i32,
+    }
+
     #[derive(Debug, Queryable, Selectable)]
     #[diesel(table_name = crate::schema::inventory_items)]
     pub struct InventoryItem {

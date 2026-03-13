@@ -273,6 +273,28 @@ pub async fn create_session(name: String) -> Result<SessionInfo, ServerFnError> 
 }
 
 #[server]
+pub async fn get_ws_token() -> Result<String, ServerFnError> {
+    let req_parts: axum::http::request::Parts = leptos_axum::extract().await?;
+
+    let cookie_header = match req_parts.headers.get(axum::http::header::COOKIE) {
+        Some(val) => val.to_str().unwrap_or(""),
+        None => return Err(ServerFnError::new("Not logged in")),
+    };
+
+    let token = cookie_header
+        .split(';')
+        .find_map(|cookie| {
+            let cookie = cookie.trim();
+            cookie.strip_prefix("token=")
+        });
+
+    match token {
+        Some(t) if !t.is_empty() => Ok(t.to_string()),
+        _ => Err(ServerFnError::new("Not logged in")),
+    }
+}
+
+#[server]
 pub async fn join_session(session_id: i32) -> Result<(), ServerFnError> {
     use crate::db;
     use crate::schema::{session_players, sessions};

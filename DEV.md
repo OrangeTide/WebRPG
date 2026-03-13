@@ -103,8 +103,37 @@ TLS_CERT_PATH=cert.pem TLS_KEY_PATH=key.pem cargo leptos serve
 
 ### WebSocket Protocol
 
-On connect, the client sends a `JoinSession` message. The server responds with
-a `SessionJoined` message containing a full `GameStateSnapshot`. After that,
-incremental events are broadcast to all connected clients. The server is the
-single source of truth — clients send requests, the server validates and
+On connect, the client calls the `get_ws_token` server function to obtain the
+JWT token, then opens a WebSocket to `/ws?token=<jwt>`. It sends a `JoinSession`
+message and receives a `SessionJoined` response with a full `GameStateSnapshot`.
+After that, incremental events are broadcast to all connected clients. The server
+is the single source of truth — clients send requests, the server validates and
 broadcasts results.
+
+All message types are fully implemented:
+
+- **Chat:** messages and dice rolls (`NdN+M` notation, rolled server-side)
+- **Tokens:** place, move, remove, HP updates (creature-linked tokens auto-init HP)
+- **Fog of war:** reveal/hide cells (GM only)
+- **Map:** switch active map (GM only)
+- **Initiative:** add/remove entries, advance turn (GM only)
+- **Character sheets:** update fields via dot-path (e.g. `stats.strength`)
+- **Inventory:** add, remove, update items
+
+GM role is enforced server-side for token placement/removal, fog, map, and
+initiative operations.
+
+### Game Page Architecture
+
+The game page (`pages/game.rs`) creates a `GameContext` provided via Leptos
+context to all child components. `GameContext` holds `RwSignal`s for each piece
+of game state (map, tokens, fog, chat, initiative, inventory) and a
+`StoredValue<SendFn, LocalStorage>` for sending WebSocket messages.
+
+Components read state reactively and send messages through the context:
+
+- **MapCanvas** — HTML5 Canvas rendering with grid, tokens (colored circles with
+  labels), HP bars, fog of war overlay. Drag-and-drop token movement.
+- **ChatPanel** — message list, input field that auto-detects dice notation.
+- **InitiativeTracker** — sorted entry list with current-turn highlight, add/remove/advance.
+- **InventoryPanel** — item list with quantity controls, add/remove.

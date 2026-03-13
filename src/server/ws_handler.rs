@@ -40,7 +40,6 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
     let (mut ws_sender, mut ws_receiver) = socket.split();
     let (tx, mut rx) = mpsc::unbounded_channel::<ServerMessage>();
 
-    // Spawn task to forward messages from channel to WebSocket
     let send_task = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
             if let Ok(json) = serde_json::to_string(&msg) {
@@ -54,7 +53,6 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
     let mut current_session: Option<i32> = None;
     let username_clone = username.clone();
 
-    // Receive messages from WebSocket
     while let Some(Ok(msg)) = ws_receiver.next().await {
         let text = match msg {
             Message::Text(t) => t.to_string(),
@@ -74,7 +72,6 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
 
         match client_msg {
             ClientMessage::JoinSession { session_id } => {
-                // Leave previous session if any
                 if let Some(prev_id) = current_session.take() {
                     SESSION_MANAGER.remove_client(prev_id, &username);
                     SESSION_MANAGER.broadcast(
@@ -89,8 +86,7 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 SESSION_MANAGER.add_client(session_id, username.clone(), tx.clone());
                 current_session = Some(session_id);
 
-                // Build snapshot from database
-                let snapshot = build_snapshot(session_id, &username).await;
+                let snapshot = build_snapshot(session_id);
                 let _ = tx.send(ServerMessage::SessionJoined { snapshot });
 
                 SESSION_MANAGER.broadcast(
@@ -130,24 +126,22 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 if let Some(session_id) = current_session {
                     match parse_and_roll(&expression) {
                         Ok((rolls, total)) => {
-                            let chat_msg = save_chat_message(
+                            let _chat_msg = save_chat_message(
                                 session_id,
                                 user_id,
                                 &username,
                                 &format!("rolled {expression}: {total}"),
                             );
-                            // Store dice result in chat
                             SESSION_MANAGER.broadcast(
                                 session_id,
                                 &ServerMessage::DiceResult {
                                     username: username.clone(),
-                                    expression: expression.clone(),
+                                    expression,
                                     rolls,
                                     total,
                                 },
                                 None,
                             );
-                            let _ = chat_msg; // already broadcast
                         }
                         Err(e) => {
                             let _ = tx.send(ServerMessage::Error { message: e });
@@ -158,11 +152,9 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
 
             ClientMessage::MoveToken { token_id, x, y } => {
                 if let Some(session_id) = current_session {
-                    // Update in-memory state
                     if let Some(mut session) = SESSION_MANAGER.sessions.get_mut(&session_id) {
                         session.token_positions.insert(token_id, (x, y));
                     }
-                    // Persist to DB asynchronously
                     tokio::spawn(async move {
                         persist_token_position(token_id, x, y);
                     });
@@ -174,9 +166,98 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 }
             }
 
+            ClientMessage::PlaceToken {
+                label,
+                x,
+                y,
+                color,
+                size,
+                creature_id,
+            } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can place tokens".into(),
+                        });
+                        continue;
+                    }
+                    match place_token(session_id, &label, x, y, &color, size, creature_id) {
+                        Ok(token_info) => {
+                            if let Some(mut session) =
+                                SESSION_MANAGER.sessions.get_mut(&session_id)
+                            {
+                                session.token_positions.insert(token_info.id, (x, y));
+                            }
+                            SESSION_MANAGER.broadcast(
+                                session_id,
+                                &ServerMessage::TokenPlaced {
+                                    token: token_info,
+                                },
+                                None,
+                            );
+                        }
+                        Err(e) => {
+                            let _ = tx.send(ServerMessage::Error { message: e });
+                        }
+                    }
+                }
+            }
+
+            ClientMessage::RemoveToken { token_id } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can remove tokens".into(),
+                        });
+                        continue;
+                    }
+                    remove_token(token_id);
+                    if let Some(mut session) = SESSION_MANAGER.sessions.get_mut(&session_id) {
+                        session.token_positions.remove(&token_id);
+                    }
+                    SESSION_MANAGER.broadcast(
+                        session_id,
+                        &ServerMessage::TokenRemoved { token_id },
+                        None,
+                    );
+                }
+            }
+
+            ClientMessage::UpdateTokenHp { token_id, hp_change } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can update token HP".into(),
+                        });
+                        continue;
+                    }
+                    match update_token_hp(token_id, hp_change) {
+                        Ok((current_hp, max_hp)) => {
+                            SESSION_MANAGER.broadcast(
+                                session_id,
+                                &ServerMessage::TokenHpUpdated {
+                                    token_id,
+                                    current_hp,
+                                    max_hp,
+                                },
+                                None,
+                            );
+                        }
+                        Err(e) => {
+                            let _ = tx.send(ServerMessage::Error { message: e });
+                        }
+                    }
+                }
+            }
+
             ClientMessage::RevealFog { cells } => {
                 if let Some(session_id) = current_session {
-                    // TODO: check GM role
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can modify fog".into(),
+                        });
+                        continue;
+                    }
                     if let Some(mut session) = SESSION_MANAGER.sessions.get_mut(&session_id) {
                         for cell in &cells {
                             session.revealed_fog.insert(*cell);
@@ -195,6 +276,12 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
 
             ClientMessage::HideFog { cells } => {
                 if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can modify fog".into(),
+                        });
+                        continue;
+                    }
                     if let Some(mut session) = SESSION_MANAGER.sessions.get_mut(&session_id) {
                         for cell in &cells {
                             session.revealed_fog.remove(cell);
@@ -211,16 +298,145 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 }
             }
 
-            // Placeholder handlers for remaining message types
-            _ => {
-                let _ = tx.send(ServerMessage::Error {
-                    message: "Not yet implemented".to_string(),
-                });
+            ClientMessage::SetMap { map_id } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can change the map".into(),
+                        });
+                        continue;
+                    }
+                    match load_map_with_tokens(map_id) {
+                        Ok((map_info, token_list, fog_cells)) => {
+                            if let Some(mut session) =
+                                SESSION_MANAGER.sessions.get_mut(&session_id)
+                            {
+                                session.active_map_id = Some(map_id);
+                                session.token_positions.clear();
+                                for t in &token_list {
+                                    session.token_positions.insert(t.id, (t.x, t.y));
+                                }
+                                session.revealed_fog.clear();
+                                for cell in &fog_cells {
+                                    session.revealed_fog.insert(*cell);
+                                }
+                            }
+                            SESSION_MANAGER.broadcast(
+                                session_id,
+                                &ServerMessage::MapChanged {
+                                    map: map_info,
+                                    tokens: token_list,
+                                    fog: fog_cells,
+                                },
+                                None,
+                            );
+                        }
+                        Err(e) => {
+                            let _ = tx.send(ServerMessage::Error { message: e });
+                        }
+                    }
+                }
+            }
+
+            ClientMessage::UpdateInitiative { entries } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can update initiative".into(),
+                        });
+                        continue;
+                    }
+                    save_initiative(session_id, &entries);
+                    if let Some(mut session) = SESSION_MANAGER.sessions.get_mut(&session_id) {
+                        session.initiative_order = entries.clone();
+                    }
+                    SESSION_MANAGER.broadcast(
+                        session_id,
+                        &ServerMessage::InitiativeUpdated { entries },
+                        None,
+                    );
+                }
+            }
+
+            ClientMessage::UpdateCharacterField {
+                character_id,
+                field_path,
+                value,
+            } => {
+                if let Some(session_id) = current_session {
+                    if let Err(e) =
+                        update_character_field(character_id, user_id, &field_path, &value)
+                    {
+                        let _ = tx.send(ServerMessage::Error { message: e });
+                        continue;
+                    }
+                    SESSION_MANAGER.broadcast(
+                        session_id,
+                        &ServerMessage::CharacterUpdated {
+                            character_id,
+                            field_path,
+                            value,
+                        },
+                        None,
+                    );
+                }
+            }
+
+            ClientMessage::AddInventoryItem {
+                name,
+                description,
+                quantity,
+                is_party_item,
+            } => {
+                if let Some(session_id) = current_session {
+                    match add_inventory_item(session_id, &name, &description, quantity, is_party_item)
+                    {
+                        Ok(items) => {
+                            SESSION_MANAGER.broadcast(
+                                session_id,
+                                &ServerMessage::InventoryUpdated { items },
+                                None,
+                            );
+                        }
+                        Err(e) => {
+                            let _ = tx.send(ServerMessage::Error { message: e });
+                        }
+                    }
+                }
+            }
+
+            ClientMessage::RemoveInventoryItem { item_id } => {
+                if let Some(session_id) = current_session {
+                    remove_inventory_item(item_id);
+                    let items = load_inventory(session_id);
+                    SESSION_MANAGER.broadcast(
+                        session_id,
+                        &ServerMessage::InventoryUpdated { items },
+                        None,
+                    );
+                }
+            }
+
+            ClientMessage::UpdateInventoryItem {
+                item_id,
+                name,
+                description,
+                quantity,
+            } => {
+                if let Some(session_id) = current_session {
+                    update_inventory_item(item_id, name.as_deref(), description.as_deref(), quantity);
+                    let items = load_inventory(session_id);
+                    SESSION_MANAGER.broadcast(
+                        session_id,
+                        &ServerMessage::InventoryUpdated { items },
+                        None,
+                    );
+                }
             }
         }
     }
 
-    // Client disconnected - clean up
+    // Client disconnected
     if let Some(session_id) = current_session {
         SESSION_MANAGER.remove_client(session_id, &username_clone);
         SESSION_MANAGER.broadcast(
@@ -235,42 +451,158 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
     send_task.abort();
 }
 
-async fn build_snapshot(
-    session_id: i32,
-    _username: &str,
-) -> crate::ws::messages::GameStateSnapshot {
+// ===== Helper functions =====
+
+fn is_gm(session_id: i32, user_id: i32) -> bool {
     use crate::db;
-    use crate::models::db_models::Session;
     use crate::schema::sessions;
     use diesel::prelude::*;
 
     let conn = &mut db::get_conn();
-
-    let session = sessions::table
+    sessions::table
         .find(session_id)
-        .select(Session::as_select())
-        .first(conn)
-        .ok();
+        .select(sessions::gm_user_id)
+        .first::<i32>(conn)
+        .map(|gm_id| gm_id == user_id)
+        .unwrap_or(false)
+}
 
-    let session_name = session.map(|s| s.name).unwrap_or_default();
+fn build_snapshot(session_id: i32) -> crate::ws::messages::GameStateSnapshot {
+    use crate::db;
+    use crate::models::db_models::*;
+    use crate::schema::*;
+    use diesel::prelude::*;
 
-    // Get connected players
+    let conn = &mut db::get_conn();
+
+    let session_name = sessions::table
+        .find(session_id)
+        .select(sessions::name)
+        .first::<String>(conn)
+        .unwrap_or_default();
+
     let players: Vec<String> = SESSION_MANAGER
         .sessions
         .get(&session_id)
         .map(|s| s.clients.iter().map(|e| e.key().clone()).collect())
         .unwrap_or_default();
 
+    // Load active map (most recent map for this session)
+    let map_row: Option<Map> = maps::table
+        .filter(maps::session_id.eq(session_id))
+        .order(maps::id.desc())
+        .select(Map::as_select())
+        .first(conn)
+        .optional()
+        .unwrap_or(None);
+
+    let (map_info, token_list, fog_cells) = if let Some(m) = map_row {
+        let map_id = m.id;
+
+        let map_info = crate::models::MapInfo {
+            id: m.id,
+            name: m.name,
+            width: m.width,
+            height: m.height,
+            cell_size: m.cell_size,
+            background_url: m.background_url,
+        };
+
+        let db_tokens: Vec<Token> = tokens::table
+            .filter(tokens::map_id.eq(map_id))
+            .select(Token::as_select())
+            .load(conn)
+            .unwrap_or_default();
+
+        let token_list: Vec<crate::models::TokenInfo> = db_tokens
+            .into_iter()
+            .map(|t| {
+                let instance: Option<TokenInstance> = token_instances::table
+                    .filter(token_instances::token_id.eq(t.id))
+                    .select(TokenInstance::as_select())
+                    .first(conn)
+                    .optional()
+                    .unwrap_or(None);
+
+                crate::models::TokenInfo {
+                    id: t.id,
+                    label: t.label,
+                    x: t.x,
+                    y: t.y,
+                    color: t.color,
+                    size: t.size,
+                    visible: t.visible,
+                    current_hp: instance.as_ref().map(|i| i.current_hp),
+                    max_hp: instance.as_ref().map(|i| i.max_hp),
+                }
+            })
+            .collect();
+
+        let fog_cells: Vec<(i32, i32)> = fog_of_war::table
+            .filter(fog_of_war::map_id.eq(map_id))
+            .select((fog_of_war::x, fog_of_war::y))
+            .load(conn)
+            .unwrap_or_default();
+
+        (Some(map_info), token_list, fog_cells)
+    } else {
+        (None, vec![], vec![])
+    };
+
+    // Load initiative
+    let init_entries: Vec<InitiativeEntry> = initiative::table
+        .filter(initiative::session_id.eq(session_id))
+        .order(initiative::sort_order.asc())
+        .select(InitiativeEntry::as_select())
+        .load(conn)
+        .unwrap_or_default();
+
+    let initiative_list: Vec<crate::models::InitiativeEntryInfo> = init_entries
+        .into_iter()
+        .map(|e| crate::models::InitiativeEntryInfo {
+            id: e.id,
+            label: e.label,
+            initiative_value: e.initiative_value,
+            is_current_turn: e.is_current_turn,
+        })
+        .collect();
+
+    // Load recent chat (last 50 messages)
+    let chat_rows: Vec<(ChatMessage, String)> = chat_messages::table
+        .inner_join(users::table.on(users::id.eq(chat_messages::user_id)))
+        .filter(chat_messages::session_id.eq(session_id))
+        .order(chat_messages::id.desc())
+        .limit(50)
+        .select((ChatMessage::as_select(), users::username))
+        .load(conn)
+        .unwrap_or_default();
+
+    let recent_chat: Vec<crate::models::ChatMessageInfo> = chat_rows
+        .into_iter()
+        .rev()
+        .map(|(msg, uname)| crate::models::ChatMessageInfo {
+            id: msg.id,
+            username: uname,
+            message: msg.message,
+            is_dice_roll: msg.is_dice_roll,
+            dice_result: msg.dice_result,
+            created_at: msg.created_at,
+        })
+        .collect();
+
+    // Load inventory
+    let inventory = load_inventory(session_id);
+
     crate::ws::messages::GameStateSnapshot {
         session_id,
         session_name,
         players,
-        map: None,
-        tokens: vec![],
-        fog: vec![],
-        initiative: vec![],
-        recent_chat: vec![],
-        inventory: vec![],
+        map: map_info,
+        tokens: token_list,
+        fog: fog_cells,
+        initiative: initiative_list,
+        recent_chat,
+        inventory,
     }
 }
 
@@ -299,8 +631,14 @@ fn save_chat_message(
         .values(&new_msg)
         .execute(conn);
 
+    let id: i32 = diesel::select(diesel::dsl::sql::<diesel::sql_types::Integer>(
+        "last_insert_rowid()",
+    ))
+    .get_result(conn)
+    .unwrap_or(0);
+
     crate::models::ChatMessageInfo {
-        id: 0,
+        id,
         username: username.to_string(),
         message: message.to_string(),
         is_dice_roll: false,
@@ -318,6 +656,368 @@ fn persist_token_position(token_id: i32, x: f32, y: f32) {
     let _ = diesel::update(tokens::table.find(token_id))
         .set((tokens::x.eq(x), tokens::y.eq(y)))
         .execute(conn);
+}
+
+fn place_token(
+    session_id: i32,
+    label: &str,
+    x: f32,
+    y: f32,
+    color: &str,
+    size: i32,
+    creature_id: Option<i32>,
+) -> Result<crate::models::TokenInfo, String> {
+    use crate::db;
+    use crate::models::db_models::*;
+    use crate::schema::*;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    // Get active map for this session
+    let map_id: i32 = maps::table
+        .filter(maps::session_id.eq(session_id))
+        .order(maps::id.desc())
+        .select(maps::id)
+        .first(conn)
+        .map_err(|_| "No active map for this session".to_string())?;
+
+    let new_token = NewToken {
+        map_id,
+        label,
+        x,
+        y,
+        color,
+        size,
+        visible: true,
+        creature_id,
+    };
+
+    diesel::insert_into(tokens::table)
+        .values(&new_token)
+        .execute(conn)
+        .map_err(|e| format!("Failed to place token: {e}"))?;
+
+    let token_id: i32 = diesel::select(diesel::dsl::sql::<diesel::sql_types::Integer>(
+        "last_insert_rowid()",
+    ))
+    .get_result(conn)
+    .map_err(|e| format!("Failed to get token id: {e}"))?;
+
+    // If linked to a creature, create a token instance with HP from the stat block
+    let (current_hp, max_hp) = if let Some(cid) = creature_id {
+        let creature: Creature = creatures::table
+            .find(cid)
+            .select(Creature::as_select())
+            .first(conn)
+            .map_err(|_| "Creature not found".to_string())?;
+
+        let stat_data: serde_json::Value =
+            serde_json::from_str(&creature.stat_data_json).unwrap_or_default();
+        let hp = stat_data
+            .get("hp_max")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(10) as i32;
+
+        let new_instance = NewTokenInstance {
+            token_id,
+            creature_id: cid,
+            current_hp: hp,
+            max_hp: hp,
+            conditions_json: "[]".to_string(),
+        };
+
+        diesel::insert_into(token_instances::table)
+            .values(&new_instance)
+            .execute(conn)
+            .map_err(|e| format!("Failed to create token instance: {e}"))?;
+
+        (Some(hp), Some(hp))
+    } else {
+        (None, None)
+    };
+
+    Ok(crate::models::TokenInfo {
+        id: token_id,
+        label: label.to_string(),
+        x,
+        y,
+        color: color.to_string(),
+        size,
+        visible: true,
+        current_hp,
+        max_hp,
+    })
+}
+
+fn remove_token(token_id: i32) {
+    use crate::db;
+    use crate::schema::{token_instances, tokens};
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+    let _ = diesel::delete(token_instances::table.filter(token_instances::token_id.eq(token_id)))
+        .execute(conn);
+    let _ = diesel::delete(tokens::table.find(token_id)).execute(conn);
+}
+
+fn update_token_hp(token_id: i32, hp_change: i32) -> Result<(i32, i32), String> {
+    use crate::db;
+    use crate::models::db_models::TokenInstance;
+    use crate::schema::token_instances;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    let instance: TokenInstance = token_instances::table
+        .filter(token_instances::token_id.eq(token_id))
+        .select(TokenInstance::as_select())
+        .first(conn)
+        .map_err(|_| "Token has no HP instance".to_string())?;
+
+    let new_hp = (instance.current_hp + hp_change).max(0).min(instance.max_hp);
+
+    diesel::update(token_instances::table.find(instance.id))
+        .set(token_instances::current_hp.eq(new_hp))
+        .execute(conn)
+        .map_err(|e| format!("Failed to update HP: {e}"))?;
+
+    Ok((new_hp, instance.max_hp))
+}
+
+fn load_map_with_tokens(
+    map_id: i32,
+) -> Result<(crate::models::MapInfo, Vec<crate::models::TokenInfo>, Vec<(i32, i32)>), String> {
+    use crate::db;
+    use crate::models::db_models::*;
+    use crate::schema::*;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    let m: Map = maps::table
+        .find(map_id)
+        .select(Map::as_select())
+        .first(conn)
+        .map_err(|_| "Map not found".to_string())?;
+
+    let map_info = crate::models::MapInfo {
+        id: m.id,
+        name: m.name,
+        width: m.width,
+        height: m.height,
+        cell_size: m.cell_size,
+        background_url: m.background_url,
+    };
+
+    let db_tokens: Vec<Token> = tokens::table
+        .filter(tokens::map_id.eq(map_id))
+        .select(Token::as_select())
+        .load(conn)
+        .unwrap_or_default();
+
+    let token_list: Vec<crate::models::TokenInfo> = db_tokens
+        .into_iter()
+        .map(|t| {
+            let instance: Option<TokenInstance> = token_instances::table
+                .filter(token_instances::token_id.eq(t.id))
+                .select(TokenInstance::as_select())
+                .first(conn)
+                .optional()
+                .unwrap_or(None);
+
+            crate::models::TokenInfo {
+                id: t.id,
+                label: t.label,
+                x: t.x,
+                y: t.y,
+                color: t.color,
+                size: t.size,
+                visible: t.visible,
+                current_hp: instance.as_ref().map(|i| i.current_hp),
+                max_hp: instance.as_ref().map(|i| i.max_hp),
+            }
+        })
+        .collect();
+
+    let fog_cells: Vec<(i32, i32)> = fog_of_war::table
+        .filter(fog_of_war::map_id.eq(map_id))
+        .select((fog_of_war::x, fog_of_war::y))
+        .load(conn)
+        .unwrap_or_default();
+
+    Ok((map_info, token_list, fog_cells))
+}
+
+fn save_initiative(session_id: i32, entries: &[crate::models::InitiativeEntryInfo]) {
+    use crate::db;
+    use crate::models::db_models::NewInitiativeEntry;
+    use crate::schema::initiative;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    // Replace all initiative entries for this session
+    let _ = diesel::delete(initiative::table.filter(initiative::session_id.eq(session_id)))
+        .execute(conn);
+
+    for (i, entry) in entries.iter().enumerate() {
+        let new_entry = NewInitiativeEntry {
+            session_id,
+            label: &entry.label,
+            initiative_value: entry.initiative_value,
+            is_current_turn: entry.is_current_turn,
+            sort_order: i as i32,
+        };
+        let _ = diesel::insert_into(initiative::table)
+            .values(&new_entry)
+            .execute(conn);
+    }
+}
+
+fn update_character_field(
+    character_id: i32,
+    user_id: i32,
+    field_path: &str,
+    value: &serde_json::Value,
+) -> Result<(), String> {
+    use crate::db;
+    use crate::models::db_models::Character;
+    use crate::schema::characters;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    let character: Character = characters::table
+        .find(character_id)
+        .select(Character::as_select())
+        .first(conn)
+        .map_err(|_| "Character not found".to_string())?;
+
+    // Players can only edit their own characters
+    if character.user_id != user_id {
+        return Err("You can only edit your own character".to_string());
+    }
+
+    let mut data: serde_json::Value =
+        serde_json::from_str(&character.data_json).unwrap_or(serde_json::json!({}));
+
+    // Set the field at the given path (supports dot-separated paths like "stats.strength")
+    let parts: Vec<&str> = field_path.split('.').collect();
+    let mut current = &mut data;
+    for (i, part) in parts.iter().enumerate() {
+        if i == parts.len() - 1 {
+            current[part] = value.clone();
+        } else {
+            if !current.get(part).is_some_and(|v| v.is_object()) {
+                current[part] = serde_json::json!({});
+            }
+            current = &mut current[part];
+        }
+    }
+
+    let json_str = serde_json::to_string(&data).map_err(|e| format!("Serialization error: {e}"))?;
+
+    diesel::update(characters::table.find(character_id))
+        .set(characters::data_json.eq(json_str))
+        .execute(conn)
+        .map_err(|e| format!("Failed to update character: {e}"))?;
+
+    Ok(())
+}
+
+fn add_inventory_item(
+    session_id: i32,
+    name: &str,
+    description: &str,
+    quantity: i32,
+    is_party_item: bool,
+) -> Result<Vec<crate::models::InventoryItemInfo>, String> {
+    use crate::db;
+    use crate::models::db_models::NewInventoryItem;
+    use crate::schema::inventory_items;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    let new_item = NewInventoryItem {
+        session_id,
+        name,
+        description,
+        quantity,
+        is_party_item,
+    };
+
+    diesel::insert_into(inventory_items::table)
+        .values(&new_item)
+        .execute(conn)
+        .map_err(|e| format!("Failed to add inventory item: {e}"))?;
+
+    Ok(load_inventory(session_id))
+}
+
+fn remove_inventory_item(item_id: i32) {
+    use crate::db;
+    use crate::schema::inventory_items;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+    let _ = diesel::delete(inventory_items::table.find(item_id)).execute(conn);
+}
+
+fn update_inventory_item(
+    item_id: i32,
+    name: Option<&str>,
+    description: Option<&str>,
+    quantity: Option<i32>,
+) {
+    use crate::db;
+    use crate::schema::inventory_items;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    if let Some(name) = name {
+        let _ = diesel::update(inventory_items::table.find(item_id))
+            .set(inventory_items::name.eq(name))
+            .execute(conn);
+    }
+    if let Some(description) = description {
+        let _ = diesel::update(inventory_items::table.find(item_id))
+            .set(inventory_items::description.eq(description))
+            .execute(conn);
+    }
+    if let Some(quantity) = quantity {
+        let _ = diesel::update(inventory_items::table.find(item_id))
+            .set(inventory_items::quantity.eq(quantity))
+            .execute(conn);
+    }
+}
+
+fn load_inventory(session_id: i32) -> Vec<crate::models::InventoryItemInfo> {
+    use crate::db;
+    use crate::models::db_models::InventoryItem;
+    use crate::schema::inventory_items;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    let items: Vec<InventoryItem> = inventory_items::table
+        .filter(inventory_items::session_id.eq(session_id))
+        .select(InventoryItem::as_select())
+        .load(conn)
+        .unwrap_or_default();
+
+    items
+        .into_iter()
+        .map(|item| crate::models::InventoryItemInfo {
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            quantity: item.quantity,
+            is_party_item: item.is_party_item,
+        })
+        .collect()
 }
 
 /// Parse dice expressions like "2d6+3", "1d20", "4d8-2"
