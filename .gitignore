@@ -1,2 +1,5 @@
 /target
 /dist
+/.env
+/.agents
+database.db
