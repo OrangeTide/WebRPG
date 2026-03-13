@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos_meta::{provide_meta_context, MetaTags, Title};
+use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
 use leptos_router::{
     components::{Route, Router, Routes},
     StaticSegment, ParamSegment,
@@ -33,6 +33,7 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     view! {
+        <Stylesheet href="/pkg/webrpg.css" />
         <Title text="WebRPG" />
 
         <Router>

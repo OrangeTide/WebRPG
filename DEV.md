@@ -28,8 +28,8 @@ src/
 ├── schema.rs         # Diesel table definitions (auto-generated)
 ├── models.rs         # Shared DTOs + Diesel models
 ├── pages/            # Page components (landing, login, sessions, game)
-├── components/       # UI components (map, chat, inventory, initiative)
-├── server/           # Server functions + WebSocket upgrade handler
+├── components/       # UI components (map, chat, inventory, initiative, media browser)
+├── server/           # Server functions, media handler + WebSocket upgrade handler
 └── ws/               # WebSocket message types + session state manager
 migrations/           # Diesel SQL migrations
 ```
@@ -132,8 +132,10 @@ of game state (map, tokens, fog, chat, initiative, inventory) and a
 
 Components read state reactively and send messages through the context:
 
-- **MapCanvas** — HTML5 Canvas rendering with grid, tokens (colored circles with
-  labels), HP bars, fog of war overlay. Drag-and-drop token movement.
+- **MapCanvas** — HTML5 Canvas rendering with grid, tokens (colored circles or
+  images clipped to circles), HP bars, fog of war overlay. Supports background
+  images and token images loaded from the media system. Drag-and-drop token
+  movement. GM can set map background via the media browser.
 - **ChatPanel** — message list, input field that auto-detects dice notation.
 - **InitiativeTracker** — sorted entry list with current-turn highlight, add/remove/advance.
 - **InventoryPanel** — item list with quantity controls, add/remove.
@@ -141,10 +143,114 @@ Components read state reactively and send messages through the context:
   grouped by category and rendered by type (number, text, checkbox, textarea).
   Includes resource tracking bars (HP, spell slots) with +/- buttons. Character
   field edits are sent as `UpdateCharacterField` WebSocket messages for
-  real-time sync.
+  real-time sync. Supports character portraits via the media browser.
 - **CreaturePanel** — GM-only creature stat block CRUD. Create, edit, and
   delete creature stat blocks with template-driven stat fields. Creature stat
   blocks are linked to tokens for HP auto-initialization.
+
+- **MediaBrowser** — modal dialog for browsing, searching, and uploading media
+  files. Supports image thumbnails, tag-based filtering with autocomplete, and
+  text search. Used by map background picker, token image picker, and character
+  portrait picker.
+
+### Media Storage
+
+Media files (images and audio) use content-addressable storage (CAS). Files are
+stored on disk by SHA-256 hash under `uploads/media/` (configurable via
+`MEDIA_DIR` env var), sharded by first two hex characters. Upload via multipart
+POST to `/api/media/upload` (JWT auth from cookie, 20 MB limit). Serve via
+`GET /api/media/:hash` with immutable cache headers. Supported types: PNG, JPG,
+GIF, WebP (images), WAV, MP3 (audio). Tags are stored in the `media_tags` table;
+the original filename is automatically added as a tag on upload.
+
+## CI / CD
+
+### Pull Requests
+
+Every PR targeting `main` runs four parallel jobs:
+
+| Job | What it does |
+|-----|-------------|
+| **Compile & Test** | Diesel migrations on a fresh DB, `cargo check` for both SSR and hydrate targets, `cargo test` |
+| **Formatting** | `cargo fmt --check` |
+| **Clippy** | `cargo clippy` for both SSR and hydrate targets with `-D warnings` |
+| **Smoke Test** | Full cargo-leptos build, then `ci/smoke-test-server.sh` (starts server, exercises all endpoints) |
+
+All four jobs must pass before a PR can be merged.
+
+### Releases
+
+Pushing a tag matching `v*` (e.g. `v0.2.0`) to `main` triggers the release
+workflow:
+
+1. **Test** — same checks as the PR workflow (migrations, compile, unit tests)
+2. **Build** — `cargo leptos build --release`, packages server binary + site
+   assets + migrations into a tarball
+3. **Smoke Test** — runs the smoke test suite against a debug build
+4. **Publish** — creates a GitHub Release with auto-generated release notes and
+   attaches the tarball
+
+### CI Scripts
+
+The `ci/` directory contains the test scripts used by both workflows:
+
+- `ci/check-compile.sh` — checks both SSR and hydrate targets compile without
+  warnings, runs `cargo test`
+- `ci/check-migrations.sh` — applies migrations to a fresh SQLite database,
+  verifies all expected tables and columns exist, tests rollback/redo
+- `ci/smoke-test-server.sh` — builds and starts the server, then exercises page
+  routes, CSS serving, signup, session CRUD, WebSocket endpoint, media
+  upload/serve/dedup/tags, invalid input handling, and game page rendering (26
+  checks)
+
+## Contributing
+
+### Getting Started
+
+1. Fork and clone the repo
+2. Follow the setup steps in [README.md](README.md)
+3. Create a feature branch from `main`
+4. Make your changes, keeping commits focused and well-described
+5. Open a PR against `main`
+
+### Code Standards
+
+- **Both targets must compile cleanly.** Run both checks before pushing:
+  ```sh
+  cargo check --features ssr
+  cargo check --features hydrate --target wasm32-unknown-unknown
+  ```
+- **No warnings.** CI runs with `-D warnings` on clippy. Fix all warnings
+  before submitting.
+- **Format with rustfmt.** Run `cargo fmt` before committing. CI enforces this.
+- **Run tests.** `cargo test` must pass. Add tests for new server-side logic
+  when practical.
+- **Feature-gate correctly.** Server-only code behind `#[cfg(feature = "ssr")]`,
+  client-only code behind `#[cfg(feature = "hydrate")]`. Imports used only
+  inside `#[server]` function bodies go inside the function.
+
+### PR Guidelines
+
+- Keep PRs focused on a single change. Large features should be broken into
+  reviewable chunks.
+- Write a clear description of what the PR does and why.
+- If the PR changes the database schema, include a migration with both `up.sql`
+  and `down.sql`. The `down.sql` must actually undo the change (not be a no-op).
+- If the PR adds new endpoints or server functions, add corresponding checks to
+  the smoke test script.
+- Update `DEV.md` if the change affects architecture, build steps, or
+  configuration.
+- All CI checks must pass before merge.
+
+### Commit Messages
+
+Use concise, imperative-mood commit messages that describe the change:
+
+```
+Add media upload endpoint with SHA-256 dedup
+Fix token HP popup not closing on click outside
+Update initiative tracker to highlight current turn
+```
 
 ### RPG Template System
 

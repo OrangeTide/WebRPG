@@ -18,6 +18,7 @@ diesel::table! {
         name -> Text,
         data_json -> Text,
         created_at -> Timestamp,
+        portrait_url -> Nullable<Text>,
     }
 }
 
@@ -90,6 +91,26 @@ diesel::table! {
 }
 
 diesel::table! {
+    media (id) {
+        id -> Integer,
+        hash -> Text,
+        content_type -> Text,
+        media_type -> Text,
+        size_bytes -> Integer,
+        uploaded_by -> Integer,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    media_tags (id) {
+        id -> Integer,
+        media_id -> Integer,
+        tag -> Text,
+    }
+}
+
+diesel::table! {
     rpg_templates (id) {
         id -> Integer,
         name -> Text,
@@ -141,6 +162,7 @@ diesel::table! {
         visible -> Bool,
         character_id -> Nullable<Integer>,
         creature_id -> Nullable<Integer>,
+        image_url -> Nullable<Text>,
     }
 }
 
@@ -170,6 +192,8 @@ diesel::joinable!(initiative -> tokens (token_id));
 diesel::joinable!(inventory_items -> characters (owner_character_id));
 diesel::joinable!(inventory_items -> sessions (session_id));
 diesel::joinable!(maps -> sessions (session_id));
+diesel::joinable!(media -> users (uploaded_by));
+diesel::joinable!(media_tags -> media (media_id));
 diesel::joinable!(session_players -> sessions (session_id));
 diesel::joinable!(session_players -> users (user_id));
 diesel::joinable!(sessions -> rpg_templates (template_id));
@@ -189,6 +213,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     initiative,
     inventory_items,
     maps,
+    media,
+    media_tags,
     rpg_templates,
     session_players,
     sessions,

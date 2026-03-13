@@ -31,6 +31,7 @@ pub enum ClientMessage {
         color: String,
         size: i32,
         creature_id: Option<i32>,
+        image_url: Option<String>,
     },
     RemoveToken {
         token_id: i32,

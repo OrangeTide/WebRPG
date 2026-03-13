@@ -1,3 +1,5 @@
+#![recursion_limit = "1024"]
+
 #[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
@@ -23,6 +25,14 @@ async fn main() {
         .route(
             "/api/ws",
             axum::routing::get(webrpg::server::ws_handler::ws_upgrade),
+        )
+        .route(
+            "/api/media/upload",
+            axum::routing::post(webrpg::server::media_handler::upload_media),
+        )
+        .route(
+            "/api/media/{hash}",
+            axum::routing::get(webrpg::server::media_handler::serve_media),
         )
         .leptos_routes(&leptos_options, routes, {
             let leptos_options = leptos_options.clone();

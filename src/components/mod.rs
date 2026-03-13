@@ -4,3 +4,4 @@ pub mod creatures;
 pub mod initiative;
 pub mod inventory;
 pub mod map;
+pub mod media_browser;

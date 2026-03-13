@@ -143,10 +143,48 @@ fn CharacterEditor(
 
     let data = character.data.clone();
     let resources = character.resources.clone();
+    let show_portrait_picker = RwSignal::new(false);
+    let (portrait, set_portrait) = signal(character.portrait_url.clone());
+
+    let on_portrait_select = {
+        let char_id_for_portrait = char_id;
+        Callback::new(move |media: crate::models::MediaInfo| {
+            let url = media.url.clone();
+            set_portrait.set(Some(url.clone()));
+            show_portrait_picker.set(false);
+            leptos::task::spawn_local(async move {
+                let _ = crate::server::api::update_character_portrait(
+                    char_id_for_portrait,
+                    Some(url),
+                )
+                .await;
+            });
+        })
+    };
 
     view! {
         <div class="char-editor">
-            <h4>{character.name.clone()}</h4>
+            <div class="char-header">
+                <div
+                    class="char-portrait"
+                    on:click=move |_| show_portrait_picker.set(true)
+                    style="cursor: pointer;"
+                >
+                    {move || {
+                        if let Some(url) = portrait.get() {
+                            view! { <img src=url alt="portrait" class="portrait-img" /> }.into_any()
+                        } else {
+                            view! { <div class="portrait-placeholder">"Set Portrait"</div> }.into_any()
+                        }
+                    }}
+                </div>
+                <h4>{character.name.clone()}</h4>
+            </div>
+            <crate::components::media_browser::MediaBrowser
+                on_select=on_portrait_select
+                filter_type="image".to_string()
+                show=show_portrait_picker
+            />
 
             // Resource bars
             <div class="char-resources">

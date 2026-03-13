@@ -3172,6 +3172,7 @@ dependencies = [
  "diesel",
  "dotenvy",
  "futures",
+ "js-sys",
  "jsonwebtoken",
  "leptos",
  "leptos_axum",
@@ -3182,11 +3183,13 @@ dependencies = [
  "rand 0.8.5",
  "serde",
  "serde_json",
+ "sha2",
  "tokio",
  "tower",
  "tower-http",
  "uuid",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 

@@ -173,6 +173,7 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 color,
                 size,
                 creature_id,
+                image_url,
             } => {
                 if let Some(session_id) = current_session {
                     if !is_gm(session_id, user_id) {
@@ -181,7 +182,7 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                         });
                         continue;
                     }
-                    match place_token(session_id, &label, x, y, &color, size, creature_id) {
+                    match place_token(session_id, &label, x, y, &color, size, creature_id, image_url.as_deref()) {
                         Ok(token_info) => {
                             if let Some(mut session) =
                                 SESSION_MANAGER.sessions.get_mut(&session_id)
@@ -534,6 +535,7 @@ fn build_snapshot(session_id: i32) -> crate::ws::messages::GameStateSnapshot {
                     visible: t.visible,
                     current_hp: instance.as_ref().map(|i| i.current_hp),
                     max_hp: instance.as_ref().map(|i| i.max_hp),
+                    image_url: t.image_url,
                 }
             })
             .collect();
@@ -666,6 +668,7 @@ fn place_token(
     color: &str,
     size: i32,
     creature_id: Option<i32>,
+    image_url: Option<&str>,
 ) -> Result<crate::models::TokenInfo, String> {
     use crate::db;
     use crate::models::db_models::*;
@@ -691,6 +694,7 @@ fn place_token(
         size,
         visible: true,
         creature_id,
+        image_url,
     };
 
     diesel::insert_into(tokens::table)
@@ -747,6 +751,7 @@ fn place_token(
         visible: true,
         current_hp,
         max_hp,
+        image_url: image_url.map(|s| s.to_string()),
     })
 }
 
@@ -836,6 +841,7 @@ fn load_map_with_tokens(
                 visible: t.visible,
                 current_hp: instance.as_ref().map(|i| i.current_hp),
                 max_hp: instance.as_ref().map(|i| i.max_hp),
+                image_url: t.image_url,
             }
         })
         .collect();

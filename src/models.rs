@@ -62,6 +62,18 @@ pub struct TokenInfo {
     pub visible: bool,
     pub current_hp: Option<i32>,
     pub max_hp: Option<i32>,
+    pub image_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MediaInfo {
+    pub id: i32,
+    pub hash: String,
+    pub url: String,
+    pub content_type: String,
+    pub media_type: String,
+    pub size_bytes: i32,
+    pub tags: Vec<String>,
 }
 
 /// A field definition within an RPG template schema.
@@ -103,6 +115,7 @@ pub struct CharacterInfo {
     pub name: String,
     pub data: serde_json::Value,
     pub resources: Vec<ResourceInfo>,
+    pub portrait_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -226,6 +239,7 @@ pub mod db_models {
         pub name: String,
         pub data_json: String,
         pub created_at: String,
+        pub portrait_url: Option<String>,
     }
 
     #[derive(Debug, Insertable)]
@@ -309,6 +323,7 @@ pub mod db_models {
         pub visible: bool,
         pub character_id: Option<i32>,
         pub creature_id: Option<i32>,
+        pub image_url: Option<String>,
     }
 
     #[derive(Debug, Queryable, Selectable)]
@@ -355,6 +370,7 @@ pub mod db_models {
         pub size: i32,
         pub visible: bool,
         pub creature_id: Option<i32>,
+        pub image_url: Option<&'a str>,
     }
 
     #[derive(Debug, Insertable)]
@@ -410,5 +426,42 @@ pub mod db_models {
         pub token_id: Option<i32>,
         pub character_id: Option<i32>,
         pub sort_order: i32,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::media)]
+    pub struct Media {
+        pub id: i32,
+        pub hash: String,
+        pub content_type: String,
+        pub media_type: String,
+        pub size_bytes: i32,
+        pub uploaded_by: i32,
+        pub created_at: String,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::media)]
+    pub struct NewMedia<'a> {
+        pub hash: &'a str,
+        pub content_type: &'a str,
+        pub media_type: &'a str,
+        pub size_bytes: i32,
+        pub uploaded_by: i32,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::media_tags)]
+    pub struct MediaTag {
+        pub id: i32,
+        pub media_id: i32,
+        pub tag: String,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::media_tags)]
+    pub struct NewMediaTag<'a> {
+        pub media_id: i32,
+        pub tag: &'a str,
     }
 }
