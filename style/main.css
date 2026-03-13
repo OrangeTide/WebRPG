@@ -523,15 +523,31 @@ h1, h2, h3, h4 {
     font-size: 0.85rem;
 }
 
-.chat-messages > div {
+.chat-msg {
     word-break: break-word;
+    line-height: 1.4;
 }
 
-.chat-messages strong {
+.chat-username {
     color: #e94560;
+    font-weight: 600;
+    margin-right: 0.4rem;
 }
 
-.chat-input-area {
+.chat-username::after {
+    content: ":";
+}
+
+.chat-text {
+    color: #eee;
+}
+
+.chat-msg.dice-roll .chat-text {
+    color: #fbbf24;
+    font-style: italic;
+}
+
+.chat-input {
     display: flex;
     gap: 0.4rem;
     padding: 0.5rem 0.75rem;
@@ -539,14 +555,23 @@ h1, h2, h3, h4 {
     flex-shrink: 0;
 }
 
-.chat-input-area input {
+.chat-input input {
     flex: 1;
     min-width: 0;
 }
 
-.dice-roll {
-    color: #fbbf24;
-    font-style: italic;
+.chat-input button {
+    padding: 0.3rem 0.75rem;
+    background: #0f3460;
+    color: #eee;
+    border: 1px solid #1a4a7a;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.chat-input button:hover {
+    background: #1a4a7a;
 }
 
 /* === Character Sheet === */

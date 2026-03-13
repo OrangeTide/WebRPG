@@ -28,7 +28,7 @@ src/
 ├── schema.rs         # Diesel table definitions (auto-generated)
 ├── models.rs         # Shared DTOs + Diesel models
 ├── pages/            # Page components (landing, login, sessions, game)
-├── components/       # UI components (map, chat, inventory, initiative, media browser)
+├── components/       # UI components (window manager, map, chat, charsheet, creatures, inventory, initiative, media browser)
 ├── server/           # Server functions, media handler + WebSocket upgrade handler
 └── ws/               # WebSocket message types + session state manager
 migrations/           # Diesel SQL migrations
@@ -120,7 +120,7 @@ TLS_CERT_PATH=cert.pem TLS_KEY_PATH=key.pem cargo leptos serve
 ### WebSocket Protocol
 
 On connect, the client calls the `get_ws_token` server function to obtain the
-JWT token, then opens a WebSocket to `/ws?token=<jwt>`. It sends a `JoinSession`
+JWT token, then opens a WebSocket to `/api/ws?token=<jwt>`. It sends a `JoinSession`
 message and receives a `SessionJoined` response with a full `GameStateSnapshot`.
 After that, incremental events are broadcast to all connected clients. The server
 is the single source of truth — clients send requests, the server validates and
@@ -152,7 +152,10 @@ Components read state reactively and send messages through the context:
   images clipped to circles), HP bars, fog of war overlay. Supports background
   images and token images loaded from the media system. Drag-and-drop token
   movement. GM can set map background via the media browser.
-- **ChatPanel** — message list, input field that auto-detects dice notation.
+- **ChatPanel** — message list with auto-scroll, input field that auto-detects
+  dice notation (`NdN+M`). Last 100 messages loaded from DB on connect. Dice
+  results persisted with structured JSON data. Messages styled with username in
+  accent color and dice rolls in golden italic.
 - **InitiativeTracker** — sorted entry list with current-turn highlight, add/remove/advance.
 - **InventoryPanel** — item list with quantity controls, add/remove.
 - **CharacterSheet** — template-driven character sheet editor. Fields are
@@ -168,6 +171,19 @@ Components read state reactively and send messages through the context:
   files. Supports image thumbnails, tag-based filtering with autocomplete, and
   text search. Used by map background picker, token image picker, and character
   portrait picker.
+
+### Multi-Window UI
+
+The game page uses a windowed interface where each feature lives in its own
+draggable, resizable window (`components/window_manager.rs`). The
+`WindowManager` component wraps the game viewport and renders `GameWindow`
+children. Each window has a title bar (drag handle, minimize/close buttons),
+resizable edges/corners, and z-index stacking (click to front). Minimized
+windows dock to a taskbar at the bottom. A toolbar in the game header toggles
+window visibility. Window layout is persisted to `localStorage`.
+
+Default windows: Map (large, center), Chat (right), Character Sheet, Initiative,
+Inventory (minimized), Creatures (GM only).
 
 ### Media Storage
 

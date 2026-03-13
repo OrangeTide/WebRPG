@@ -27,6 +27,8 @@ pub struct GameContext {
     pub inventory: RwSignal<Vec<InventoryItemInfo>>,
     pub connected: RwSignal<bool>,
     pub send: StoredValue<Option<SendFn>, LocalStorage>,
+    /// Decremented for each locally-created message to avoid ID collisions with DB rows.
+    next_local_id: std::sync::Arc<std::sync::atomic::AtomicI32>,
 }
 
 // In WASM (single-threaded), JS types like WebSocket aren't Send+Sync.
@@ -84,9 +86,12 @@ impl GameContext {
                     .map(|r| r.to_string())
                     .collect::<Vec<_>>()
                     .join(", ");
+                // Use negative IDs for locally-created messages to avoid
+                // collisions with DB-assigned positive IDs.
+                let local_id = self.next_local_id.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
                 self.chat_messages.update(|msgs| {
                     msgs.push(ChatMessageInfo {
-                        id: 0,
+                        id: local_id,
                         username: username.clone(),
                         message: format!("rolled {expression}: [{rolls_str}] = {total}"),
                         is_dice_roll: true,
@@ -179,6 +184,7 @@ pub fn GamePage() -> impl IntoView {
         inventory: RwSignal::new(vec![]),
         connected: RwSignal::new(false),
         send: StoredValue::new_local(None),
+        next_local_id: std::sync::Arc::new(std::sync::atomic::AtomicI32::new(-1)),
     };
 
     provide_context(ctx.clone());
@@ -215,7 +221,7 @@ pub fn GamePage() -> impl IntoView {
                 let host = location.host().unwrap_or_default();
                 let ws_protocol = if protocol == "https:" { "wss:" } else { "ws:" };
                 let ws_url =
-                    format!("{ws_protocol}//{host}/ws?token={token}");
+                    format!("{ws_protocol}//{host}/api/ws?token={token}");
 
                 let ws = match web_sys::WebSocket::new(&ws_url) {
                     Ok(ws) => ws,
