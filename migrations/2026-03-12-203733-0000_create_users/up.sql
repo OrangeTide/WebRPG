@@ -1,0 +1,8 @@
+CREATE TABLE users (
+	username VARCHAR(50) NOT NULL PRIMARY KEY,
+	displayName VARCHAR(255) NOT NULL,
+	email VARCHAR(255) NOT NULL,
+	accessLevel INTEGER NOT NULL,
+	locked BOOLEAN NOT NULL DEFAULT 0,
+	passcrypt VARCHAR(255)
+)
