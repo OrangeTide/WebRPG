@@ -20,8 +20,8 @@ fn is_dice_roll(input: &str) -> bool {
     if parts.len() != 2 {
         return false;
     }
-    let count_ok = parts[0].is_empty() || parts[0].parse::<i32>().is_ok();
-    let sides_ok = parts[1].parse::<i32>().is_ok();
+    let count_ok = parts[0].is_empty() || parts[0].parse::<i32>().map_or(false, |n| n >= 1);
+    let sides_ok = parts[1].parse::<i32>().map_or(false, |n| n >= 1);
     count_ok && sides_ok
 }
 
@@ -32,6 +32,23 @@ pub fn ChatPanel() -> impl IntoView {
     let send_handle = ctx.send;
 
     let (input, set_input) = signal(String::new());
+    let messages_ref = NodeRef::<leptos::html::Div>::new();
+
+    // Auto-scroll to bottom when new messages arrive, but only if already at bottom
+    #[cfg(feature = "hydrate")]
+    Effect::new(move |_| {
+        let _len = chat_messages.with(|msgs| msgs.len());
+        if let Some(el) = messages_ref.get() {
+            leptos::prelude::request_animation_frame(move || {
+                let el: &web_sys::HtmlElement = &el;
+                let at_bottom =
+                    el.scroll_height() - el.scroll_top() - el.client_height() < 40;
+                if at_bottom || _len <= 100 {
+                    el.set_scroll_top(el.scroll_height());
+                }
+            });
+        }
+    });
 
     let send_ws = move |msg: ClientMessage| {
         send_handle.with_value(|f| {
@@ -69,7 +86,7 @@ pub fn ChatPanel() -> impl IntoView {
     view! {
         <div class="chat-panel">
             <h3>"Chat"</h3>
-            <div class="chat-messages">
+            <div class="chat-messages" node_ref=messages_ref>
                 <For
                     each=move || chat_messages.get()
                     key=|msg| (msg.id, msg.message.clone())

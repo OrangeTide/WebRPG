@@ -113,7 +113,7 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
 
             ClientMessage::ChatMessage { message } => {
                 if let Some(session_id) = current_session {
-                    let chat_msg = save_chat_message(session_id, user_id, &username, &message);
+                    let chat_msg = save_chat_message(session_id, user_id, &username, &message, false, None);
                     SESSION_MANAGER.broadcast(
                         session_id,
                         &ServerMessage::ChatBroadcast { message: chat_msg },
@@ -126,11 +126,19 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 if let Some(session_id) = current_session {
                     match parse_and_roll(&expression) {
                         Ok((rolls, total)) => {
+                            let rolls_str = rolls
+                                .iter()
+                                .map(|r| r.to_string())
+                                .collect::<Vec<_>>()
+                                .join(", ");
+                            let dice_json = format!("{{\"rolls\":[{rolls_str}],\"total\":{total}}}");
                             let _chat_msg = save_chat_message(
                                 session_id,
                                 user_id,
                                 &username,
-                                &format!("rolled {expression}: {total}"),
+                                &format!("rolled {expression}: [{rolls_str}] = {total}"),
+                                true,
+                                Some(&dice_json),
                             );
                             SESSION_MANAGER.broadcast(
                                 session_id,
@@ -569,12 +577,12 @@ fn build_snapshot(session_id: i32) -> crate::ws::messages::GameStateSnapshot {
         })
         .collect();
 
-    // Load recent chat (last 50 messages)
+    // Load recent chat (last 100 messages)
     let chat_rows: Vec<(ChatMessage, String)> = chat_messages::table
         .inner_join(users::table.on(users::id.eq(chat_messages::user_id)))
         .filter(chat_messages::session_id.eq(session_id))
         .order(chat_messages::id.desc())
-        .limit(50)
+        .limit(100)
         .select((ChatMessage::as_select(), users::username))
         .load(conn)
         .unwrap_or_default();
@@ -613,6 +621,8 @@ fn save_chat_message(
     user_id: i32,
     username: &str,
     message: &str,
+    is_dice_roll: bool,
+    dice_result: Option<&str>,
 ) -> crate::models::ChatMessageInfo {
     use crate::db;
     use crate::models::db_models::NewChatMessage;
@@ -625,8 +635,8 @@ fn save_chat_message(
         session_id,
         user_id,
         message,
-        is_dice_roll: false,
-        dice_result: None,
+        is_dice_roll,
+        dice_result,
     };
 
     let _ = diesel::insert_into(chat_messages::table)
@@ -643,8 +653,8 @@ fn save_chat_message(
         id,
         username: username.to_string(),
         message: message.to_string(),
-        is_dice_roll: false,
-        dice_result: None,
+        is_dice_roll,
+        dice_result: dice_result.map(|s| s.to_string()),
         created_at: String::new(),
     }
 }
