@@ -336,6 +336,19 @@ into the release, so they persist across deploys.
 2. Run `scripts/deploy.sh user@host`
 3. Restart the server
 
+## Feature Requests
+
+Feature requests are tracked as individual files in `doc/feature-requests/`. Each
+file contains the feature description, current progress, and status. This
+replaces any global planning document.
+
+**Workflow:**
+
+1. Create a file in `doc/feature-requests/` describing the feature
+2. Update progress and status in the file as work proceeds
+3. When the feature is complete, include the feature request content in the git
+   commit message and delete the feature request file
+
 ## Contributing
 
 ### Getting Started
