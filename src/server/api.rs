@@ -636,6 +636,95 @@ pub async fn list_characters(session_id: i32) -> Result<Vec<CharacterInfo>, Serv
     Ok(result)
 }
 
+/// Ensure a character has default resources (HP) and template defaults in data_json.
+/// Called when opening a character sheet to backfill characters created before
+/// template assignment. Returns true if any changes were made.
+#[server]
+pub async fn ensure_character_defaults(
+    character_id: i32,
+) -> Result<bool, ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::*;
+    use crate::models::TemplateField;
+    use crate::schema::*;
+    use diesel::prelude::*;
+
+    let _user = get_current_user()
+        .await?
+        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
+
+    let conn = &mut db::get_conn();
+
+    let character: Character = characters::table
+        .find(character_id)
+        .select(Character::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Character not found"))?;
+
+    let session: Session = sessions::table
+        .find(character.session_id)
+        .select(Session::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Session not found"))?;
+
+    let Some(tid) = session.template_id else {
+        return Ok(false);
+    };
+
+    let template: RpgTemplate = rpg_templates::table
+        .find(tid)
+        .select(RpgTemplate::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Template not found"))?;
+
+    let fields: Vec<TemplateField> =
+        serde_json::from_str(&template.schema_json).unwrap_or_default();
+
+    let mut changed = false;
+
+    // Backfill empty data_json with template defaults
+    let mut data: serde_json::Map<String, serde_json::Value> =
+        serde_json::from_str(&character.data_json).unwrap_or_default();
+    if data.is_empty() && !fields.is_empty() {
+        for field in &fields {
+            data.insert(field.name.clone(), field.default.clone());
+        }
+        let new_json = serde_json::to_string(&serde_json::Value::Object(data.clone()))
+            .map_err(|e| ServerFnError::new(format!("Serialization error: {e}")))?;
+        diesel::update(characters::table.find(character_id))
+            .set(characters::data_json.eq(&new_json))
+            .execute(conn)
+            .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
+        changed = true;
+    }
+
+    // Create HP resource if none exists
+    let resource_count: i64 = character_resources::table
+        .filter(character_resources::character_id.eq(character_id))
+        .count()
+        .get_result(conn)
+        .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
+
+    if resource_count == 0 {
+        let hp_max = data
+            .get("hp_max")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(10) as i32;
+        diesel::insert_into(character_resources::table)
+            .values(&NewCharacterResource {
+                character_id,
+                name: "HP",
+                current_value: hp_max,
+                max_value: hp_max,
+            })
+            .execute(conn)
+            .map_err(|e| ServerFnError::new(format!("Failed to create resource: {e}")))?;
+        changed = true;
+    }
+
+    Ok(changed)
+}
+
 #[server]
 pub async fn update_character_resource(
     resource_id: i32,
@@ -646,7 +735,7 @@ pub async fn update_character_resource(
     use crate::schema::*;
     use diesel::prelude::*;
 
-    let user = get_current_user()
+    let _user = get_current_user()
         .await?
         .ok_or_else(|| ServerFnError::new("Not logged in"))?;
 
@@ -664,14 +753,82 @@ pub async fn update_character_resource(
         .first(conn)
         .map_err(|_| ServerFnError::new("Character not found"))?;
 
-    if character.user_id != user.id {
-        return Err(ServerFnError::new("Not your character"));
+    // Any session member can adjust resources (GM applies damage, etc.)
+    let is_member = session_players::table
+        .filter(session_players::session_id.eq(character.session_id))
+        .filter(session_players::user_id.eq(_user.id))
+        .count()
+        .get_result::<i64>(conn)
+        .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?
+        > 0;
+    if !is_member {
+        return Err(ServerFnError::new("Not a member of this session"));
     }
 
     diesel::update(character_resources::table.find(resource_id))
         .set(character_resources::current_value.eq(current_value))
         .execute(conn)
         .map_err(|e| ServerFnError::new(format!("Failed to update resource: {e}")))?;
+
+    // Broadcast to all clients in the session
+    use crate::ws::messages::ServerMessage;
+    use crate::ws::session::SESSION_MANAGER;
+    SESSION_MANAGER.broadcast(
+        character.session_id,
+        &ServerMessage::CharacterResourceUpdated {
+            character_id: resource.character_id,
+            resource_id,
+            current_value,
+            max_value: resource.max_value,
+        },
+        None,
+    );
+
+    Ok(())
+}
+
+#[server]
+pub async fn delete_character(character_id: i32) -> Result<(), ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::*;
+    use crate::schema::*;
+    use diesel::prelude::*;
+
+    let user = get_current_user()
+        .await?
+        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
+
+    let conn = &mut db::get_conn();
+
+    let character: Character = characters::table
+        .find(character_id)
+        .select(Character::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Character not found"))?;
+
+    if character.user_id != user.id {
+        // Also allow session GM to delete
+        let session: Session = sessions::table
+            .find(character.session_id)
+            .select(Session::as_select())
+            .first(conn)
+            .map_err(|_| ServerFnError::new("Session not found"))?;
+
+        if session.gm_user_id != user.id {
+            return Err(ServerFnError::new("Not your character"));
+        }
+    }
+
+    // Delete associated resources first
+    diesel::delete(
+        character_resources::table.filter(character_resources::character_id.eq(character_id)),
+    )
+    .execute(conn)
+    .map_err(|e| ServerFnError::new(format!("Failed to delete resources: {e}")))?;
+
+    diesel::delete(characters::table.find(character_id))
+        .execute(conn)
+        .map_err(|e| ServerFnError::new(format!("Failed to delete character: {e}")))?;
 
     Ok(())
 }
@@ -699,6 +856,7 @@ pub async fn list_creatures(session_id: i32) -> Result<Vec<CreatureInfo>, Server
             id: c.id,
             name: c.name,
             stat_data: serde_json::from_str(&c.stat_data_json).unwrap_or_default(),
+            image_url: c.image_url,
         })
         .collect())
 }
@@ -753,6 +911,7 @@ pub async fn create_creature(
         id,
         name,
         stat_data,
+        image_url: None,
     })
 }
 
@@ -839,6 +998,46 @@ pub async fn delete_creature(creature_id: i32) -> Result<(), ServerFnError> {
     Ok(())
 }
 
+#[server]
+pub async fn update_creature_image(
+    creature_id: i32,
+    image_url: Option<String>,
+) -> Result<(), ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::*;
+    use crate::schema::*;
+    use diesel::prelude::*;
+
+    let user = get_current_user()
+        .await?
+        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
+
+    let conn = &mut db::get_conn();
+
+    let creature: Creature = creatures::table
+        .find(creature_id)
+        .select(Creature::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Creature not found"))?;
+
+    let session: Session = sessions::table
+        .find(creature.session_id)
+        .select(Session::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Session not found"))?;
+
+    if session.gm_user_id != user.id {
+        return Err(ServerFnError::new("Only the GM can edit creatures"));
+    }
+
+    diesel::update(creatures::table.find(creature_id))
+        .set(creatures::image_url.eq(&image_url))
+        .execute(conn)
+        .map_err(|e| ServerFnError::new(format!("Failed to update creature image: {e}")))?;
+
+    Ok(())
+}
+
 /// Get the template for a session (if one is assigned).
 #[server]
 pub async fn get_session_template(
@@ -858,8 +1057,18 @@ pub async fn get_session_template(
         .first(conn)
         .map_err(|_| ServerFnError::new("Session not found"))?;
 
-    let Some(tid) = session.template_id else {
-        return Ok(None);
+    let tid = match session.template_id {
+        Some(tid) => tid,
+        None => {
+            // Fall back to default template; seed it if it doesn't exist yet,
+            // and assign it to this session.
+            let tmpl = seed_default_template().await?;
+            diesel::update(sessions::table.find(session_id))
+                .set(sessions::template_id.eq(Some(tmpl.id)))
+                .execute(conn)
+                .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
+            return Ok(Some(tmpl));
+        }
     };
 
     let t: RpgTemplate = rpg_templates::table
@@ -1070,9 +1279,22 @@ pub async fn update_character_portrait(
     }
 
     diesel::update(characters::table.find(character_id))
-        .set(characters::portrait_url.eq(portrait_url))
+        .set(characters::portrait_url.eq(&portrait_url))
         .execute(conn)
         .map_err(|e| ServerFnError::new(format!("Failed to update portrait: {e}")))?;
+
+    // Broadcast character change to all clients in the session
+    use crate::ws::messages::ServerMessage;
+    use crate::ws::session::SESSION_MANAGER;
+    SESSION_MANAGER.broadcast(
+        character.session_id,
+        &ServerMessage::CharacterUpdated {
+            character_id,
+            field_path: "portrait_url".to_string(),
+            value: serde_json::json!(portrait_url),
+        },
+        None,
+    );
 
     Ok(())
 }

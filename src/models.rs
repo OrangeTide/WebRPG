@@ -131,6 +131,7 @@ pub struct CreatureInfo {
     pub id: i32,
     pub name: String,
     pub stat_data: serde_json::Value,
+    pub image_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -148,6 +149,8 @@ pub struct InitiativeEntryInfo {
     pub label: String,
     pub initiative_value: f32,
     pub is_current_turn: bool,
+    /// Portrait/icon URL for display (not persisted in DB).
+    pub portrait_url: Option<String>,
 }
 
 // ===== Diesel models (server only) =====
@@ -308,6 +311,7 @@ pub mod db_models {
         pub template_id: Option<i32>,
         pub name: String,
         pub stat_data_json: String,
+        pub image_url: Option<String>,
     }
 
     #[derive(Debug, Queryable, Selectable)]

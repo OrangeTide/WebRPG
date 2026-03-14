@@ -72,6 +72,16 @@ pub enum ClientMessage {
         description: Option<String>,
         quantity: Option<i32>,
     },
+    RollCharacterInitiative {
+        character_id: i32,
+    },
+    RollCreatureInitiative {
+        creature_id: i32,
+        label: String,
+    },
+    SetInitiativeLock {
+        locked: bool,
+    },
 }
 
 // ===== Server -> Client messages =====
@@ -133,8 +143,17 @@ pub enum ServerMessage {
         field_path: String,
         value: serde_json::Value,
     },
+    CharacterResourceUpdated {
+        character_id: i32,
+        resource_id: i32,
+        current_value: i32,
+        max_value: i32,
+    },
     InventoryUpdated {
         items: Vec<InventoryItemInfo>,
+    },
+    InitiativeLockChanged {
+        locked: bool,
     },
 }
 
@@ -149,4 +168,5 @@ pub struct GameStateSnapshot {
     pub initiative: Vec<InitiativeEntryInfo>,
     pub recent_chat: Vec<ChatMessageInfo>,
     pub inventory: Vec<InventoryItemInfo>,
+    pub initiative_locked: bool,
 }

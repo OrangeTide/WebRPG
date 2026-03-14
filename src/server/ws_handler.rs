@@ -367,6 +367,63 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 }
             }
 
+            ClientMessage::RollCharacterInitiative { character_id } => {
+                if let Some(session_id) = current_session {
+                    // Check if initiative is locked
+                    let locked = SESSION_MANAGER
+                        .sessions
+                        .get(&session_id)
+                        .map(|s| s.initiative_locked)
+                        .unwrap_or(false);
+                    if locked {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Initiative is locked".into(),
+                        });
+                        continue;
+                    }
+                    match roll_character_initiative(session_id, character_id) {
+                        Ok(result) => {
+                            broadcast_initiative_roll(session_id, user_id, &username, result);
+                        }
+                        Err(e) => {
+                            let _ = tx.send(ServerMessage::Error { message: e });
+                        }
+                    }
+                }
+            }
+
+            ClientMessage::RollCreatureInitiative { creature_id, label } => {
+                if let Some(session_id) = current_session {
+                    match roll_creature_initiative(session_id, creature_id, &label) {
+                        Ok(result) => {
+                            broadcast_initiative_roll(session_id, user_id, &username, result);
+                        }
+                        Err(e) => {
+                            let _ = tx.send(ServerMessage::Error { message: e });
+                        }
+                    }
+                }
+            }
+
+            ClientMessage::SetInitiativeLock { locked } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can lock/unlock initiative".into(),
+                        });
+                        continue;
+                    }
+                    if let Some(mut session) = SESSION_MANAGER.sessions.get_mut(&session_id) {
+                        session.initiative_locked = locked;
+                    }
+                    SESSION_MANAGER.broadcast(
+                        session_id,
+                        &ServerMessage::InitiativeLockChanged { locked },
+                        None,
+                    );
+                }
+            }
+
             ClientMessage::UpdateCharacterField {
                 character_id,
                 field_path,
@@ -574,6 +631,7 @@ fn build_snapshot(session_id: i32) -> crate::ws::messages::GameStateSnapshot {
             label: e.label,
             initiative_value: e.initiative_value,
             is_current_turn: e.is_current_turn,
+            portrait_url: None,
         })
         .collect();
 
@@ -603,6 +661,12 @@ fn build_snapshot(session_id: i32) -> crate::ws::messages::GameStateSnapshot {
     // Load inventory
     let inventory = load_inventory(session_id);
 
+    let initiative_locked = SESSION_MANAGER
+        .sessions
+        .get(&session_id)
+        .map(|s| s.initiative_locked)
+        .unwrap_or(false);
+
     crate::ws::messages::GameStateSnapshot {
         session_id,
         session_name,
@@ -613,6 +677,7 @@ fn build_snapshot(session_id: i32) -> crate::ws::messages::GameStateSnapshot {
         initiative: initiative_list,
         recent_chat,
         inventory,
+        initiative_locked,
     }
 }
 
@@ -1034,6 +1099,202 @@ fn load_inventory(session_id: i32) -> Vec<crate::models::InventoryItemInfo> {
             is_party_item: item.is_party_item,
         })
         .collect()
+}
+
+/// D&D 5e ability modifier: floor((score - 10) / 2)
+fn ability_modifier(score: f64) -> i32 {
+    ((score - 10.0) / 2.0).floor() as i32
+}
+
+/// Get the total initiative modifier for a character (dex mod + initiative_bonus).
+fn get_initiative_modifier(session_id: i32, character_id: i32) -> i32 {
+    use crate::db;
+    use crate::schema::characters;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+    let data_json: String = characters::table
+        .find(character_id)
+        .filter(characters::session_id.eq(session_id))
+        .select(characters::data_json)
+        .first(conn)
+        .unwrap_or_default();
+
+    let data: serde_json::Map<String, serde_json::Value> =
+        serde_json::from_str(&data_json).unwrap_or_default();
+
+    let dex = data.get("dexterity").and_then(|v| v.as_f64()).unwrap_or(10.0);
+    let init_bonus = data.get("initiative_bonus").and_then(|v| v.as_f64()).unwrap_or(0.0) as i32;
+    ability_modifier(dex) + init_bonus
+}
+
+/// Get the total initiative modifier for a creature (dex mod + initiative_bonus from stat_data).
+fn get_creature_initiative_modifier(_session_id: i32, creature_id: i32) -> i32 {
+    use crate::db;
+    use crate::schema::creatures;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+    let stat_json: String = creatures::table
+        .find(creature_id)
+        .select(creatures::stat_data_json)
+        .first(conn)
+        .unwrap_or_default();
+
+    let data: serde_json::Map<String, serde_json::Value> =
+        serde_json::from_str(&stat_json).unwrap_or_default();
+
+    let dex = data.get("dexterity").and_then(|v| v.as_f64()).unwrap_or(10.0);
+    let init_bonus = data.get("initiative_bonus").and_then(|v| v.as_f64()).unwrap_or(0.0) as i32;
+    ability_modifier(dex) + init_bonus
+}
+
+/// Save initiative, update cache, broadcast result + chat message.
+fn broadcast_initiative_roll(
+    session_id: i32,
+    user_id: i32,
+    username: &str,
+    result: InitiativeRollResult,
+) {
+    save_initiative(session_id, &result.entries);
+    if let Some(mut session) = SESSION_MANAGER.sessions.get_mut(&session_id) {
+        session.initiative_order = result.entries.clone();
+    }
+    SESSION_MANAGER.broadcast(
+        session_id,
+        &ServerMessage::InitiativeUpdated { entries: result.entries },
+        None,
+    );
+    let mod_str = if result.modifier >= 0 {
+        format!("+{}", result.modifier)
+    } else {
+        format!("{}", result.modifier)
+    };
+    let _ = save_chat_message(
+        session_id,
+        user_id,
+        username,
+        &format!(
+            "{} rolled initiative: [{}]{} = {}",
+            result.label, result.d20, mod_str, result.total
+        ),
+        true,
+        Some(&format!(
+            "{{\"rolls\":[{}],\"total\":{}}}",
+            result.d20, result.total
+        )),
+    );
+    SESSION_MANAGER.broadcast(
+        session_id,
+        &ServerMessage::DiceResult {
+            username: username.to_string(),
+            expression: format!("d20{mod_str} (initiative)"),
+            rolls: vec![result.d20],
+            total: result.total,
+        },
+        None,
+    );
+}
+
+/// Initiative roll result with breakdown for chat logging.
+struct InitiativeRollResult {
+    label: String,
+    d20: i32,
+    modifier: i32,
+    total: i32,
+    entries: Vec<crate::models::InitiativeEntryInfo>,
+}
+
+/// Roll initiative for a character: d20 + dex mod + initiative bonus.
+fn roll_character_initiative(
+    session_id: i32,
+    character_id: i32,
+) -> Result<InitiativeRollResult, String> {
+    use crate::db;
+    use crate::schema::characters;
+    use diesel::prelude::*;
+    use rand::Rng;
+
+    let conn = &mut db::get_conn();
+
+    let (char_name, portrait_url): (String, Option<String>) = characters::table
+        .find(character_id)
+        .filter(characters::session_id.eq(session_id))
+        .select((characters::name, characters::portrait_url))
+        .first(conn)
+        .map_err(|_| "Character not found in this session".to_string())?;
+
+    let modifier = get_initiative_modifier(session_id, character_id);
+    let mut rng = rand::thread_rng();
+    let d20: i32 = rng.gen_range(1..=20);
+    let total = d20 + modifier;
+
+    let mut entries = SESSION_MANAGER
+        .sessions
+        .get(&session_id)
+        .map(|s| s.initiative_order.clone())
+        .unwrap_or_default();
+
+    // Remove existing entry for this character (by label match)
+    entries.retain(|e| e.label != char_name);
+
+    let is_first = entries.is_empty();
+    entries.push(crate::models::InitiativeEntryInfo {
+        id: 0,
+        label: char_name.clone(),
+        initiative_value: total as f32,
+        is_current_turn: is_first,
+        portrait_url,
+    });
+
+    entries.sort_by(|a, b| b.initiative_value.partial_cmp(&a.initiative_value).unwrap());
+
+    Ok(InitiativeRollResult { label: char_name, d20, modifier, total, entries })
+}
+
+/// Roll initiative for a creature: d20 + dex mod + initiative bonus.
+fn roll_creature_initiative(
+    session_id: i32,
+    creature_id: i32,
+    label: &str,
+) -> Result<InitiativeRollResult, String> {
+    use crate::db;
+    use crate::schema::creatures;
+    use diesel::prelude::*;
+    use rand::Rng;
+
+    let conn = &mut db::get_conn();
+    let image_url: Option<String> = creatures::table
+        .find(creature_id)
+        .select(creatures::image_url)
+        .first::<Option<String>>(conn)
+        .ok()
+        .flatten();
+
+    let modifier = get_creature_initiative_modifier(session_id, creature_id);
+    let mut rng = rand::thread_rng();
+    let d20: i32 = rng.gen_range(1..=20);
+    let total = d20 + modifier;
+
+    let mut entries = SESSION_MANAGER
+        .sessions
+        .get(&session_id)
+        .map(|s| s.initiative_order.clone())
+        .unwrap_or_default();
+
+    let is_first = entries.is_empty();
+    // Don't remove existing — creatures can have multiple entries (e.g. 5 goblins)
+    entries.push(crate::models::InitiativeEntryInfo {
+        id: 0,
+        label: label.to_string(),
+        initiative_value: total as f32,
+        is_current_turn: is_first,
+        portrait_url: image_url,
+    });
+
+    entries.sort_by(|a, b| b.initiative_value.partial_cmp(&a.initiative_value).unwrap());
+
+    Ok(InitiativeRollResult { label: label.to_string(), d20, modifier, total, entries })
 }
 
 /// Parse dice expressions like "2d6+3", "1d20", "4d8-2"

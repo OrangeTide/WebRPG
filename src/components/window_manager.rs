@@ -5,10 +5,12 @@ use leptos::prelude::*;
 pub enum WindowId {
     Map,
     Chat,
-    CharacterSheet,
+    CharacterSelection,
     Initiative,
     Inventory,
     Creatures,
+    /// Dynamic window for editing a specific character (by character_id).
+    CharacterEditor(i32),
 }
 
 impl WindowId {
@@ -16,18 +18,20 @@ impl WindowId {
         match self {
             WindowId::Map => "Map",
             WindowId::Chat => "Chat",
-            WindowId::CharacterSheet => "Character Sheet",
+            WindowId::CharacterSelection => "Character Selection",
             WindowId::Initiative => "Initiative",
             WindowId::Inventory => "Inventory",
             WindowId::Creatures => "Creatures",
+            WindowId::CharacterEditor(_) => "Character Sheet",
         }
     }
 
+    /// Static window IDs used for default layout and toolbar.
     pub fn all() -> &'static [WindowId] {
         &[
             WindowId::Map,
             WindowId::Chat,
-            WindowId::CharacterSheet,
+            WindowId::CharacterSelection,
             WindowId::Initiative,
             WindowId::Inventory,
             WindowId::Creatures,
@@ -39,11 +43,17 @@ impl WindowId {
         match self {
             WindowId::Map => (400.0, 300.0),
             WindowId::Chat => (250.0, 200.0),
-            WindowId::CharacterSheet => (280.0, 300.0),
+            WindowId::CharacterSelection => (250.0, 200.0),
             WindowId::Initiative => (220.0, 150.0),
             WindowId::Inventory => (250.0, 150.0),
             WindowId::Creatures => (280.0, 250.0),
+            WindowId::CharacterEditor(_) => (300.0, 350.0),
         }
+    }
+
+    /// Returns true for dynamic windows that should not be persisted to localStorage.
+    pub fn is_dynamic(&self) -> bool {
+        matches!(self, WindowId::CharacterEditor(_))
     }
 }
 
@@ -51,6 +61,7 @@ impl WindowId {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct WindowState {
     pub id: WindowId,
+    pub title: Option<String>,
     pub x: f64,
     pub y: f64,
     pub width: f64,
@@ -114,8 +125,13 @@ impl WindowManagerContext {
 
     pub fn close_window(&self, id: WindowId) {
         self.windows.update(|wins| {
-            if let Some(w) = wins.iter_mut().find(|w| w.id == id) {
-                w.visible = false;
+            if id.is_dynamic() {
+                // Remove dynamic windows entirely
+                wins.retain(|w| w.id != id);
+            } else {
+                if let Some(w) = wins.iter_mut().find(|w| w.id == id) {
+                    w.visible = false;
+                }
             }
         });
     }
@@ -147,6 +163,43 @@ impl WindowManagerContext {
         match is_visible {
             Some(true) => self.close_window(id),
             _ => self.restore_window(id),
+        }
+    }
+
+    /// Open a dynamic character editor window. If already open, brings it to front.
+    pub fn open_character_editor(&self, character_id: i32, character_name: &str) {
+        let win_id = WindowId::CharacterEditor(character_id);
+
+        // Check if already open
+        let exists = self.windows.with_untracked(|wins| {
+            wins.iter().any(|w| w.id == win_id)
+        });
+
+        if exists {
+            self.restore_window(win_id);
+        } else {
+            let z = self.next_z.get_untracked();
+            self.next_z.set(z + 1);
+
+            // Offset new windows slightly so they don't stack exactly
+            let count = self.windows.with_untracked(|wins| {
+                wins.iter().filter(|w| matches!(w.id, WindowId::CharacterEditor(_))).count()
+            });
+            let offset = (count as f64) * 25.0;
+
+            self.windows.update(|wins| {
+                wins.push(WindowState {
+                    id: win_id,
+                    title: Some(character_name.to_string()),
+                    x: 100.0 + offset,
+                    y: 80.0 + offset,
+                    width: 340.0,
+                    height: 450.0,
+                    z_index: z,
+                    minimized: false,
+                    visible: true,
+                });
+            });
         }
     }
 
@@ -272,6 +325,7 @@ pub fn default_window_layout() -> Vec<WindowState> {
     vec![
         WindowState {
             id: WindowId::Map,
+            title: None,
             x: 10.0,
             y: 10.0,
             width: 700.0,
@@ -282,6 +336,7 @@ pub fn default_window_layout() -> Vec<WindowState> {
         },
         WindowState {
             id: WindowId::Chat,
+            title: None,
             x: 720.0,
             y: 10.0,
             width: 320.0,
@@ -291,7 +346,8 @@ pub fn default_window_layout() -> Vec<WindowState> {
             visible: true,
         },
         WindowState {
-            id: WindowId::CharacterSheet,
+            id: WindowId::CharacterSelection,
+            title: None,
             x: 720.0,
             y: 420.0,
             width: 320.0,
@@ -302,6 +358,7 @@ pub fn default_window_layout() -> Vec<WindowState> {
         },
         WindowState {
             id: WindowId::Initiative,
+            title: None,
             x: 10.0,
             y: 520.0,
             width: 280.0,
@@ -312,6 +369,7 @@ pub fn default_window_layout() -> Vec<WindowState> {
         },
         WindowState {
             id: WindowId::Inventory,
+            title: None,
             x: 300.0,
             y: 520.0,
             width: 300.0,
@@ -322,6 +380,7 @@ pub fn default_window_layout() -> Vec<WindowState> {
         },
         WindowState {
             id: WindowId::Creatures,
+            title: None,
             x: 50.0,
             y: 50.0,
             width: 350.0,
@@ -346,6 +405,9 @@ fn load_or_default_layout() -> Vec<WindowState> {
             if let Ok(Some(storage)) = window.local_storage() {
                 if let Ok(Some(json)) = storage.get_item(LAYOUT_STORAGE_KEY) {
                     if let Ok(mut stored) = serde_json::from_str::<Vec<WindowState>>(&json) {
+                        // Remove dynamic windows — they don't persist across reloads
+                        stored.retain(|w| !w.id.is_dynamic());
+
                         // Merge with defaults: keep stored state for known IDs,
                         // add defaults for any new IDs.
                         let defaults = default_window_layout();
@@ -370,7 +432,9 @@ fn load_or_default_layout() -> Vec<WindowState> {
 fn save_layout(windows: &[WindowState]) {
     if let Some(window) = web_sys::window() {
         if let Ok(Some(storage)) = window.local_storage() {
-            if let Ok(json) = serde_json::to_string(windows) {
+            // Only persist static windows
+            let static_wins: Vec<&WindowState> = windows.iter().filter(|w| !w.id.is_dynamic()).collect();
+            if let Ok(json) = serde_json::to_string(&static_wins) {
                 let _ = storage.set_item(LAYOUT_STORAGE_KEY, &json);
             }
         }
@@ -446,12 +510,14 @@ pub fn WindowManager(children: Children) -> impl IntoView {
                     {
                         let wm = wm_taskbar.clone();
                         let id = win.id;
+                        let display_title = win.title.clone()
+                            .unwrap_or_else(|| id.title().to_string());
                         view! {
                             <button
                                 class="wm-taskbar-btn"
                                 on:click=move |_| wm.restore_window(id)
                             >
-                                {id.title()}
+                                {display_title}
                             </button>
                         }
                     }
@@ -465,7 +531,11 @@ pub fn WindowManager(children: Children) -> impl IntoView {
 ///
 /// Use like: `<GameWindow id=WindowId::Chat><ChatPanel /></GameWindow>`
 #[component]
-pub fn GameWindow(id: WindowId, children: Children) -> impl IntoView {
+pub fn GameWindow(
+    id: WindowId,
+    #[prop(optional, into)] title: Option<String>,
+    children: Children,
+) -> impl IntoView {
     let wm = expect_context::<WindowManagerContext>();
 
     // Derive this window's state reactively
@@ -478,6 +548,7 @@ pub fn GameWindow(id: WindowId, children: Children) -> impl IntoView {
                 .find(|w| w.id == id)
                 .unwrap_or(WindowState {
                     id,
+                    title: None,
                     x: 100.0,
                     y: 100.0,
                     width: 400.0,
@@ -486,6 +557,21 @@ pub fn GameWindow(id: WindowId, children: Children) -> impl IntoView {
                     minimized: false,
                     visible: true,
                 })
+        }
+    };
+
+    // Resolve display title: prop > window state custom title > default
+    let display_title = {
+        let title_prop = title.clone();
+        let windows = wm.windows;
+        move || {
+            if let Some(ref t) = title_prop {
+                return t.clone();
+            }
+            let custom = windows.with(|wins| {
+                wins.iter().find(|w| w.id == id).and_then(|w| w.title.clone())
+            });
+            custom.unwrap_or_else(|| id.title().to_string())
         }
     };
 
@@ -579,7 +665,7 @@ pub fn GameWindow(id: WindowId, children: Children) -> impl IntoView {
 
             // Title bar
             <div class="gw-titlebar" on:mousedown=on_titlebar_mousedown>
-                <span class="gw-title">{id.title()}</span>
+                <span class="gw-title">{display_title}</span>
                 <div class="gw-controls">
                     <button class="gw-btn gw-btn-min"
                         on:click=move |_| wm_min.minimize_window(id)

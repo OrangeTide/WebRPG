@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 use leptos::reactive::owner::LocalStorage;
 
-use crate::components::charsheet::CharacterSheet;
+use crate::components::charsheet::{CharacterEditorPanel, CharacterSelection};
 use crate::components::chat::ChatPanel;
 use crate::components::creatures::CreaturePanel;
 use crate::components::initiative::InitiativeTracker;
@@ -27,6 +27,10 @@ pub struct GameContext {
     pub inventory: RwSignal<Vec<InventoryItemInfo>>,
     pub connected: RwSignal<bool>,
     pub send: StoredValue<Option<SendFn>, LocalStorage>,
+    /// Bumped when any character data/resource changes (triggers refetch in listeners).
+    pub character_revision: RwSignal<u32>,
+    /// Whether initiative rolls from character sheets are locked.
+    pub initiative_locked: RwSignal<bool>,
     /// Decremented for each locally-created message to avoid ID collisions with DB rows.
     next_local_id: std::sync::Arc<std::sync::atomic::AtomicI32>,
 }
@@ -54,6 +58,7 @@ impl GameContext {
         self.initiative.set(snapshot.initiative);
         self.chat_messages.set(snapshot.recent_chat);
         self.inventory.set(snapshot.inventory);
+        self.initiative_locked.set(snapshot.initiative_locked);
         self.connected.set(true);
     }
 
@@ -147,10 +152,16 @@ impl GameContext {
                 self.initiative.set(entries);
             }
             ServerMessage::CharacterUpdated { .. } => {
-                // Character sheets not yet implemented on client
+                self.character_revision.update(|n| *n += 1);
+            }
+            ServerMessage::CharacterResourceUpdated { .. } => {
+                self.character_revision.update(|n| *n += 1);
             }
             ServerMessage::InventoryUpdated { items } => {
                 self.inventory.set(items);
+            }
+            ServerMessage::InitiativeLockChanged { locked } => {
+                self.initiative_locked.set(locked);
             }
             ServerMessage::Error { message } => {
                 log::warn!("Server error: {message}");
@@ -184,6 +195,8 @@ pub fn GamePage() -> impl IntoView {
         inventory: RwSignal::new(vec![]),
         connected: RwSignal::new(false),
         send: StoredValue::new_local(None),
+        character_revision: RwSignal::new(0),
+        initiative_locked: RwSignal::new(false),
         next_local_id: std::sync::Arc::new(std::sync::atomic::AtomicI32::new(-1)),
     };
 
@@ -318,8 +331,8 @@ pub fn GamePage() -> impl IntoView {
                 <GameWindow id=WindowId::Chat>
                     <ChatPanel />
                 </GameWindow>
-                <GameWindow id=WindowId::CharacterSheet>
-                    <CharacterSheet />
+                <GameWindow id=WindowId::CharacterSelection>
+                    <CharacterSelection />
                 </GameWindow>
                 <GameWindow id=WindowId::Initiative>
                     <InitiativeTracker />
@@ -330,6 +343,7 @@ pub fn GamePage() -> impl IntoView {
                 <GameWindow id=WindowId::Creatures>
                     <CreaturePanel />
                 </GameWindow>
+                <DynamicCharacterWindows />
             </WindowManager>
         </div>
     }
@@ -385,5 +399,43 @@ fn WindowToggleButton(id: WindowId) -> impl IntoView {
         >
             {id.title()}
         </button>
+    }
+}
+
+/// Renders dynamic GameWindow instances for each open character editor.
+#[component]
+fn DynamicCharacterWindows() -> impl IntoView {
+    let wm = expect_context::<WindowManagerContext>();
+
+    // Derive the list of open character editor (id, char_id) pairs
+    let open_editors = move || {
+        wm.windows
+            .get()
+            .into_iter()
+            .filter_map(|w| {
+                if let WindowId::CharacterEditor(char_id) = w.id {
+                    Some((w.id, char_id))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+    };
+
+    view! {
+        <For
+            each=open_editors
+            key=|(_, char_id)| *char_id
+            let:item
+        >
+            {
+                let (win_id, char_id) = item;
+                view! {
+                    <GameWindow id=win_id>
+                        <CharacterEditorPanel character_id=char_id />
+                    </GameWindow>
+                }
+            }
+        </For>
     }
 }

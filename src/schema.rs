@@ -41,6 +41,7 @@ diesel::table! {
         template_id -> Nullable<Integer>,
         name -> Text,
         stat_data_json -> Text,
+        image_url -> Nullable<Text>,
     }
 }
 

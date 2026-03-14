@@ -2,27 +2,48 @@ use leptos::prelude::*;
 
 use crate::models::{CreatureInfo, FieldType, TemplateField, TemplateInfo};
 use crate::pages::game::GameContext;
+use crate::ws::messages::ClientMessage;
 
 #[component]
 pub fn CreaturePanel() -> impl IntoView {
     let ctx = expect_context::<GameContext>();
     let session_id = ctx.session_id;
 
-    let template = Resource::new(
-        move || session_id.get(),
-        |sid| crate::server::api::get_session_template(sid),
-    );
+    // Use signal + effect (not Resource) to avoid hydration mismatch
+    let template = RwSignal::new(Option::<TemplateInfo>::None);
+    let creatures = RwSignal::new(Vec::<CreatureInfo>::new());
+    let loading = RwSignal::new(true);
+    let refetch = RwSignal::new(0u32);
 
-    let creatures = Resource::new(
-        move || session_id.get(),
-        |sid| crate::server::api::list_creatures(sid),
-    );
+    let fetch_creatures = move || {
+        let sid = session_id.get();
+        refetch.track();
+        if sid == 0 {
+            return;
+        }
+        loading.set(true);
+        leptos::task::spawn_local(async move {
+            match crate::server::api::list_creatures(sid).await {
+                Ok(list) => creatures.set(list),
+                Err(e) => log::error!("Failed to load creatures: {e}"),
+            }
+            match crate::server::api::get_session_template(sid).await {
+                Ok(tmpl) => template.set(tmpl),
+                Err(e) => log::error!("Failed to load template: {e}"),
+            }
+            loading.set(false);
+        });
+    };
+
+    Effect::new(move |_| fetch_creatures());
+
+    let trigger_refetch = move || refetch.update(|n| *n += 1);
 
     let (editing, set_editing) = signal(Option::<i32>::None);
+    let (show_create_form, set_show_create_form) = signal(false);
     let (new_name, set_new_name) = signal(String::new());
 
-    let create_creature = move |_| {
-        let name = new_name.get().trim().to_string();
+    let do_create = move |name: String| {
         if name.is_empty() {
             return;
         }
@@ -37,43 +58,123 @@ pub fn CreaturePanel() -> impl IntoView {
             {
                 Ok(c) => {
                     set_editing.set(Some(c.id));
-                    creatures.refetch();
+                    set_show_create_form.set(false);
+                    trigger_refetch();
                 }
                 Err(e) => log::error!("Failed to create creature: {e}"),
             }
+            set_new_name.set(String::new());
         });
+    };
+
+    let create_creature = move |_| {
+        do_create(new_name.get().trim().to_string());
+    };
+
+    let cancel_create = move |_| {
+        set_show_create_form.set(false);
         set_new_name.set(String::new());
     };
 
     let delete_creature = move |creature_id: i32| {
         leptos::task::spawn_local(async move {
             let _ = crate::server::api::delete_creature(creature_id).await;
-            creatures.refetch();
+            trigger_refetch();
         });
     };
 
     view! {
         <div class="creature-panel">
-            <h3>"Creatures"</h3>
-
-            <div class="creature-create">
-                <input
-                    type="text"
-                    placeholder="New creature name"
-                    prop:value=new_name
-                    on:input=move |ev| set_new_name.set(event_target_value(&ev))
-                />
-                <button on:click=create_creature>"Create"</button>
+            <div class="panel-header">
+                <h3>"Creatures"</h3>
+                <button
+                    class="btn-add"
+                    title="New Creature"
+                    on:click=move |_| {
+                        set_show_create_form.set(true);
+                        set_editing.set(None);
+                    }
+                >"+"</button>
             </div>
 
-            <Suspense fallback=|| view! { <p>"Loading..."</p> }>
-                {move || {
-                    let tmpl = template.get().unwrap_or(Ok(None)).unwrap_or(None);
-                    let creature_list = creatures.get().unwrap_or(Ok(vec![])).unwrap_or_default();
-                    let editing_id = editing.get();
+            // Create creature form
+            {move || show_create_form.get().then(|| view! {
+                <div class="create-form">
+                    <h4>"New Creature"</h4>
+                    <div class="field-row">
+                        <label>"Name"</label>
+                        <input
+                            type="text"
+                            placeholder="Creature name"
+                            prop:value=new_name
+                            on:input=move |ev| set_new_name.set(event_target_value(&ev))
+                            on:keydown=move |ev| {
+                                if ev.key() == "Enter" {
+                                    do_create(new_name.get().trim().to_string());
+                                }
+                            }
+                        />
+                    </div>
+                    <div class="form-actions">
+                        <button on:click=create_creature>"Create"</button>
+                        <button class="btn-cancel" on:click=cancel_create>"Cancel"</button>
+                    </div>
+                </div>
+            })}
 
+            {move || {
+                let tmpl = template.get();
+                let creature_list = creatures.get();
+                let editing_id = editing.get();
+
+                if loading.get() && creature_list.is_empty() {
+                    view! { <p class="loading-text">"Loading..."</p> }.into_any()
+                } else if creature_list.is_empty() && !show_create_form.get() {
                     view! {
-                        <div class="creature-list">
+                        <div class="empty-list">
+                            <p>"No creatures yet. Click + to create one."</p>
+                        </div>
+                    }.into_any()
+                } else if let Some(edit_id) = editing_id {
+                    // Show editor for selected creature
+                    let creature = creature_list.into_iter().find(|c| c.id == edit_id);
+                    if let Some(creature) = creature {
+                        let cid = creature.id;
+                        view! {
+                            <div>
+                                <div class="editor-toolbar">
+                                    <button
+                                        class="btn-back"
+                                        on:click=move |_| {
+                                            trigger_refetch();
+                                            set_editing.set(None);
+                                        }
+                                    >"< Back to list"</button>
+                                    <button
+                                        class="btn-delete"
+                                        title="Delete creature"
+                                        on:click=move |_| {
+                                            delete_creature(cid);
+                                            set_editing.set(None);
+                                        }
+                                    >"Delete"</button>
+                                </div>
+                                <CreatureEditor
+                                    creature=creature
+                                    template=tmpl
+                                    on_saved=move || {
+                                        trigger_refetch();
+                                    }
+                                />
+                            </div>
+                        }.into_any()
+                    } else {
+                        view! { <p>"Creature not found"</p> }.into_any()
+                    }
+                } else {
+                    // Show creature list
+                    view! {
+                        <div class="item-list">
                             <For
                                 each=move || creature_list.clone()
                                 key=|c| c.id
@@ -81,40 +182,68 @@ pub fn CreaturePanel() -> impl IntoView {
                             >
                                 {
                                     let cid = creature.id;
-                                    let is_editing = editing_id == Some(cid);
-                                    let tmpl_clone = tmpl.clone();
+                                    let name = creature.name.clone();
+                                    let image = creature.image_url.clone();
+                                    let stats_summary = {
+                                        let d = &creature.stat_data;
+                                        let mut parts = Vec::new();
+                                        if let Some(hp) = d.get("hp_max").and_then(|v| v.as_f64()) {
+                                            parts.push(format!("HP {}", hp as i32));
+                                        }
+                                        if let Some(ac) = d.get("armor_class").and_then(|v| v.as_f64()) {
+                                            parts.push(format!("AC {}", ac as i32));
+                                        }
+                                        parts.join(" | ")
+                                    };
+                                    let roll_name = creature.name.clone();
+                                    let send = ctx.send;
+                                    let roll_init = move |_| {
+                                        let label = roll_name.clone();
+                                        send.with_value(|f| {
+                                            if let Some(f) = f {
+                                                f(ClientMessage::RollCreatureInitiative {
+                                                    creature_id: cid,
+                                                    label,
+                                                });
+                                            }
+                                        });
+                                    };
                                     view! {
-                                        <div class="creature-entry">
-                                            <div class="creature-header">
-                                                <strong>{creature.name.clone()}</strong>
-                                                <button on:click=move |_| {
-                                                    if editing.get() == Some(cid) {
-                                                        set_editing.set(None);
-                                                    } else {
-                                                        set_editing.set(Some(cid));
-                                                    }
-                                                }>
-                                                    {if is_editing { "Close" } else { "Edit" }}
-                                                </button>
-                                                <button on:click=move |_| delete_creature(cid)>"Delete"</button>
+                                        <div class="item-card creature-card-item">
+                                            <div class="item-card-portrait">
+                                                {if let Some(url) = image.clone() {
+                                                    view! { <img src=url alt="icon" /> }.into_any()
+                                                } else {
+                                                    view! { <div class="item-card-icon">"&#x1f47e;"</div> }.into_any()
+                                                }}
                                             </div>
-                                            {is_editing.then(|| {
-                                                view! {
-                                                    <CreatureEditor
-                                                        creature=creature.clone()
-                                                        template=tmpl_clone.clone()
-                                                        on_saved=move || creatures.refetch()
-                                                    />
-                                                }
-                                            })}
+                                            <div
+                                                class="item-card-info"
+                                                on:click=move |_| set_editing.set(Some(cid))
+                                            >
+                                                <strong>{name}</strong>
+                                                {(!stats_summary.is_empty()).then(|| view! {
+                                                    <span class="item-card-stat">{stats_summary}</span>
+                                                })}
+                                            </div>
+                                            <button
+                                                class="btn-roll-initiative"
+                                                title="Roll Initiative"
+                                                on:click=roll_init
+                                            >"Roll Initiative"</button>
+                                            <button
+                                                class="btn-delete"
+                                                title="Delete creature"
+                                                on:click=move |_| delete_creature(cid)
+                                            >"x"</button>
                                         </div>
                                     }
                                 }
                             </For>
                         </div>
-                    }
-                }}
-            </Suspense>
+                    }.into_any()
+                }
+            }}
         </div>
     }
 }
@@ -127,6 +256,23 @@ fn CreatureEditor(
 ) -> impl IntoView {
     let creature_id = creature.id;
     let (name, set_name) = signal(creature.name.clone());
+    let show_image_picker = RwSignal::new(false);
+    let (image, set_image) = signal(creature.image_url.clone());
+
+    let on_image_select = {
+        Callback::new(move |media: crate::models::MediaInfo| {
+            let url = media.url.clone();
+            set_image.set(Some(url.clone()));
+            show_image_picker.set(false);
+            leptos::task::spawn_local(async move {
+                let _ = crate::server::api::update_creature_image(
+                    creature_id,
+                    Some(url),
+                )
+                .await;
+            });
+        })
+    };
 
     // Get combat-relevant fields from the template (for stat blocks)
     let stat_fields: Vec<TemplateField> = template
@@ -206,14 +352,34 @@ fn CreatureEditor(
 
     view! {
         <div class="creature-editor">
-            <div class="field-row">
-                <label>"Name"</label>
-                <input
-                    type="text"
-                    prop:value=name
-                    on:input=move |ev| set_name.set(event_target_value(&ev))
-                />
+            <div class="creature-editor-header">
+                <div
+                    class="char-portrait"
+                    on:click=move |_| show_image_picker.set(true)
+                    style="cursor: pointer;"
+                >
+                    {move || {
+                        if let Some(url) = image.get() {
+                            view! { <img src=url alt="icon" class="portrait-img" /> }.into_any()
+                        } else {
+                            view! { <div class="portrait-placeholder">"Set Icon"</div> }.into_any()
+                        }
+                    }}
+                </div>
+                <div class="field-row" style="flex: 1;">
+                    <label>"Name"</label>
+                    <input
+                        type="text"
+                        prop:value=name
+                        on:input=move |ev| set_name.set(event_target_value(&ev))
+                    />
+                </div>
             </div>
+            <crate::components::media_browser::MediaBrowser
+                on_select=on_image_select
+                filter_type="image".to_string()
+                show=show_image_picker
+            />
             <For
                 each=move || field_signals.clone()
                 key=|(f, _)| f.name.clone()

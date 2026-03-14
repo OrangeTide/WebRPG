@@ -132,12 +132,14 @@ All message types are fully implemented:
 - **Tokens:** place, move, remove, HP updates (creature-linked tokens auto-init HP)
 - **Fog of war:** reveal/hide cells (GM only)
 - **Map:** switch active map (GM only)
-- **Initiative:** add/remove entries, advance turn (GM only)
-- **Character sheets:** update fields via dot-path (e.g. `stats.strength`)
+- **Initiative:** add/remove entries, advance turn (GM only), roll initiative
+  from character sheet or creature panel, lock/unlock initiative rolls
+- **Character sheets:** update fields via dot-path (e.g. `stats.strength`),
+  real-time resource updates via `CharacterResourceUpdated`
 - **Inventory:** add, remove, update items
 
-GM role is enforced server-side for token placement/removal, fog, map, and
-initiative operations.
+GM role is enforced server-side for token placement/removal, fog, map,
+initiative list updates, and initiative lock/unlock.
 
 ### Game Page Architecture
 
@@ -156,16 +158,25 @@ Components read state reactively and send messages through the context:
   dice notation (`NdN+M`). Last 100 messages loaded from DB on connect. Dice
   results persisted with structured JSON data. Messages styled with username in
   accent color and dice rolls in golden italic.
-- **InitiativeTracker** — sorted entry list with current-turn highlight, add/remove/advance.
+- **InitiativeTracker** — sorted initiative list showing value, portrait icon,
+  and name per entry. "+" button for manual entry, "Next Turn" to advance.
+  Lock/unlock toggle (GM) prevents character sheet initiative rolls when locked.
+  Characters and creatures can roll initiative from their respective panels
+  (d20 + DEX modifier + initiative bonus for D&D 5e), which automatically adds
+  them to the tracker sorted by value. Rolls also appear in the chat log.
 - **InventoryPanel** — item list with quantity controls, add/remove.
 - **CharacterSheet** — template-driven character sheet editor. Fields are
   grouped by category and rendered by type (number, text, checkbox, textarea).
-  Includes resource tracking bars (HP, spell slots) with +/- buttons. Character
-  field edits are sent as `UpdateCharacterField` WebSocket messages for
-  real-time sync. Supports character portraits via the media browser.
+  Includes resource tracking bars (HP, spell slots) with +/- buttons and undo.
+  "Roll Initiative" button between resource bars and ability scores (disabled
+  when initiative is locked). Character field edits are sent as
+  `UpdateCharacterField` WebSocket messages for real-time sync. Character
+  Selection window updates in real-time when HP or other data changes.
+  Supports character portraits via the media browser.
 - **CreaturePanel** — GM-only creature stat block CRUD. Create, edit, and
-  delete creature stat blocks with template-driven stat fields. Creature stat
-  blocks are linked to tokens for HP auto-initialization.
+  delete creature stat blocks with template-driven stat fields. "Roll
+  Initiative" button on each creature card (always enabled, ignores lock).
+  Creature stat blocks are linked to tokens for HP auto-initialization.
 
 - **MediaBrowser** — modal dialog for browsing, searching, and uploading media
   files. Supports image thumbnails, tag-based filtering with autocomplete, and

@@ -17,6 +17,7 @@ pub struct ActiveSession {
     pub token_positions: HashMap<i32, (f32, f32)>,
     pub revealed_fog: HashSet<(i32, i32)>,
     pub initiative_order: Vec<crate::models::InitiativeEntryInfo>,
+    pub initiative_locked: bool,
 }
 
 impl SessionManager {
@@ -35,6 +36,7 @@ impl SessionManager {
                 token_positions: HashMap::new(),
                 revealed_fog: HashSet::new(),
                 initiative_order: Vec::new(),
+                initiative_locked: false,
             })
     }
 
