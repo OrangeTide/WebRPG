@@ -88,6 +88,8 @@ SECRET_KEY=your-secret-key
 For deployment with the included build and deploy scripts, see
 [DEV.md — Deployment](DEV.md#deployment).
 
+Reference configuration for nginx is provided at [doc/nginx/webrpg](doc/nginx/webrpg).
+
 ## Contributing
 
 See [DEV.md — Contributing](DEV.md#contributing) for code standards, PR
