@@ -1413,39 +1413,3 @@ pub async fn update_character_portrait(
     Ok(())
 }
 
-#[server]
-pub async fn update_map_background(
-    map_id: i32,
-    session_id: i32,
-    background_url: Option<String>,
-) -> Result<(), ServerFnError> {
-    use crate::db;
-    use crate::models::db_models::Session;
-    use crate::schema::*;
-    use diesel::prelude::*;
-
-    let user = get_current_user()
-        .await?
-        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
-
-    let conn = &mut db::get_conn();
-
-    let session: Session = sessions::table
-        .find(session_id)
-        .select(Session::as_select())
-        .first(conn)
-        .map_err(|_| ServerFnError::new("Session not found"))?;
-
-    if session.gm_user_id != user.id {
-        return Err(ServerFnError::new(
-            "Only the GM can change the map background",
-        ));
-    }
-
-    diesel::update(maps::table.find(map_id))
-        .set(maps::background_url.eq(background_url))
-        .execute(conn)
-        .map_err(|e| ServerFnError::new(format!("Failed to update background: {e}")))?;
-
-    Ok(())
-}

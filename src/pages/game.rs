@@ -173,6 +173,13 @@ impl GameContext {
             ServerMessage::InitiativeLockChanged { locked } => {
                 self.initiative_locked.set(locked);
             }
+            ServerMessage::MapBackgroundChanged { background_url } => {
+                self.map.update(|m_opt| {
+                    if let Some(m) = m_opt {
+                        m.background_url = background_url;
+                    }
+                });
+            }
             ServerMessage::Error { message } => {
                 log::warn!("Server error: {message}");
             }

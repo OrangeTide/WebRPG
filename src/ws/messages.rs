@@ -80,6 +80,9 @@ pub enum ClientMessage {
     SetInitiativeLock {
         locked: bool,
     },
+    SetMapBackground {
+        background_url: Option<String>,
+    },
 }
 
 // ===== Server -> Client messages =====
@@ -152,6 +155,9 @@ pub enum ServerMessage {
     },
     InitiativeLockChanged {
         locked: bool,
+    },
+    MapBackgroundChanged {
+        background_url: Option<String>,
     },
 }
 

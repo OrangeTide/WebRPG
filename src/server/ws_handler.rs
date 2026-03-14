@@ -431,6 +431,38 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 }
             }
 
+            ClientMessage::SetMapBackground { background_url } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can change the map background".into(),
+                        });
+                        continue;
+                    }
+                    let map_id = SESSION_MANAGER
+                        .sessions
+                        .get(&session_id)
+                        .and_then(|s| s.active_map_id);
+                    if let Some(map_id) = map_id {
+                        use crate::schema::maps;
+                        use diesel::prelude::*;
+                        let conn = &mut crate::db::get_conn();
+                        let _ = diesel::update(maps::table.find(map_id))
+                            .set(maps::background_url.eq(&background_url))
+                            .execute(conn);
+                        SESSION_MANAGER.broadcast(
+                            session_id,
+                            &ServerMessage::MapBackgroundChanged { background_url },
+                            None,
+                        );
+                    } else {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "No active map".into(),
+                        });
+                    }
+                }
+            }
+
             ClientMessage::UpdateCharacterField {
                 character_id,
                 field_path,

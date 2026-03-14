@@ -26,8 +26,6 @@ pub fn MapCanvas() -> impl IntoView {
     let tokens = ctx.tokens;
     let fog = ctx.fog;
     let send = ctx.send;
-    let session_id = ctx.session_id;
-
     let (dragging, set_dragging) = signal(Option::<i32>::None);
     let (selected, set_selected) = signal(Option::<i32>::None);
     let show_media_browser = RwSignal::new(false);
@@ -371,21 +369,13 @@ pub fn MapCanvas() -> impl IntoView {
     };
 
     let on_bg_select = Callback::new(move |media: crate::models::MediaInfo| {
-        let url = media.url.clone();
-        let map_data = map.get();
-        let sid = session_id.get();
-        if let Some(m) = map_data {
-            let map_id = m.id;
-            leptos::task::spawn_local(async move {
-                let _ = crate::server::api::update_map_background(map_id, sid, Some(url)).await;
-                // Update local state
-            });
-            map.update(|m_opt| {
-                if let Some(m) = m_opt {
-                    m.background_url = Some(media.url.clone());
-                }
-            });
-        }
+        send.with_value(|f| {
+            if let Some(f) = f {
+                f(ClientMessage::SetMapBackground {
+                    background_url: Some(media.url.clone()),
+                });
+            }
+        });
         show_media_browser.set(false);
     });
 
