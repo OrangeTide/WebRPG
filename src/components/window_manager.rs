@@ -176,6 +176,28 @@ impl WindowManagerContext {
         });
     }
 
+    /// Push non-minimized windows so they don't overlap the dock area.
+    pub fn push_windows_from_dock(&self, dock_w: f64, dock_h: f64) {
+        self.windows.update(|wins| {
+            for w in wins.iter_mut() {
+                if w.minimized {
+                    continue;
+                }
+                // Check if the window's top-left corner is inside the dock area
+                if w.x < dock_w && w.y < dock_h {
+                    // Push right or down, whichever requires less movement
+                    let push_right = dock_w - w.x;
+                    let push_down = dock_h - w.y;
+                    if push_right <= push_down {
+                        w.x = dock_w;
+                    } else {
+                        w.y = dock_h;
+                    }
+                }
+            }
+        });
+    }
+
     /// Open a dynamic character editor window. If already open, brings it to front.
     pub fn open_character_editor(&self, character_id: i32, character_name: &str) {
         let win_id = WindowId::CharacterEditor(character_id);
@@ -888,6 +910,18 @@ fn save_dock_layout(layout: &DockLayout) {
     }
 }
 
+/// Active dock tile drag operation.
+#[derive(Debug, Clone, Copy)]
+struct DockDrag {
+    window_id: WindowId,
+    /// Current mouse position relative to the dock container.
+    mouse_x: f64,
+    mouse_y: f64,
+    /// Offset from the tile's top-left corner to the mouse position.
+    offset_x: f64,
+    offset_y: f64,
+}
+
 /// NeXTSTEP-style dock that shows minimized windows as 64x64 tiles.
 /// The dock sits in the upper-left corner of the viewport with a fixed
 /// system icon anchor. Tiles snap to a 2D grid adjacent to existing tiles.
@@ -895,6 +929,7 @@ fn save_dock_layout(layout: &DockLayout) {
 fn Dock() -> impl IntoView {
     let wm = expect_context::<WindowManagerContext>();
     let dock_layout = RwSignal::new(DockLayout::new());
+    let dock_drag = RwSignal::new(None::<DockDrag>);
 
     // Load dock layout from localStorage after hydration
     #[cfg(feature = "hydrate")]
@@ -914,68 +949,165 @@ fn Dock() -> impl IntoView {
     // Sync dock tiles with minimized windows:
     // - Add tiles for newly minimized windows
     // - Remove tiles for windows that are no longer minimized
+    // Also push windows away from the dock area when tiles appear.
     let wm_sync = wm.clone();
     Effect::new(move |_| {
         let wins = wm_sync.windows.get();
+        let mut changed = false;
         dock_layout.update(|layout| {
             // Add tiles for minimized windows not yet in dock
             for w in &wins {
                 if w.minimized && layout.get_pos(w.id).is_none() {
                     let pos = layout.next_available_pos();
                     layout.set_pos(w.id, pos);
+                    changed = true;
                 }
             }
             // Remove tiles for windows that are no longer minimized (or removed)
+            let before = layout.tiles.len();
             let minimized_ids: Vec<WindowId> =
                 wins.iter().filter(|w| w.minimized).map(|w| w.id).collect();
             layout.tiles.retain(|(id, _)| minimized_ids.contains(id));
+            if layout.tiles.len() != before {
+                changed = true;
+            }
         });
+
+        // Push non-minimized windows out of the dock area
+        if changed {
+            let layout = dock_layout.get_untracked();
+            let (dock_w, dock_h) = layout.bounds_px();
+            // Also account for the system icon minimum
+            let dock_w = dock_w.max(DOCK_TILE_SIZE);
+            let dock_h = dock_h.max(DOCK_TILE_SIZE);
+            wm_sync.push_windows_from_dock(dock_w, dock_h);
+        }
     });
 
     // Derive minimized windows list with their dock positions
     let dock_tiles = move || {
         let layout = dock_layout.get();
         let wins = wm.windows.get();
-        let mut tiles: Vec<(WindowId, String, &'static str, &'static str, DockPos)> = vec![];
+        let drag = dock_drag.get();
+        let mut tiles: Vec<(WindowId, String, &'static str, DockPos)> = vec![];
         for w in &wins {
             if w.minimized {
                 if let Some(pos) = layout.get_pos(w.id) {
+                    // Skip the tile being dragged (it's rendered as a ghost)
+                    if drag.as_ref().is_some_and(|d| d.window_id == w.id) {
+                        continue;
+                    }
                     let label = w.title.as_deref().unwrap_or(w.id.dock_label());
-                    // Truncate long labels
                     let label = if label.len() > 8 {
                         format!("{}...", &label[..6])
                     } else {
                         label.to_string()
                     };
-                    tiles.push((w.id, label, w.id.dock_icon(), w.id.dock_label(), pos));
+                    tiles.push((w.id, label, w.id.dock_icon(), pos));
                 }
             }
         }
         tiles
     };
 
-    // Compute dock area bounds for the reservation overlay
+    // Ghost tile position (snap preview during drag)
+    let ghost_pos = move || {
+        let drag = dock_drag.get()?;
+        let layout = dock_layout.get_untracked();
+        let snap_x = drag.mouse_x - drag.offset_x + DOCK_TILE_SIZE / 2.0;
+        let snap_y = drag.mouse_y - drag.offset_y + DOCK_TILE_SIZE / 2.0;
+        // Create a temporary layout without the dragged tile for snapping
+        let mut temp_layout = layout.clone();
+        temp_layout.remove(drag.window_id);
+        temp_layout.snap_to_grid(snap_x, snap_y)
+    };
+
+    // Dragged tile visual (follows mouse)
+    let drag_tile_info = move || {
+        let drag = dock_drag.get()?;
+        let wins = wm.windows.get();
+        let w = wins.iter().find(|w| w.id == drag.window_id)?;
+        let label = w.title.as_deref().unwrap_or(w.id.dock_label());
+        let label = if label.len() > 8 {
+            format!("{}...", &label[..6])
+        } else {
+            label.to_string()
+        };
+        let x = drag.mouse_x - drag.offset_x;
+        let y = drag.mouse_y - drag.offset_y;
+        Some((drag.window_id, label, w.id.dock_icon(), x, y))
+    };
+
+    // Compute dock area bounds for the container size
     let dock_bounds = move || {
         let layout = dock_layout.get();
         let wins = wm.windows.get();
         let has_minimized = wins.iter().any(|w| w.minimized);
         if !has_minimized {
-            // Just the system icon
             (DOCK_TILE_SIZE, DOCK_TILE_SIZE)
         } else {
-            layout.bounds_px()
+            let (w, h) = layout.bounds_px();
+            (w.max(DOCK_TILE_SIZE), h.max(DOCK_TILE_SIZE))
         }
     };
 
     let wm_click = wm.clone();
+
+    // Mouse handlers for dock tile drag
+    let on_dock_mousemove = move |ev: leptos::ev::MouseEvent| {
+        if dock_drag.get_untracked().is_some() {
+            ev.prevent_default();
+            dock_drag.update(|d| {
+                if let Some(d) = d {
+                    d.mouse_x = ev.offset_x() as f64;
+                    d.mouse_y = ev.offset_y() as f64;
+                }
+            });
+        }
+    };
+
+    let on_dock_mouseup = move |_: leptos::ev::MouseEvent| {
+        if let Some(drag) = dock_drag.get_untracked() {
+            let snap_x = drag.mouse_x - drag.offset_x + DOCK_TILE_SIZE / 2.0;
+            let snap_y = drag.mouse_y - drag.offset_y + DOCK_TILE_SIZE / 2.0;
+            dock_layout.update(|layout| {
+                // Temporarily remove the dragged tile for snapping calculation
+                let mut temp = layout.clone();
+                temp.remove(drag.window_id);
+                if let Some(new_pos) = temp.snap_to_grid(snap_x, snap_y) {
+                    layout.set_pos(drag.window_id, new_pos);
+                }
+                // If no valid snap, tile stays at its original position
+            });
+            dock_drag.set(None);
+        }
+    };
+
+    let on_dock_mouseleave = move |_: leptos::ev::MouseEvent| {
+        // Cancel drag if mouse leaves the dock area
+        dock_drag.set(None);
+    };
 
     view! {
         <div
             class="dock"
             style=move || {
                 let (w, h) = dock_bounds();
-                format!("width:{}px;height:{}px;", w, h)
+                // Expand during drag to allow snapping to new positions
+                let drag_extra = if dock_drag.get().is_some() {
+                    DOCK_TILE_SIZE * 2.0
+                } else {
+                    0.0
+                };
+                format!(
+                    "width:{}px;height:{}px;",
+                    w + drag_extra,
+                    h + drag_extra
+                )
             }
+            on:mousemove=on_dock_mousemove
+            on:mouseup=on_dock_mouseup
+            on:mouseleave=on_dock_mouseleave
         >
             // System icon (anchor tile at 0,0)
             <div
@@ -997,7 +1129,7 @@ fn Dock() -> impl IntoView {
                     let id = tile.0;
                     let label = tile.1.clone();
                     let icon = tile.2;
-                    let pos = tile.4;
+                    let pos = tile.3;
                     let left = pos.col as f64 * DOCK_TILE_SIZE;
                     let top = pos.row as f64 * DOCK_TILE_SIZE;
                     view! {
@@ -1005,6 +1137,19 @@ fn Dock() -> impl IntoView {
                             class="dock-tile"
                             style=format!("left:{}px;top:{}px;", left, top)
                             on:click=move |_| wm.restore_window(id)
+                            on:mousedown=move |ev: leptos::ev::MouseEvent| {
+                                ev.prevent_default();
+                                ev.stop_propagation();
+                                let tile_left = pos.col as f64 * DOCK_TILE_SIZE;
+                                let tile_top = pos.row as f64 * DOCK_TILE_SIZE;
+                                dock_drag.set(Some(DockDrag {
+                                    window_id: id,
+                                    mouse_x: ev.offset_x() as f64 + tile_left,
+                                    mouse_y: ev.offset_y() as f64 + tile_top,
+                                    offset_x: ev.offset_x() as f64,
+                                    offset_y: ev.offset_y() as f64,
+                                }));
+                            }
                             title=id.title()
                         >
                             <span class="dock-tile-icon">{icon}</span>
@@ -1013,6 +1158,35 @@ fn Dock() -> impl IntoView {
                     }
                 }
             </For>
+
+            // Ghost tile (snap preview during drag)
+            {move || {
+                ghost_pos().map(|gp| {
+                    let left = gp.col as f64 * DOCK_TILE_SIZE;
+                    let top = gp.row as f64 * DOCK_TILE_SIZE;
+                    view! {
+                        <div
+                            class="dock-tile dock-tile-ghost"
+                            style=format!("left:{}px;top:{}px;", left, top)
+                        />
+                    }
+                })
+            }}
+
+            // Dragged tile (follows mouse)
+            {move || {
+                drag_tile_info().map(|(_, label, icon, x, y)| {
+                    view! {
+                        <div
+                            class="dock-tile dock-tile-dragging"
+                            style=format!("left:{}px;top:{}px;", x, y)
+                        >
+                            <span class="dock-tile-icon">{icon}</span>
+                            <span class="dock-tile-label">{label}</span>
+                        </div>
+                    }
+                })
+            }}
         </div>
     }
 }

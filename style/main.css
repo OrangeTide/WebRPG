@@ -435,6 +435,19 @@ h1, h2, h3, h4 {
     white-space: nowrap;
 }
 
+.dock-tile-ghost {
+    background: rgba(100, 100, 100, 0.4);
+    border: 2px dashed #888;
+    pointer-events: none;
+}
+
+.dock-tile-dragging {
+    opacity: 0.85;
+    z-index: 10001;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
 /* === Window Manager Viewport === */
 .wm-viewport {
     flex: 1;
