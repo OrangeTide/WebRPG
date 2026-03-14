@@ -65,21 +65,21 @@ ln -sfn "$RELEASE_NAME" current
 
 # Preserve .env and database across deploys
 if [ -f .env ]; then
-    ln -sf ../../.env "current/.env"
+    ln -sf ../.env "current/.env"
 else
     echo "NOTE: No .env found. Copy current/env.example to ~/webrpg/.env and edit it."
 fi
 
 if [ -f database.db ]; then
-    ln -sf ../../database.db "current/database.db"
+    ln -sf ../database.db "current/database.db"
 fi
 
 # Preserve uploads directory across deploys
 if [ -d uploads ]; then
-    ln -sfn ../../uploads "current/uploads"
+    ln -sfn ../uploads "current/uploads"
 else
     mkdir -p uploads
-    ln -sfn ../../uploads "current/uploads"
+    ln -sfn ../uploads "current/uploads"
 fi
 
 echo ""
