@@ -421,7 +421,6 @@ pub fn GamePage() -> impl IntoView {
                     }
                 }}</h1>
                 <div class="game-header-right">
-                    <WindowToggleToolbar />
                     <span class="connection-status">
                         {move || if connected.get() { "Connected" } else { "Connecting..." }}
                     </span>
@@ -449,59 +448,6 @@ pub fn GamePage() -> impl IntoView {
                 <DynamicCharacterWindows />
             </WindowManager>
         </div>
-    }
-}
-
-/// Toolbar buttons to toggle window visibility.
-#[component]
-fn WindowToggleToolbar() -> impl IntoView {
-    // WindowManagerContext won't be available during SSR render (it's provided
-    // by WindowManager which renders after this). Use try_use_context to avoid panic.
-    // On the client after hydration, the context will be available via effects.
-
-    view! {
-        <div class="wm-toolbar">
-            {WindowId::all()
-                .iter()
-                .map(|&id| {
-                    view! { <WindowToggleButton id=id /> }
-                })
-                .collect::<Vec<_>>()}
-        </div>
-    }
-}
-
-/// A single toggle button for a window.
-#[component]
-fn WindowToggleButton(id: WindowId) -> impl IntoView {
-    let on_click = move |_| {
-        if let Some(wm) = use_context::<WindowManagerContext>() {
-            wm.toggle_window(id);
-        }
-    };
-
-    let is_active = move || {
-        use_context::<WindowManagerContext>()
-            .map(|wm| {
-                wm.windows.with(|wins| {
-                    wins.iter()
-                        .find(|w| w.id == id)
-                        .map(|w| w.visible && !w.minimized)
-                        .unwrap_or(false)
-                })
-            })
-            .unwrap_or(false)
-    };
-
-    view! {
-        <button
-            class="wm-toolbar-btn"
-            class:active=is_active
-            on:click=on_click
-            title=format!("Toggle {}", id.title())
-        >
-            {id.title()}
-        </button>
     }
 }
 

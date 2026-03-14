@@ -15,7 +15,7 @@ Theme the tiles with a gray background and transparent icon in the center with
 a white label at the bottom. Use black and width edges to give the tiles a 3D
 look. See @mockup-dock1.png for how this should look.
 
-## Status: Not Started
+## Status: In Progress
 
 ## Plan
 

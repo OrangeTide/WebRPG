@@ -55,6 +55,32 @@ impl WindowId {
     pub fn is_dynamic(&self) -> bool {
         matches!(self, WindowId::CharacterEditor(_))
     }
+
+    /// Unicode icon for dock tile display.
+    pub fn dock_icon(&self) -> &'static str {
+        match self {
+            WindowId::Map => "\u{1f5fa}",                // 🗺 world map
+            WindowId::Chat => "\u{1f4ac}",               // 💬 speech balloon
+            WindowId::CharacterSelection => "\u{1f464}", // 👤 bust in silhouette
+            WindowId::Initiative => "\u{2694}",          // ⚔ crossed swords
+            WindowId::Inventory => "\u{1f392}",          // 🎒 backpack
+            WindowId::Creatures => "\u{1f409}",          // 🐉 dragon
+            WindowId::CharacterEditor(_) => "\u{1f4dc}", // 📜 scroll
+        }
+    }
+
+    /// Short label for dock tile (truncated for 64px tile width).
+    pub fn dock_label(&self) -> &'static str {
+        match self {
+            WindowId::Map => "Map",
+            WindowId::Chat => "Chat",
+            WindowId::CharacterSelection => "Chars",
+            WindowId::Initiative => "Init",
+            WindowId::Inventory => "Items",
+            WindowId::Creatures => "Beasts",
+            WindowId::CharacterEditor(_) => "Sheet",
+        }
+    }
 }
 
 /// Persistent state for a single window.
@@ -68,7 +94,6 @@ pub struct WindowState {
     pub height: f64,
     pub z_index: u32,
     pub minimized: bool,
-    pub visible: bool,
 }
 
 /// Which edge/corner is being resized.
@@ -123,17 +148,13 @@ impl WindowManagerContext {
         });
     }
 
+    /// Close a dynamic window (removes it entirely). Static windows cannot be closed.
     pub fn close_window(&self, id: WindowId) {
-        self.windows.update(|wins| {
-            if id.is_dynamic() {
-                // Remove dynamic windows entirely
+        if id.is_dynamic() {
+            self.windows.update(|wins| {
                 wins.retain(|w| w.id != id);
-            } else {
-                if let Some(w) = wins.iter_mut().find(|w| w.id == id) {
-                    w.visible = false;
-                }
-            }
-        });
+            });
+        }
     }
 
     pub fn minimize_window(&self, id: WindowId) {
@@ -150,22 +171,9 @@ impl WindowManagerContext {
         self.windows.update(|wins| {
             if let Some(w) = wins.iter_mut().find(|w| w.id == id) {
                 w.minimized = false;
-                w.visible = true;
                 w.z_index = z;
             }
         });
-    }
-
-    pub fn toggle_window(&self, id: WindowId) {
-        let is_visible = self.windows.with_untracked(|wins| {
-            wins.iter()
-                .find(|w| w.id == id)
-                .map(|w| w.visible && !w.minimized)
-        });
-        match is_visible {
-            Some(true) => self.close_window(id),
-            _ => self.restore_window(id),
-        }
     }
 
     /// Open a dynamic character editor window. If already open, brings it to front.
@@ -201,7 +209,6 @@ impl WindowManagerContext {
                     height: 450.0,
                     z_index: z,
                     minimized: false,
-                    visible: true,
                 });
             });
         }
@@ -340,8 +347,8 @@ fn get_viewport_size() -> (f64, f64) {
                 .ok()
                 .and_then(|v| v.as_f64())
                 .unwrap_or(800.0);
-            // Subtract estimated header height (~50px) and taskbar (~36px)
-            return (w, (h - 86.0).max(400.0));
+            // Subtract estimated header height (~50px)
+            return (w, (h - 50.0).max(400.0));
         }
     }
     (1280.0, 714.0) // SSR fallback
@@ -377,7 +384,6 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 height: (vh * 0.55).max(300.0),
                 z_index: 1,
                 minimized: false,
-                visible: true,
             },
             WindowState {
                 id: WindowId::Chat,
@@ -388,7 +394,6 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 height: (vh * 0.35).max(200.0),
                 z_index: 2,
                 minimized: false,
-                visible: true,
             },
             WindowState {
                 id: WindowId::CharacterSelection,
@@ -399,7 +404,6 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 height: 300.0,
                 z_index: 3,
                 minimized: true,
-                visible: true,
             },
             WindowState {
                 id: WindowId::Initiative,
@@ -410,7 +414,6 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 height: 200.0,
                 z_index: 4,
                 minimized: true,
-                visible: true,
             },
             WindowState {
                 id: WindowId::Inventory,
@@ -421,7 +424,6 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 height: 200.0,
                 z_index: 5,
                 minimized: true,
-                visible: true,
             },
             WindowState {
                 id: WindowId::Creatures,
@@ -431,8 +433,7 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 width: win_w.min(350.0),
                 height: 400.0,
                 z_index: 6,
-                minimized: false,
-                visible: false,
+                minimized: true,
             },
         ]
     } else if vw < 1400.0 {
@@ -453,7 +454,6 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 height: vh - 2.0 * pad,
                 z_index: 1,
                 minimized: false,
-                visible: true,
             },
             WindowState {
                 id: WindowId::Chat,
@@ -464,7 +464,6 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 height: chat_h,
                 z_index: 2,
                 minimized: false,
-                visible: true,
             },
             WindowState {
                 id: WindowId::CharacterSelection,
@@ -475,7 +474,6 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 height: char_sel_h,
                 z_index: 3,
                 minimized: false,
-                visible: true,
             },
             WindowState {
                 id: WindowId::Initiative,
@@ -486,7 +484,6 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 height: 200.0,
                 z_index: 4,
                 minimized: true,
-                visible: true,
             },
             WindowState {
                 id: WindowId::Inventory,
@@ -497,7 +494,6 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 height: 200.0,
                 z_index: 5,
                 minimized: true,
-                visible: true,
             },
             WindowState {
                 id: WindowId::Creatures,
@@ -507,8 +503,7 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 width: 350.0,
                 height: 400.0,
                 z_index: 6,
-                minimized: false,
-                visible: false,
+                minimized: true,
             },
         ]
     } else {
@@ -531,7 +526,6 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 height: vh - 2.0 * pad,
                 z_index: 1,
                 minimized: false,
-                visible: true,
             },
             WindowState {
                 id: WindowId::Chat,
@@ -542,7 +536,6 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 height: chat_h,
                 z_index: 2,
                 minimized: false,
-                visible: true,
             },
             WindowState {
                 id: WindowId::CharacterSelection,
@@ -553,7 +546,6 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 height: char_sel_h,
                 z_index: 3,
                 minimized: false,
-                visible: true,
             },
             WindowState {
                 id: WindowId::Initiative,
@@ -564,7 +556,6 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 height: init_h,
                 z_index: 4,
                 minimized: false,
-                visible: true,
             },
             WindowState {
                 id: WindowId::Inventory,
@@ -575,7 +566,6 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 height: 200.0,
                 z_index: 5,
                 minimized: true,
-                visible: true,
             },
             WindowState {
                 id: WindowId::Creatures,
@@ -585,8 +575,7 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 width: 380.0,
                 height: 450.0,
                 z_index: 6,
-                minimized: false,
-                visible: false,
+                minimized: true,
             },
         ]
     }
@@ -690,17 +679,6 @@ pub fn WindowManager(children: Children) -> impl IntoView {
     let ctx_leave = wm_ctx.clone();
     let dragging = wm_ctx.drag_op;
 
-    // Taskbar: show minimized windows
-    let wm_taskbar = wm_ctx.clone();
-    let minimized_windows = move || {
-        wm_taskbar
-            .windows
-            .get()
-            .into_iter()
-            .filter(|w| w.minimized && w.visible)
-            .collect::<Vec<_>>()
-    };
-
     view! {
         <div
             class="wm-viewport"
@@ -719,28 +697,322 @@ pub fn WindowManager(children: Children) -> impl IntoView {
             }
         >
             {children()}
-            <div class="wm-taskbar">
-                <For
-                    each=minimized_windows
-                    key=|w| w.id
-                    let:win
-                >
+            <Dock />
+        </div>
+    }
+}
+
+/// Dock tile size in pixels.
+const DOCK_TILE_SIZE: f64 = 64.0;
+
+/// Position of a tile in the dock grid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+struct DockPos {
+    col: i32,
+    row: i32,
+}
+
+/// Persistent dock layout: maps window IDs to grid positions.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct DockLayout {
+    tiles: Vec<(WindowId, DockPos)>,
+}
+
+#[allow(dead_code)]
+impl DockLayout {
+    fn new() -> Self {
+        Self { tiles: vec![] }
+    }
+
+    /// Get the grid position for a window, or None if not placed yet.
+    fn get_pos(&self, id: WindowId) -> Option<DockPos> {
+        self.tiles
+            .iter()
+            .find(|(wid, _)| *wid == id)
+            .map(|(_, p)| *p)
+    }
+
+    /// Check if a grid position is occupied (by any tile or the system icon at 0,0).
+    fn is_occupied(&self, pos: DockPos) -> bool {
+        if pos.col == 0 && pos.row == 0 {
+            return true; // system icon
+        }
+        self.tiles.iter().any(|(_, p)| *p == pos)
+    }
+
+    /// Place a window at a specific grid position, replacing any existing placement.
+    fn set_pos(&mut self, id: WindowId, pos: DockPos) {
+        self.tiles.retain(|(wid, _)| *wid != id);
+        self.tiles.push((id, pos));
+    }
+
+    /// Remove a window from the dock (when restored).
+    fn remove(&mut self, id: WindowId) {
+        self.tiles.retain(|(wid, _)| *wid != id);
+    }
+
+    /// Find the next available position adjacent to existing tiles.
+    /// Default placement: vertical column below the system icon.
+    fn next_available_pos(&self) -> DockPos {
+        // Try positions in column 0, starting from row 1 (below system icon)
+        for row in 1..50 {
+            let pos = DockPos { col: 0, row };
+            if !self.is_occupied(pos) {
+                return pos;
+            }
+        }
+        // Overflow: try column 1
+        for row in 0..50 {
+            let pos = DockPos { col: 1, row };
+            if !self.is_occupied(pos) {
+                return pos;
+            }
+        }
+        DockPos { col: 0, row: 50 }
+    }
+
+    /// Compute the bounding rectangle of all dock tiles (including system icon)
+    /// as (width_px, height_px).
+    fn bounds_px(&self) -> (f64, f64) {
+        let mut max_col = 0i32;
+        let mut max_row = 0i32;
+        for (_, pos) in &self.tiles {
+            max_col = max_col.max(pos.col);
+            max_row = max_row.max(pos.row);
+        }
+        (
+            (max_col + 1) as f64 * DOCK_TILE_SIZE,
+            (max_row + 1) as f64 * DOCK_TILE_SIZE,
+        )
+    }
+
+    /// Find the nearest unoccupied grid position adjacent to at least one
+    /// existing tile (or the system icon). Used for drag-and-drop snapping.
+    fn snap_to_grid(&self, x: f64, y: f64) -> Option<DockPos> {
+        let target_col = (x / DOCK_TILE_SIZE).round() as i32;
+        let target_row = (y / DOCK_TILE_SIZE).round() as i32;
+
+        if target_col < 0 || target_row < 0 {
+            return None;
+        }
+
+        let candidate = DockPos {
+            col: target_col,
+            row: target_row,
+        };
+
+        // Must be adjacent to an existing tile or the system icon
+        if !self.is_occupied(candidate) && self.has_adjacent_tile(candidate) {
+            return Some(candidate);
+        }
+
+        // Search nearby positions in expanding radius
+        for radius in 1..=3 {
+            for dc in -radius..=radius {
+                for dr in -radius..=radius {
+                    let pos = DockPos {
+                        col: target_col + dc,
+                        row: target_row + dr,
+                    };
+                    if pos.col >= 0
+                        && pos.row >= 0
+                        && !self.is_occupied(pos)
+                        && self.has_adjacent_tile(pos)
                     {
-                        let wm = wm_taskbar.clone();
-                        let id = win.id;
-                        let display_title = win.title.clone()
-                            .unwrap_or_else(|| id.title().to_string());
-                        view! {
-                            <button
-                                class="wm-taskbar-btn"
-                                on:click=move |_| wm.restore_window(id)
-                            >
-                                {display_title}
-                            </button>
-                        }
+                        return Some(pos);
                     }
-                </For>
+                }
+            }
+        }
+        None
+    }
+
+    /// Check if a position has at least one adjacent occupied tile.
+    fn has_adjacent_tile(&self, pos: DockPos) -> bool {
+        let neighbors = [
+            DockPos {
+                col: pos.col - 1,
+                row: pos.row,
+            },
+            DockPos {
+                col: pos.col + 1,
+                row: pos.row,
+            },
+            DockPos {
+                col: pos.col,
+                row: pos.row - 1,
+            },
+            DockPos {
+                col: pos.col,
+                row: pos.row + 1,
+            },
+        ];
+        for n in &neighbors {
+            // System icon at (0,0) counts as adjacent
+            if n.col == 0 && n.row == 0 {
+                return true;
+            }
+            if self.tiles.iter().any(|(_, p)| p == n) {
+                return true;
+            }
+        }
+        false
+    }
+}
+
+#[cfg(feature = "hydrate")]
+const DOCK_STORAGE_KEY: &str = "webrpg_dock_layout";
+
+#[cfg(feature = "hydrate")]
+fn load_dock_layout() -> DockLayout {
+    if let Some(window) = web_sys::window() {
+        if let Ok(Some(storage)) = window.local_storage() {
+            if let Ok(Some(json)) = storage.get_item(DOCK_STORAGE_KEY) {
+                if let Ok(layout) = serde_json::from_str::<DockLayout>(&json) {
+                    return layout;
+                }
+            }
+        }
+    }
+    DockLayout::new()
+}
+
+#[cfg(feature = "hydrate")]
+fn save_dock_layout(layout: &DockLayout) {
+    if let Some(window) = web_sys::window() {
+        if let Ok(Some(storage)) = window.local_storage() {
+            if let Ok(json) = serde_json::to_string(layout) {
+                let _ = storage.set_item(DOCK_STORAGE_KEY, &json);
+            }
+        }
+    }
+}
+
+/// NeXTSTEP-style dock that shows minimized windows as 64x64 tiles.
+/// The dock sits in the upper-left corner of the viewport with a fixed
+/// system icon anchor. Tiles snap to a 2D grid adjacent to existing tiles.
+#[component]
+fn Dock() -> impl IntoView {
+    let wm = expect_context::<WindowManagerContext>();
+    let dock_layout = RwSignal::new(DockLayout::new());
+
+    // Load dock layout from localStorage after hydration
+    #[cfg(feature = "hydrate")]
+    {
+        let dock = dock_layout;
+        Effect::new(move |first: Option<bool>| {
+            let _ = dock.get(); // track for saves
+            if first == Some(true) {
+                save_dock_layout(&dock.get_untracked());
+                return true;
+            }
+            dock.set(load_dock_layout());
+            true
+        });
+    }
+
+    // Sync dock tiles with minimized windows:
+    // - Add tiles for newly minimized windows
+    // - Remove tiles for windows that are no longer minimized
+    let wm_sync = wm.clone();
+    Effect::new(move |_| {
+        let wins = wm_sync.windows.get();
+        dock_layout.update(|layout| {
+            // Add tiles for minimized windows not yet in dock
+            for w in &wins {
+                if w.minimized && layout.get_pos(w.id).is_none() {
+                    let pos = layout.next_available_pos();
+                    layout.set_pos(w.id, pos);
+                }
+            }
+            // Remove tiles for windows that are no longer minimized (or removed)
+            let minimized_ids: Vec<WindowId> =
+                wins.iter().filter(|w| w.minimized).map(|w| w.id).collect();
+            layout.tiles.retain(|(id, _)| minimized_ids.contains(id));
+        });
+    });
+
+    // Derive minimized windows list with their dock positions
+    let dock_tiles = move || {
+        let layout = dock_layout.get();
+        let wins = wm.windows.get();
+        let mut tiles: Vec<(WindowId, String, &'static str, &'static str, DockPos)> = vec![];
+        for w in &wins {
+            if w.minimized {
+                if let Some(pos) = layout.get_pos(w.id) {
+                    let label = w.title.as_deref().unwrap_or(w.id.dock_label());
+                    // Truncate long labels
+                    let label = if label.len() > 8 {
+                        format!("{}...", &label[..6])
+                    } else {
+                        label.to_string()
+                    };
+                    tiles.push((w.id, label, w.id.dock_icon(), w.id.dock_label(), pos));
+                }
+            }
+        }
+        tiles
+    };
+
+    // Compute dock area bounds for the reservation overlay
+    let dock_bounds = move || {
+        let layout = dock_layout.get();
+        let wins = wm.windows.get();
+        let has_minimized = wins.iter().any(|w| w.minimized);
+        if !has_minimized {
+            // Just the system icon
+            (DOCK_TILE_SIZE, DOCK_TILE_SIZE)
+        } else {
+            layout.bounds_px()
+        }
+    };
+
+    let wm_click = wm.clone();
+
+    view! {
+        <div
+            class="dock"
+            style=move || {
+                let (w, h) = dock_bounds();
+                format!("width:{}px;height:{}px;", w, h)
+            }
+        >
+            // System icon (anchor tile at 0,0)
+            <div
+                class="dock-tile dock-tile-system"
+                title="WebRPG"
+            >
+                <span class="dock-tile-icon">{"\u{1f6e1}"}</span>
+                <span class="dock-tile-label">"WebRPG"</span>
             </div>
+
+            // Minimized window tiles
+            <For
+                each=dock_tiles
+                key=|t| t.0
+                let:tile
+            >
+                {
+                    let wm = wm_click.clone();
+                    let id = tile.0;
+                    let label = tile.1.clone();
+                    let icon = tile.2;
+                    let pos = tile.4;
+                    let left = pos.col as f64 * DOCK_TILE_SIZE;
+                    let top = pos.row as f64 * DOCK_TILE_SIZE;
+                    view! {
+                        <div
+                            class="dock-tile"
+                            style=format!("left:{}px;top:{}px;", left, top)
+                            on:click=move |_| wm.restore_window(id)
+                            title=id.title()
+                        >
+                            <span class="dock-tile-icon">{icon}</span>
+                            <span class="dock-tile-label">{label}</span>
+                        </div>
+                    }
+                }
+            </For>
         </div>
     }
 }
@@ -773,7 +1045,6 @@ pub fn GameWindow(
                     height: 300.0,
                     z_index: 1,
                     minimized: false,
-                    visible: true,
                 })
         }
     };
@@ -845,16 +1116,17 @@ pub fn GameWindow(
         wm_focus.bring_to_front(id);
     };
 
-    // Close / minimize buttons
-    let wm_close = wm.clone();
+    // Minimize / close buttons
     let wm_min = wm.clone();
+    let wm_close = wm.clone();
+    let is_dynamic = id.is_dynamic();
 
     let style = {
         let windows = wm.windows;
         move || {
             let ws = windows.with(|wins| wins.iter().find(|w| w.id == id).cloned());
             match ws {
-                Some(ws) if ws.visible && !ws.minimized => format!(
+                Some(ws) if !ws.minimized => format!(
                     "left:{}px;top:{}px;width:{}px;height:{}px;z-index:{};",
                     ws.x, ws.y, ws.width, ws.height, ws.z_index
                 ),
@@ -889,10 +1161,16 @@ pub fn GameWindow(
                         on:click=move |_| wm_min.minimize_window(id)
                         title="Minimize"
                     >"_"</button>
-                    <button class="gw-btn gw-btn-close"
-                        on:click=move |_| wm_close.close_window(id)
-                        title="Close"
-                    >"\u{00d7}"</button>
+                    {if is_dynamic {
+                        Some(view! {
+                            <button class="gw-btn gw-btn-close"
+                                on:click=move |_| wm_close.close_window(id)
+                                title="Close"
+                            >"\u{00d7}"</button>
+                        })
+                    } else {
+                        None
+                    }}
                 </div>
             </div>
 
