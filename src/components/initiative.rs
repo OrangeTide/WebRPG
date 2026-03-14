@@ -29,7 +29,7 @@ fn insertion_index_from_y(list_el: &web_sys::HtmlElement, y: f64) -> usize {
 
 /// Apply a reorder: move entry at `from` to insertion gap `to` (0..=len).
 /// Returns the adjusted insertion index after removal, or None if it's a no-op.
-fn reorder_index(from: usize, to: usize, len: usize) -> Option<usize> {
+pub(crate) fn reorder_index(from: usize, to: usize, len: usize) -> Option<usize> {
     if from >= len || to > len {
         return None;
     }
@@ -331,5 +331,59 @@ pub fn InitiativeTracker() -> impl IntoView {
                 </div>
             })}
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::reorder_index;
+
+    #[test]
+    fn move_forward() {
+        // Move item 0 to gap 2 (after item 1) → insert at index 1
+        assert_eq!(reorder_index(0, 2, 3), Some(1));
+        // Move item 0 to gap 3 (after item 2) → insert at index 2
+        assert_eq!(reorder_index(0, 3, 3), Some(2));
+    }
+
+    #[test]
+    fn move_backward() {
+        // Move item 2 to gap 0 (before item 0) → insert at index 0
+        assert_eq!(reorder_index(2, 0, 3), Some(0));
+        // Move item 2 to gap 1 (before item 1) → insert at index 1
+        assert_eq!(reorder_index(2, 1, 3), Some(1));
+    }
+
+    #[test]
+    fn no_op_same_position() {
+        // Dropping right before or right after source is a no-op
+        assert_eq!(reorder_index(1, 1, 3), None);
+        assert_eq!(reorder_index(1, 2, 3), None);
+    }
+
+    #[test]
+    fn out_of_bounds() {
+        assert_eq!(reorder_index(3, 0, 3), None); // from >= len
+        assert_eq!(reorder_index(0, 4, 3), None); // to > len
+    }
+
+    #[test]
+    fn single_element_list() {
+        // Only one element, can't move anywhere meaningful
+        assert_eq!(reorder_index(0, 0, 1), None);
+        assert_eq!(reorder_index(0, 1, 1), None);
+    }
+
+    #[test]
+    fn two_element_swap() {
+        // Move item 0 after item 1
+        assert_eq!(reorder_index(0, 2, 2), Some(1));
+        // Move item 1 before item 0
+        assert_eq!(reorder_index(1, 0, 2), Some(0));
+    }
+
+    #[test]
+    fn empty_list() {
+        assert_eq!(reorder_index(0, 0, 0), None);
     }
 }

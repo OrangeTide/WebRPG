@@ -98,6 +98,14 @@ guidelines, and commit message conventions.
 This project is licensed under [MIT-0](LICENSE) — a permissive license with no
 attribution requirement.
 
+## Testing
+
+```sh
+cargo test --features ssr
+```
+
+See [DEV.md — Testing](DEV.md#testing) for details on test coverage.
+
 ## More Information
 
 See [DEV.md](DEV.md) for architecture, project structure, CI/CD, and testing

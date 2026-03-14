@@ -74,3 +74,52 @@ pub fn parse_claims_sub(sub: &str) -> Option<(i32, String)> {
     let username = parts.next()?.to_string();
     Some((id, username))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::parse_claims_sub;
+
+    #[test]
+    fn valid_format() {
+        assert_eq!(parse_claims_sub("1:alice"), Some((1, "alice".to_string())));
+        assert_eq!(parse_claims_sub("42:bob"), Some((42, "bob".to_string())));
+    }
+
+    #[test]
+    fn username_with_colon() {
+        // splitn(2, ':') should keep everything after the first colon
+        assert_eq!(
+            parse_claims_sub("1:user:name"),
+            Some((1, "user:name".to_string()))
+        );
+    }
+
+    #[test]
+    fn missing_colon() {
+        assert_eq!(parse_claims_sub("123"), None);
+    }
+
+    #[test]
+    fn non_numeric_id() {
+        assert_eq!(parse_claims_sub("abc:alice"), None);
+    }
+
+    #[test]
+    fn empty_string() {
+        assert_eq!(parse_claims_sub(""), None);
+    }
+
+    #[test]
+    fn empty_username() {
+        // "1:" → id=1, username=""
+        assert_eq!(parse_claims_sub("1:"), Some((1, "".to_string())));
+    }
+
+    #[test]
+    fn negative_id() {
+        assert_eq!(
+            parse_claims_sub("-1:admin"),
+            Some((-1, "admin".to_string()))
+        );
+    }
+}

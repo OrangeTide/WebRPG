@@ -92,8 +92,16 @@ Debian/ubuntu commands: #TODO: setup environment: "WEBDRIVER_PREFERRED_DRIVER": 
 ## Testing
 
 ```sh
-cargo test
+cargo test --features ssr
 ```
+
+Unit tests are co-located in their source files using `#[cfg(test)]` modules.
+Current test coverage includes:
+
+- **`auth.rs`** — JWT claims subject parsing (`parse_claims_sub`)
+- **`components/initiative.rs`** — drag-and-drop reorder index calculation (`reorder_index`)
+
+See [TODO.md](TODO.md) for planned additional tests.
 
 ### Supported Platforms
 
