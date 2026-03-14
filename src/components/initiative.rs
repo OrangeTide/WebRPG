@@ -4,6 +4,42 @@ use crate::models::InitiativeEntryInfo;
 use crate::pages::game::GameContext;
 use crate::ws::messages::ClientMessage;
 
+/// Compute the insertion index from a Y coordinate within the initiative list.
+/// Iterates `.init-entry` children and returns the gap index (0..=entry_count)
+/// where the dragged item should land.
+#[cfg(feature = "hydrate")]
+fn insertion_index_from_y(list_el: &web_sys::HtmlElement, y: f64) -> usize {
+    let children = list_el.children();
+    let total = children.length();
+    let mut entry_idx = 0usize;
+    for i in 0..total {
+        if let Some(child) = children.item(i) {
+            if child.class_list().contains("init-entry") {
+                let rect = child.get_bounding_client_rect();
+                let mid = rect.top() + rect.height() / 2.0;
+                if y < mid {
+                    return entry_idx;
+                }
+                entry_idx += 1;
+            }
+        }
+    }
+    entry_idx
+}
+
+/// Apply a reorder: move entry at `from` to insertion gap `to` (0..=len).
+/// Returns the adjusted insertion index after removal, or None if it's a no-op.
+fn reorder_index(from: usize, to: usize, len: usize) -> Option<usize> {
+    if from >= len || to > len {
+        return None;
+    }
+    // Dropping right before or right after the source position is a no-op
+    if to == from || to == from + 1 {
+        return None;
+    }
+    Some(if to > from { to - 1 } else { to })
+}
+
 #[component]
 pub fn InitiativeTracker() -> impl IntoView {
     let ctx = expect_context::<GameContext>();
@@ -14,6 +50,11 @@ pub fn InitiativeTracker() -> impl IntoView {
     let show_add_form = RwSignal::new(false);
     let (new_label, set_new_label) = signal(String::new());
     let (new_value, set_new_value) = signal(String::new());
+
+    // Drag state: which entry index is being dragged, and which gap to insert at
+    let drag_from = RwSignal::new(Option::<usize>::None);
+    let drag_insert = RwSignal::new(Option::<usize>::None);
+    let list_ref = NodeRef::<leptos::html::Div>::new();
 
     let do_add_entry = move || {
         let label = new_label.get().trim().to_string();
@@ -31,7 +72,7 @@ pub fn InitiativeTracker() -> impl IntoView {
             portrait_url: None,
         });
 
-        // Sort descending by initiative value
+        // Stable sort descending by initiative value
         entries.sort_by(|a, b| b.initiative_value.partial_cmp(&a.initiative_value).unwrap());
 
         send.with_value(|f| {
@@ -85,6 +126,23 @@ pub fn InitiativeTracker() -> impl IntoView {
         }
     };
 
+    let set_current_turn = move |idx: usize| {
+        let mut entries = initiative.get();
+        if idx < entries.len() {
+            for e in entries.iter_mut() {
+                e.is_current_turn = false;
+            }
+            entries[idx].is_current_turn = true;
+            send.with_value(|f| {
+                if let Some(f) = f {
+                    f(ClientMessage::UpdateInitiative {
+                        entries: entries.clone(),
+                    });
+                }
+            });
+        }
+    };
+
     let toggle_lock = move |_| {
         let new_locked = !initiative_locked.get();
         send.with_value(|f| {
@@ -92,6 +150,45 @@ pub fn InitiativeTracker() -> impl IntoView {
                 f(ClientMessage::SetInitiativeLock { locked: new_locked });
             }
         });
+    };
+
+    let do_drop = move || {
+        if let (Some(from), Some(to)) = (drag_from.get(), drag_insert.get()) {
+            drag_from.set(None);
+            drag_insert.set(None);
+            let mut entries = initiative.get();
+            if let Some(target) = reorder_index(from, to, entries.len()) {
+                let item = entries.remove(from);
+                entries.insert(target, item);
+                send.with_value(|f| {
+                    if let Some(f) = f {
+                        f(ClientMessage::UpdateInitiative {
+                            entries: entries.clone(),
+                        });
+                    }
+                });
+            }
+        } else {
+            drag_from.set(None);
+            drag_insert.set(None);
+        }
+    };
+
+    // Determine which entry should show a drop-above or drop-below border.
+    // Returns (entry_index, is_above) or None.
+    let drop_highlight = move || -> Option<(usize, bool)> {
+        let from = drag_from.get()?;
+        let to = drag_insert.get()?;
+        let len = initiative.get().len();
+        // Check it's not a no-op
+        reorder_index(from, to, len)?;
+        if to == len {
+            // Dropping after the last entry: highlight last entry below
+            Some((len - 1, false))
+        } else {
+            // Dropping before entry `to`: highlight entry `to` above
+            Some((to, true))
+        }
     };
 
     view! {
@@ -145,25 +242,66 @@ pub fn InitiativeTracker() -> impl IntoView {
                 </div>
             })}
 
-            <div class="initiative-list">
+            <div
+                class="initiative-list"
+                node_ref=list_ref
+                on:dragover=move |ev| {
+                    ev.prevent_default();
+                    #[cfg(feature = "hydrate")]
+                    {
+                        if let Some(el) = list_ref.get() {
+                            let html_el: &web_sys::HtmlElement = el.as_ref();
+                            let insert = insertion_index_from_y(html_el, ev.client_y() as f64);
+                            drag_insert.set(Some(insert));
+                        }
+                    }
+                }
+                on:drop=move |ev| {
+                    ev.prevent_default();
+                    do_drop();
+                }
+            >
                 <For
                     each=move || {
                         initiative.get().into_iter().enumerate().collect::<Vec<_>>()
                     }
-                    key=|(_, e)| (e.id, e.label.clone(), e.initiative_value as i32)
+                    key=|(idx, e)| (*idx, e.label.clone(), e.initiative_value.to_bits(), e.is_current_turn)
                     let:item
                 >
                     {
                         let (idx, entry) = item;
                         let portrait = entry.portrait_url.clone();
                         view! {
-                            <div class=move || {
-                                if entry.is_current_turn {
-                                    "init-entry current-turn"
-                                } else {
-                                    "init-entry"
+                            <div
+                                class=move || {
+                                    let mut cls = String::from("init-entry");
+                                    if entry.is_current_turn {
+                                        cls.push_str(" current-turn");
+                                    }
+                                    if drag_from.get() == Some(idx) {
+                                        cls.push_str(" dragging");
+                                    }
+                                    if let Some((hi, above)) = drop_highlight() {
+                                        if hi == idx {
+                                            if above {
+                                                cls.push_str(" drop-above");
+                                            } else {
+                                                cls.push_str(" drop-below");
+                                            }
+                                        }
+                                    }
+                                    cls
                                 }
-                            }>
+                                draggable="true"
+                                on:dragstart=move |_| {
+                                    drag_from.set(Some(idx));
+                                }
+                                on:dragend=move |_| {
+                                    drag_from.set(None);
+                                    drag_insert.set(None);
+                                }
+                            >
+                                <span class="init-grab" title="Drag to reorder">"⠿"</span>
                                 <span class="init-value">{entry.initiative_value as i32}</span>
                                 <div class="init-portrait">
                                     {if let Some(url) = portrait.clone() {
@@ -172,7 +310,11 @@ pub fn InitiativeTracker() -> impl IntoView {
                                         view! { <div class="init-portrait-placeholder"></div> }.into_any()
                                     }}
                                 </div>
-                                <span class="init-label">{entry.label.clone()}</span>
+                                <span
+                                    class="init-label"
+                                    title="Click to set current turn"
+                                    on:click=move |_| set_current_turn(idx)
+                                >{entry.label.clone()}</span>
                                 <button
                                     class="init-remove"
                                     on:click=move |_| remove_entry(idx)

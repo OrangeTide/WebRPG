@@ -1323,6 +1323,11 @@ h1, h2, h3, h4 {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    cursor: pointer;
+}
+
+.init-label:hover {
+    text-decoration: underline;
 }
 
 .init-remove {
@@ -1338,6 +1343,31 @@ h1, h2, h3, h4 {
 .init-remove:hover {
     opacity: 1;
     color: #e94560;
+}
+
+.init-grab {
+    cursor: grab;
+    opacity: 0.4;
+    font-size: 0.75rem;
+    user-select: none;
+    color: #888;
+    line-height: 1;
+}
+
+.init-grab:hover {
+    opacity: 0.8;
+}
+
+.init-entry.dragging {
+    opacity: 0.3;
+}
+
+.init-entry.drop-above {
+    border-top: 2px solid #4a9eff;
+}
+
+.init-entry.drop-below {
+    border-bottom: 2px solid #4a9eff;
 }
 
 .init-add-form {

@@ -598,6 +598,7 @@ const LAYOUT_STORAGE_KEY: &str = "webrpg_window_layout";
 /// Load window layout from localStorage, falling back to defaults.
 /// Handles version mismatches: if a new window ID exists in defaults but not
 /// in storage, the default is used; unknown stored windows are dropped.
+#[cfg(feature = "hydrate")]
 fn load_or_default_layout() -> Vec<WindowState> {
     #[cfg(feature = "hydrate")]
     {
@@ -646,7 +647,10 @@ fn save_layout(windows: &[WindowState]) {
 /// It captures mouse events on a full-viewport overlay to handle drag/resize.
 #[component]
 pub fn WindowManager(children: Children) -> impl IntoView {
-    let initial_layout = load_or_default_layout();
+    // Always start with the SSR-safe default layout (fixed 1280x714 fallback)
+    // to avoid hydration mismatches. The client-side Effect below will apply
+    // the real layout (from localStorage / actual viewport) after hydration.
+    let initial_layout = default_window_layout_for_size(1280.0, 714.0);
     let max_z = initial_layout.iter().map(|w| w.z_index).max().unwrap_or(0) + 1;
 
     let wm_ctx = WindowManagerContext {
@@ -657,14 +661,27 @@ pub fn WindowManager(children: Children) -> impl IntoView {
 
     provide_context(wm_ctx.clone());
 
-    // Persist layout to localStorage on every change (debouncing not needed —
-    // localStorage writes are synchronous and fast)
+    // After hydration: apply the real layout from localStorage / viewport size,
+    // then persist layout changes on every subsequent update.
     #[cfg(feature = "hydrate")]
     {
         let windows = wm_ctx.windows;
-        Effect::new(move |_| {
-            let wins = windows.get();
-            save_layout(&wins);
+        let next_z = wm_ctx.next_z;
+
+        // One-shot effect to load saved layout after hydration
+        Effect::new(move |has_loaded: Option<bool>| {
+            let _ = windows.get(); // track changes for save_layout
+            if has_loaded == Some(true) {
+                // Subsequent runs: persist layout changes to localStorage
+                save_layout(&windows.get_untracked());
+                return true;
+            }
+            // First run: load from localStorage or compute from real viewport
+            let layout = load_or_default_layout();
+            let z = layout.iter().map(|w| w.z_index).max().unwrap_or(0) + 1;
+            windows.set(layout);
+            next_z.set(z);
+            true
         });
     }
 
