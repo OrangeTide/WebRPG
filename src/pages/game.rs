@@ -31,6 +31,10 @@ pub struct GameContext {
     pub character_revision: RwSignal<u32>,
     /// Whether initiative rolls from character sheets are locked.
     pub initiative_locked: RwSignal<bool>,
+    /// Loading status message shown in the startup modal.
+    pub loading_status: RwSignal<Option<String>>,
+    /// Error message shown in the startup modal (replaces loading).
+    pub loading_error: RwSignal<Option<String>>,
     /// Decremented for each locally-created message to avoid ID collisions with DB rows.
     next_local_id: std::sync::Arc<std::sync::atomic::AtomicI32>,
 }
@@ -60,6 +64,9 @@ impl GameContext {
         self.inventory.set(snapshot.inventory);
         self.initiative_locked.set(snapshot.initiative_locked);
         self.connected.set(true);
+        // Clear loading modal — game is ready
+        self.loading_status.set(None);
+        self.loading_error.set(None);
     }
 
     fn apply_server_message(&self, msg: ServerMessage) {
@@ -197,6 +204,8 @@ pub fn GamePage() -> impl IntoView {
         send: StoredValue::new_local(None),
         character_revision: RwSignal::new(0),
         initiative_locked: RwSignal::new(false),
+        loading_status: RwSignal::new(Some("Initializing...".to_string())),
+        loading_error: RwSignal::new(None),
         next_local_id: std::sync::Arc::new(std::sync::atomic::AtomicI32::new(-1)),
     };
 
@@ -220,13 +229,19 @@ pub fn GamePage() -> impl IntoView {
             let ctx = ctx_ws.clone();
 
             leptos::task::spawn_local(async move {
+                ctx.loading_status.set(Some("Authenticating...".to_string()));
+
                 let token = match crate::server::api::get_ws_token().await {
                     Ok(t) => t,
                     Err(e) => {
                         log::error!("Failed to get WS token: {e}");
+                        ctx.loading_error.set(Some(format!("Authentication failed: {e}")));
+                        ctx.loading_status.set(None);
                         return;
                     }
                 };
+
+                ctx.loading_status.set(Some("Connecting...".to_string()));
 
                 let window = web_sys::window().expect("no window");
                 let location = window.location();
@@ -240,6 +255,8 @@ pub fn GamePage() -> impl IntoView {
                     Ok(ws) => ws,
                     Err(e) => {
                         log::error!("Failed to create WebSocket: {e:?}");
+                        ctx.loading_error.set(Some("Failed to connect to server.".to_string()));
+                        ctx.loading_status.set(None);
                         return;
                     }
                 };
@@ -256,6 +273,7 @@ pub fn GamePage() -> impl IntoView {
                 // On open: send JoinSession
                 let ctx_open = ctx.clone();
                 let on_open = Closure::<dyn Fn()>::new(move || {
+                    ctx_open.loading_status.set(Some("Joining session...".to_string()));
                     ctx_open.send_message(ClientMessage::JoinSession {
                         session_id: sid,
                     });
@@ -281,13 +299,24 @@ pub fn GamePage() -> impl IntoView {
                 let ctx_close = ctx.clone();
                 let on_close = Closure::<dyn Fn()>::new(move || {
                     ctx_close.connected.set(false);
+                    // Only show error if we never successfully connected
+                    // (loading_status is cleared on successful snapshot)
+                    if ctx_close.loading_status.get().is_some() {
+                        ctx_close.loading_error.set(Some("Connection lost before session loaded.".to_string()));
+                        ctx_close.loading_status.set(None);
+                    }
                 });
                 ws.set_onclose(Some(on_close.as_ref().unchecked_ref()));
                 on_close.forget();
 
                 // On error
+                let ctx_err = ctx.clone();
                 let on_error = Closure::<dyn Fn()>::new(move || {
                     log::error!("WebSocket error");
+                    if ctx_err.loading_status.get().is_some() {
+                        ctx_err.loading_error.set(Some("Connection error. Please try reloading.".to_string()));
+                        ctx_err.loading_status.set(None);
+                    }
                 });
                 ws.set_onerror(Some(on_error.as_ref().unchecked_ref()));
                 on_error.forget();
@@ -305,9 +334,43 @@ pub fn GamePage() -> impl IntoView {
 
     let session_name = ctx.session_name;
     let connected = ctx.connected;
+    let loading_status = ctx.loading_status;
+    let loading_error = ctx.loading_error;
 
     view! {
         <div class="game-page">
+            // Loading overlay — blocks interaction until session snapshot arrives
+            {move || {
+                let status = loading_status.get();
+                let error = loading_error.get();
+                if status.is_some() || error.is_some() {
+                    Some(view! {
+                        <div class="loading-overlay">
+                            <div class="loading-modal">
+                                {if let Some(err) = error {
+                                    view! {
+                                        <div class="loading-error">
+                                            <div class="loading-error-icon">"!"</div>
+                                            <p>{err}</p>
+                                            <a href="/sessions" class="btn-back-sessions">"Back to Sessions"</a>
+                                        </div>
+                                    }.into_any()
+                                } else {
+                                    view! {
+                                        <div class="loading-progress">
+                                            <div class="loading-spinner"></div>
+                                            <p>{status.unwrap_or_default()}</p>
+                                        </div>
+                                    }.into_any()
+                                }}
+                            </div>
+                        </div>
+                    })
+                } else {
+                    None
+                }
+            }}
+
             <div class="game-header">
                 <h1>{move || {
                     let name = session_name.get();
