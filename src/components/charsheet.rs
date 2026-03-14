@@ -15,29 +15,35 @@ pub fn CharacterSelection() -> impl IntoView {
     // Use signal + effect instead of Resource so the list loads correctly
     // after hydration (session_id starts at 0 and gets set in an Effect).
     let characters = RwSignal::new(Vec::<CharacterInfo>::new());
+    #[allow(unused_variables)]
     let loading = RwSignal::new(true);
     let refetch = RwSignal::new(0u32);
 
+    #[allow(unused_variables)]
     let character_revision = ctx.character_revision;
 
-    let fetch_characters = move || {
-        let sid = session_id.get();
-        refetch.track();
-        character_revision.track();
-        if sid == 0 {
-            return;
-        }
-        loading.set(true);
-        leptos::task::spawn_local(async move {
-            match crate::server::api::list_characters(sid).await {
-                Ok(chars) => characters.set(chars),
-                Err(e) => log::error!("Failed to load characters: {e}"),
+    // Only fetch on client — SSR must render the same empty initial state
+    // that the client sees during hydration.
+    #[cfg(feature = "hydrate")]
+    {
+        let fetch_characters = move || {
+            let sid = session_id.get();
+            refetch.track();
+            character_revision.track();
+            if sid == 0 {
+                return;
             }
-            loading.set(false);
-        });
-    };
-
-    Effect::new(move |_| fetch_characters());
+            loading.set(true);
+            leptos::task::spawn_local(async move {
+                match crate::server::api::list_characters(sid).await {
+                    Ok(chars) => characters.set(chars),
+                    Err(e) => log::error!("Failed to load characters: {e}"),
+                }
+                loading.set(false);
+            });
+        };
+        Effect::new(move |_| fetch_characters());
+    }
 
     let trigger_refetch = move || refetch.update(|n| *n += 1);
 
@@ -134,82 +140,68 @@ pub fn CharacterSelection() -> impl IntoView {
                 </div>
             })}
 
-            // Character list
-            {move || {
-                let chars = characters.get();
-
-                if loading.get() && chars.is_empty() {
-                    view! { <p class="loading-text">"Loading..."</p> }.into_any()
-                } else if chars.is_empty() && !show_create_form.get() {
-                    view! {
-                        <div class="empty-list">
-                            <p>"No characters yet. Click + to create one."</p>
-                        </div>
-                    }.into_any()
-                } else {
-                    view! {
-                        <div class="item-list">
-                            <For
-                                each=move || chars.clone()
-                                key=|c| c.id
-                                let:c
-                            >
-                                {
-                                    let cid = c.id;
-                                    let name = c.name.clone();
-                                    let name_for_click = c.name.clone();
-                                    let portrait = c.portrait_url.clone();
-                                    let resources = c.resources.clone();
-                                    let stats_summary = {
-                                        let d = &c.data;
-                                        let mut parts = Vec::new();
-                                        if let Some(ac) = d.get("armor_class").and_then(|v| v.as_f64()) {
-                                            parts.push(format!("AC {}", ac as i32));
-                                        }
-                                        if let Some(lvl) = d.get("level").and_then(|v| v.as_f64()) {
-                                            parts.push(format!("Lv {}", lvl as i32));
-                                        }
-                                        parts.join(" | ")
-                                    };
-                                    view! {
-                                        <div class="item-card">
-                                            <div
-                                                class="item-card-clickable"
-                                                on:click=move |_| open_character(cid, name_for_click.clone())
-                                            >
-                                                <div class="item-card-portrait">
-                                                    {if let Some(url) = portrait.clone() {
-                                                        view! { <img src=url alt="portrait" /> }.into_any()
-                                                    } else {
-                                                        view! { <div class="item-card-icon">"&#x1f9d9;"</div> }.into_any()
-                                                    }}
-                                                </div>
-                                                <div class="item-card-info">
-                                                    <strong>{name}</strong>
-                                                    {(!resources.is_empty()).then(|| {
-                                                        let hp = resources.iter().find(|r| r.name.to_lowercase().contains("hp") || r.name.to_lowercase().contains("hit points"));
-                                                        hp.map(|r| view! {
-                                                            <span class="item-card-stat">"HP " {r.current_value} "/" {r.max_value}</span>
-                                                        })
-                                                    })}
-                                                    {(!stats_summary.is_empty()).then(|| view! {
-                                                        <span class="item-card-stat">{stats_summary}</span>
-                                                    })}
-                                                </div>
-                                            </div>
-                                            <button
-                                                class="btn-delete"
-                                                title="Delete character"
-                                                on:click=move |_| delete_char(cid)
-                                            >"x"</button>
-                                        </div>
-                                    }
-                                }
-                            </For>
-                        </div>
-                    }.into_any()
-                }
-            }}
+            // Character list — always render <For> to avoid SSR/hydration mismatch
+            // (SSR resolves server functions synchronously, producing a filled list,
+            // while the client starts with an empty signal).
+            <div class="item-list">
+                <For
+                    each=move || characters.get()
+                    key=|c| c.id
+                    let:c
+                >
+                    {
+                        let cid = c.id;
+                        let name = c.name.clone();
+                        let name_for_click = c.name.clone();
+                        let portrait = c.portrait_url.clone();
+                        let resources = c.resources.clone();
+                        let stats_summary = {
+                            let d = &c.data;
+                            let mut parts = Vec::new();
+                            if let Some(ac) = d.get("armor_class").and_then(|v| v.as_f64()) {
+                                parts.push(format!("AC {}", ac as i32));
+                            }
+                            if let Some(lvl) = d.get("level").and_then(|v| v.as_f64()) {
+                                parts.push(format!("Lv {}", lvl as i32));
+                            }
+                            parts.join(" | ")
+                        };
+                        view! {
+                            <div class="item-card">
+                                <div
+                                    class="item-card-clickable"
+                                    on:click=move |_| open_character(cid, name_for_click.clone())
+                                >
+                                    <div class="item-card-portrait">
+                                        {if let Some(url) = portrait.clone() {
+                                            view! { <img src=url alt="portrait" /> }.into_any()
+                                        } else {
+                                            view! { <div class="item-card-icon">"&#x1f9d9;"</div> }.into_any()
+                                        }}
+                                    </div>
+                                    <div class="item-card-info">
+                                        <strong>{name}</strong>
+                                        {(!resources.is_empty()).then(|| {
+                                            let hp = resources.iter().find(|r| r.name.to_lowercase().contains("hp") || r.name.to_lowercase().contains("hit points"));
+                                            hp.map(|r| view! {
+                                                <span class="item-card-stat">"HP " {r.current_value} "/" {r.max_value}</span>
+                                            })
+                                        })}
+                                        {(!stats_summary.is_empty()).then(|| view! {
+                                            <span class="item-card-stat">{stats_summary}</span>
+                                        })}
+                                    </div>
+                                </div>
+                                <button
+                                    class="btn-delete"
+                                    title="Delete character"
+                                    on:click=move |_| delete_char(cid)
+                                >"x"</button>
+                            </div>
+                        }
+                    }
+                </For>
+            </div>
         </div>
     }
 }
@@ -217,39 +209,41 @@ pub fn CharacterSelection() -> impl IntoView {
 /// Standalone character editor panel — fetches its own data by character_id.
 /// Used inside a dynamic GameWindow.
 #[component]
+#[allow(unused_variables)]
 pub fn CharacterEditorPanel(character_id: i32) -> impl IntoView {
     let ctx = expect_context::<GameContext>();
     let session_id = ctx.session_id;
 
-    // Use Effect+signal pattern (not Resource) to avoid hydration mismatch
     let template = RwSignal::new(Option::<TemplateInfo>::None);
     let character = RwSignal::new(Option::<CharacterInfo>::None);
+    #[allow(unused_variables)]
     let loading = RwSignal::new(true);
 
-    Effect::new(move |_| {
-        let sid = session_id.get();
-        if sid == 0 {
-            return;
-        }
-        loading.set(true);
-        leptos::task::spawn_local(async move {
-            // Ensure template is assigned and character has defaults
-            match crate::server::api::get_session_template(sid).await {
-                Ok(tmpl) => template.set(tmpl),
-                Err(e) => log::error!("Failed to load template: {e}"),
+    #[cfg(feature = "hydrate")]
+    {
+        Effect::new(move |_| {
+            let sid = session_id.get();
+            if sid == 0 {
+                return;
             }
-            let _ = crate::server::api::ensure_character_defaults(character_id).await;
-            // Load the (possibly updated) character
-            match crate::server::api::list_characters(sid).await {
-                Ok(chars) => {
-                    let found = chars.into_iter().find(|c| c.id == character_id);
-                    character.set(found);
+            loading.set(true);
+            leptos::task::spawn_local(async move {
+                match crate::server::api::get_session_template(sid).await {
+                    Ok(tmpl) => template.set(tmpl),
+                    Err(e) => log::error!("Failed to load template: {e}"),
                 }
-                Err(e) => log::error!("Failed to load character: {e}"),
-            }
-            loading.set(false);
+                let _ = crate::server::api::ensure_character_defaults(character_id).await;
+                match crate::server::api::list_characters(sid).await {
+                    Ok(chars) => {
+                        let found = chars.into_iter().find(|c| c.id == character_id);
+                        character.set(found);
+                    }
+                    Err(e) => log::error!("Failed to load character: {e}"),
+                }
+                loading.set(false);
+            });
         });
-    });
+    }
 
     view! {
         <div class="character-sheet-panel">

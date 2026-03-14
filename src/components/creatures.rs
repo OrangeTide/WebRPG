@@ -12,30 +12,33 @@ pub fn CreaturePanel() -> impl IntoView {
     // Use signal + effect (not Resource) to avoid hydration mismatch
     let template = RwSignal::new(Option::<TemplateInfo>::None);
     let creatures = RwSignal::new(Vec::<CreatureInfo>::new());
+    #[allow(unused_variables)]
     let loading = RwSignal::new(true);
     let refetch = RwSignal::new(0u32);
 
-    let fetch_creatures = move || {
-        let sid = session_id.get();
-        refetch.track();
-        if sid == 0 {
-            return;
-        }
-        loading.set(true);
-        leptos::task::spawn_local(async move {
-            match crate::server::api::list_creatures(sid).await {
-                Ok(list) => creatures.set(list),
-                Err(e) => log::error!("Failed to load creatures: {e}"),
+    #[cfg(feature = "hydrate")]
+    {
+        let fetch_creatures = move || {
+            let sid = session_id.get();
+            refetch.track();
+            if sid == 0 {
+                return;
             }
-            match crate::server::api::get_session_template(sid).await {
-                Ok(tmpl) => template.set(tmpl),
-                Err(e) => log::error!("Failed to load template: {e}"),
-            }
-            loading.set(false);
-        });
-    };
-
-    Effect::new(move |_| fetch_creatures());
+            loading.set(true);
+            leptos::task::spawn_local(async move {
+                match crate::server::api::list_creatures(sid).await {
+                    Ok(list) => creatures.set(list),
+                    Err(e) => log::error!("Failed to load creatures: {e}"),
+                }
+                match crate::server::api::get_session_template(sid).await {
+                    Ok(tmpl) => template.set(tmpl),
+                    Err(e) => log::error!("Failed to load template: {e}"),
+                }
+                loading.set(false);
+            });
+        };
+        Effect::new(move |_| fetch_creatures());
+    }
 
     let trigger_refetch = move || refetch.update(|n| *n += 1);
 
@@ -122,23 +125,13 @@ pub fn CreaturePanel() -> impl IntoView {
                 </div>
             })}
 
+            // Editor overlay (shown when editing a creature)
             {move || {
                 let tmpl = template.get();
                 let creature_list = creatures.get();
                 let editing_id = editing.get();
-
-                if loading.get() && creature_list.is_empty() {
-                    view! { <p class="loading-text">"Loading..."</p> }.into_any()
-                } else if creature_list.is_empty() && !show_create_form.get() {
-                    view! {
-                        <div class="empty-list">
-                            <p>"No creatures yet. Click + to create one."</p>
-                        </div>
-                    }.into_any()
-                } else if let Some(edit_id) = editing_id {
-                    // Show editor for selected creature
-                    let creature = creature_list.into_iter().find(|c| c.id == edit_id);
-                    if let Some(creature) = creature {
+                editing_id.and_then(|edit_id| {
+                    creature_list.into_iter().find(|c| c.id == edit_id).map(|creature| {
                         let cid = creature.id;
                         view! {
                             <div>
@@ -167,83 +160,79 @@ pub fn CreaturePanel() -> impl IntoView {
                                     }
                                 />
                             </div>
-                        }.into_any()
-                    } else {
-                        view! { <p>"Creature not found"</p> }.into_any()
-                    }
-                } else {
-                    // Show creature list
-                    view! {
-                        <div class="item-list">
-                            <For
-                                each=move || creature_list.clone()
-                                key=|c| c.id
-                                let:creature
-                            >
-                                {
-                                    let cid = creature.id;
-                                    let name = creature.name.clone();
-                                    let image = creature.image_url.clone();
-                                    let stats_summary = {
-                                        let d = &creature.stat_data;
-                                        let mut parts = Vec::new();
-                                        if let Some(hp) = d.get("hp_max").and_then(|v| v.as_f64()) {
-                                            parts.push(format!("HP {}", hp as i32));
-                                        }
-                                        if let Some(ac) = d.get("armor_class").and_then(|v| v.as_f64()) {
-                                            parts.push(format!("AC {}", ac as i32));
-                                        }
-                                        parts.join(" | ")
-                                    };
-                                    let roll_name = creature.name.clone();
-                                    let send = ctx.send;
-                                    let roll_init = move |_| {
-                                        let label = roll_name.clone();
-                                        send.with_value(|f| {
-                                            if let Some(f) = f {
-                                                f(ClientMessage::RollCreatureInitiative {
-                                                    creature_id: cid,
-                                                    label,
-                                                });
-                                            }
-                                        });
-                                    };
-                                    view! {
-                                        <div class="item-card creature-card-item">
-                                            <div class="item-card-portrait">
-                                                {if let Some(url) = image.clone() {
-                                                    view! { <img src=url alt="icon" /> }.into_any()
-                                                } else {
-                                                    view! { <div class="item-card-icon">"&#x1f47e;"</div> }.into_any()
-                                                }}
-                                            </div>
-                                            <div
-                                                class="item-card-info"
-                                                on:click=move |_| set_editing.set(Some(cid))
-                                            >
-                                                <strong>{name}</strong>
-                                                {(!stats_summary.is_empty()).then(|| view! {
-                                                    <span class="item-card-stat">{stats_summary}</span>
-                                                })}
-                                            </div>
-                                            <button
-                                                class="btn-roll-initiative"
-                                                title="Roll Initiative"
-                                                on:click=roll_init
-                                            >"Roll Initiative"</button>
-                                            <button
-                                                class="btn-delete"
-                                                title="Delete creature"
-                                                on:click=move |_| delete_creature(cid)
-                                            >"x"</button>
-                                        </div>
-                                    }
-                                }
-                            </For>
-                        </div>
-                    }.into_any()
-                }
+                        }
+                    })
+                })
             }}
+
+            // Creature list — always render <For> to avoid SSR/hydration mismatch
+            <div class="item-list">
+                <For
+                    each=move || creatures.get()
+                    key=|c| c.id
+                    let:creature
+                >
+                    {
+                        let cid = creature.id;
+                        let name = creature.name.clone();
+                        let image = creature.image_url.clone();
+                        let stats_summary = {
+                            let d = &creature.stat_data;
+                            let mut parts = Vec::new();
+                            if let Some(hp) = d.get("hp_max").and_then(|v| v.as_f64()) {
+                                parts.push(format!("HP {}", hp as i32));
+                            }
+                            if let Some(ac) = d.get("armor_class").and_then(|v| v.as_f64()) {
+                                parts.push(format!("AC {}", ac as i32));
+                            }
+                            parts.join(" | ")
+                        };
+                        let roll_name = creature.name.clone();
+                        let send = ctx.send;
+                        let roll_init = move |_| {
+                            let label = roll_name.clone();
+                            send.with_value(|f| {
+                                if let Some(f) = f {
+                                    f(ClientMessage::RollCreatureInitiative {
+                                        creature_id: cid,
+                                        label,
+                                    });
+                                }
+                            });
+                        };
+                        view! {
+                            <div class="item-card creature-card-item">
+                                <div class="item-card-portrait">
+                                    {if let Some(url) = image.clone() {
+                                        view! { <img src=url alt="icon" /> }.into_any()
+                                    } else {
+                                        view! { <div class="item-card-icon">"&#x1f47e;"</div> }.into_any()
+                                    }}
+                                </div>
+                                <div
+                                    class="item-card-info"
+                                    on:click=move |_| set_editing.set(Some(cid))
+                                >
+                                    <strong>{name}</strong>
+                                    {(!stats_summary.is_empty()).then(|| view! {
+                                        <span class="item-card-stat">{stats_summary}</span>
+                                    })}
+                                </div>
+                                <button
+                                    class="btn-roll-initiative"
+                                    title="Roll Initiative"
+                                    on:click=roll_init
+                                >"Roll Initiative"</button>
+                                <button
+                                    class="btn-delete"
+                                    title="Delete creature"
+                                    on:click=move |_| delete_creature(cid)
+                                >"x"</button>
+                            </div>
+                        }
+                    }
+                </For>
+            </div>
         </div>
     }
 }
