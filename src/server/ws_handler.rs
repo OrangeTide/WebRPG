@@ -14,10 +14,7 @@ pub struct WsQuery {
     token: String,
 }
 
-pub async fn ws_upgrade(
-    ws: WebSocketUpgrade,
-    Query(query): Query<WsQuery>,
-) -> impl IntoResponse {
+pub async fn ws_upgrade(ws: WebSocketUpgrade, Query(query): Query<WsQuery>) -> impl IntoResponse {
     let claims = match auth::verify_jwt(&query.token) {
         Ok(c) => c,
         Err(_) => {
@@ -113,7 +110,8 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
 
             ClientMessage::ChatMessage { message } => {
                 if let Some(session_id) = current_session {
-                    let chat_msg = save_chat_message(session_id, user_id, &username, &message, false, None);
+                    let chat_msg =
+                        save_chat_message(session_id, user_id, &username, &message, false, None);
                     SESSION_MANAGER.broadcast(
                         session_id,
                         &ServerMessage::ChatBroadcast { message: chat_msg },
@@ -131,7 +129,8 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                                 .map(|r| r.to_string())
                                 .collect::<Vec<_>>()
                                 .join(", ");
-                            let dice_json = format!("{{\"rolls\":[{rolls_str}],\"total\":{total}}}");
+                            let dice_json =
+                                format!("{{\"rolls\":[{rolls_str}],\"total\":{total}}}");
                             let _chat_msg = save_chat_message(
                                 session_id,
                                 user_id,
@@ -190,18 +189,24 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                         });
                         continue;
                     }
-                    match place_token(session_id, &label, x, y, &color, size, creature_id, image_url.as_deref()) {
+                    match place_token(
+                        session_id,
+                        &label,
+                        x,
+                        y,
+                        &color,
+                        size,
+                        creature_id,
+                        image_url.as_deref(),
+                    ) {
                         Ok(token_info) => {
-                            if let Some(mut session) =
-                                SESSION_MANAGER.sessions.get_mut(&session_id)
+                            if let Some(mut session) = SESSION_MANAGER.sessions.get_mut(&session_id)
                             {
                                 session.token_positions.insert(token_info.id, (x, y));
                             }
                             SESSION_MANAGER.broadcast(
                                 session_id,
-                                &ServerMessage::TokenPlaced {
-                                    token: token_info,
-                                },
+                                &ServerMessage::TokenPlaced { token: token_info },
                                 None,
                             );
                         }
@@ -232,7 +237,10 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 }
             }
 
-            ClientMessage::UpdateTokenHp { token_id, hp_change } => {
+            ClientMessage::UpdateTokenHp {
+                token_id,
+                hp_change,
+            } => {
                 if let Some(session_id) = current_session {
                     if !is_gm(session_id, user_id) {
                         let _ = tx.send(ServerMessage::Error {
@@ -317,8 +325,7 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                     }
                     match load_map_with_tokens(map_id) {
                         Ok((map_info, token_list, fog_cells)) => {
-                            if let Some(mut session) =
-                                SESSION_MANAGER.sessions.get_mut(&session_id)
+                            if let Some(mut session) = SESSION_MANAGER.sessions.get_mut(&session_id)
                             {
                                 session.active_map_id = Some(map_id);
                                 session.token_positions.clear();
@@ -455,8 +462,13 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 is_party_item,
             } => {
                 if let Some(session_id) = current_session {
-                    match add_inventory_item(session_id, &name, &description, quantity, is_party_item)
-                    {
+                    match add_inventory_item(
+                        session_id,
+                        &name,
+                        &description,
+                        quantity,
+                        is_party_item,
+                    ) {
                         Ok(items) => {
                             SESSION_MANAGER.broadcast(
                                 session_id,
@@ -490,7 +502,12 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 quantity,
             } => {
                 if let Some(session_id) = current_session {
-                    update_inventory_item(item_id, name.as_deref(), description.as_deref(), quantity);
+                    update_inventory_item(
+                        item_id,
+                        name.as_deref(),
+                        description.as_deref(),
+                        quantity,
+                    );
                     let items = load_inventory(session_id);
                     SESSION_MANAGER.broadcast(
                         session_id,
@@ -855,7 +872,9 @@ fn update_token_hp(token_id: i32, hp_change: i32) -> Result<(i32, i32), String> 
         .first(conn)
         .map_err(|_| "Token has no HP instance".to_string())?;
 
-    let new_hp = (instance.current_hp + hp_change).max(0).min(instance.max_hp);
+    let new_hp = (instance.current_hp + hp_change)
+        .max(0)
+        .min(instance.max_hp);
 
     diesel::update(token_instances::table.find(instance.id))
         .set(token_instances::current_hp.eq(new_hp))
@@ -867,7 +886,14 @@ fn update_token_hp(token_id: i32, hp_change: i32) -> Result<(i32, i32), String> 
 
 fn load_map_with_tokens(
     map_id: i32,
-) -> Result<(crate::models::MapInfo, Vec<crate::models::TokenInfo>, Vec<(i32, i32)>), String> {
+) -> Result<
+    (
+        crate::models::MapInfo,
+        Vec<crate::models::TokenInfo>,
+        Vec<(i32, i32)>,
+    ),
+    String,
+> {
     use crate::db;
     use crate::models::db_models::*;
     use crate::schema::*;
@@ -1123,8 +1149,14 @@ fn get_initiative_modifier(session_id: i32, character_id: i32) -> i32 {
     let data: serde_json::Map<String, serde_json::Value> =
         serde_json::from_str(&data_json).unwrap_or_default();
 
-    let dex = data.get("dexterity").and_then(|v| v.as_f64()).unwrap_or(10.0);
-    let init_bonus = data.get("initiative_bonus").and_then(|v| v.as_f64()).unwrap_or(0.0) as i32;
+    let dex = data
+        .get("dexterity")
+        .and_then(|v| v.as_f64())
+        .unwrap_or(10.0);
+    let init_bonus = data
+        .get("initiative_bonus")
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0) as i32;
     ability_modifier(dex) + init_bonus
 }
 
@@ -1144,8 +1176,14 @@ fn get_creature_initiative_modifier(_session_id: i32, creature_id: i32) -> i32 {
     let data: serde_json::Map<String, serde_json::Value> =
         serde_json::from_str(&stat_json).unwrap_or_default();
 
-    let dex = data.get("dexterity").and_then(|v| v.as_f64()).unwrap_or(10.0);
-    let init_bonus = data.get("initiative_bonus").and_then(|v| v.as_f64()).unwrap_or(0.0) as i32;
+    let dex = data
+        .get("dexterity")
+        .and_then(|v| v.as_f64())
+        .unwrap_or(10.0);
+    let init_bonus = data
+        .get("initiative_bonus")
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0) as i32;
     ability_modifier(dex) + init_bonus
 }
 
@@ -1162,7 +1200,9 @@ fn broadcast_initiative_roll(
     }
     SESSION_MANAGER.broadcast(
         session_id,
-        &ServerMessage::InitiativeUpdated { entries: result.entries },
+        &ServerMessage::InitiativeUpdated {
+            entries: result.entries,
+        },
         None,
     );
     let mod_str = if result.modifier >= 0 {
@@ -1249,7 +1289,13 @@ fn roll_character_initiative(
 
     entries.sort_by(|a, b| b.initiative_value.partial_cmp(&a.initiative_value).unwrap());
 
-    Ok(InitiativeRollResult { label: char_name, d20, modifier, total, entries })
+    Ok(InitiativeRollResult {
+        label: char_name,
+        d20,
+        modifier,
+        total,
+        entries,
+    })
 }
 
 /// Roll initiative for a creature: d20 + dex mod + initiative bonus.
@@ -1294,7 +1340,13 @@ fn roll_creature_initiative(
 
     entries.sort_by(|a, b| b.initiative_value.partial_cmp(&a.initiative_value).unwrap());
 
-    Ok(InitiativeRollResult { label: label.to_string(), d20, modifier, total, entries })
+    Ok(InitiativeRollResult {
+        label: label.to_string(),
+        d20,
+        modifier,
+        total,
+        entries,
+    })
 }
 
 /// Parse dice expressions like "2d6+3", "1d20", "4d8-2"

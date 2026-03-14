@@ -52,12 +52,8 @@ pub fn CreaturePanel() -> impl IntoView {
         }
         let sid = session_id.get();
         leptos::task::spawn_local(async move {
-            match crate::server::api::create_creature(
-                sid,
-                name,
-                serde_json::json!({"hp_max": 10}),
-            )
-            .await
+            match crate::server::api::create_creature(sid, name, serde_json::json!({"hp_max": 10}))
+                .await
             {
                 Ok(c) => {
                     set_editing.set(Some(c.id));
@@ -254,11 +250,7 @@ fn CreatureEditor(
             set_image.set(Some(url.clone()));
             show_image_picker.set(false);
             leptos::task::spawn_local(async move {
-                let _ = crate::server::api::update_creature_image(
-                    creature_id,
-                    Some(url),
-                )
-                .await;
+                let _ = crate::server::api::update_creature_image(creature_id, Some(url)).await;
             });
         })
     };
@@ -269,12 +261,7 @@ fn CreatureEditor(
         .map(|t| {
             t.fields
                 .iter()
-                .filter(|f| {
-                    matches!(
-                        f.category.as_str(),
-                        "Ability Scores" | "Combat"
-                    )
-                })
+                .filter(|f| matches!(f.category.as_str(), "Ability Scores" | "Combat"))
                 .cloned()
                 .collect()
         })

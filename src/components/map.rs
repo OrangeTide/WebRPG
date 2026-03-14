@@ -40,9 +40,10 @@ pub fn MapCanvas() -> impl IntoView {
 
     // Image cache stored as a signal so we can update it reactively
     #[cfg(feature = "hydrate")]
-    let image_cache = StoredValue::new_local(
-        std::collections::HashMap::<String, web_sys::HtmlImageElement>::new(),
-    );
+    let image_cache = StoredValue::new_local(std::collections::HashMap::<
+        String,
+        web_sys::HtmlImageElement,
+    >::new());
 
     // Helper to get or load an image
     #[cfg(feature = "hydrate")]
@@ -128,11 +129,7 @@ pub fn MapCanvas() -> impl IntoView {
                     if !bg_url.is_empty() {
                         if let Some(bg_img) = get_or_load_image(bg_url) {
                             let _ = ctx2d.draw_image_with_html_image_element_and_dw_and_dh(
-                                &bg_img,
-                                0.0,
-                                0.0,
-                                w as f64,
-                                h as f64,
+                                &bg_img, 0.0, 0.0, w as f64, h as f64,
                             );
                         }
                     }

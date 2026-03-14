@@ -20,7 +20,14 @@ pub fn MediaBrowser(
 
     let filter_type_for_resource = filter_type.clone();
     let media_list = Resource::new(
-        move || (search_text.get(), selected_tag.get(), show.get(), refetch_counter.get()),
+        move || {
+            (
+                search_text.get(),
+                selected_tag.get(),
+                show.get(),
+                refetch_counter.get(),
+            )
+        },
         move |(search, tag, visible, _refetch)| {
             let ft = filter_type_for_resource.clone();
             async move {

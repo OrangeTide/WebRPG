@@ -267,10 +267,7 @@ pub fn CharacterEditorPanel(character_id: i32) -> impl IntoView {
 }
 
 #[component]
-fn CharacterEditor(
-    character: CharacterInfo,
-    template: Option<TemplateInfo>,
-) -> impl IntoView {
+fn CharacterEditor(character: CharacterInfo, template: Option<TemplateInfo>) -> impl IntoView {
     let ctx = expect_context::<GameContext>();
     let send = ctx.send;
     let char_id = character.id;
@@ -327,18 +324,24 @@ fn CharacterEditor(
             set_portrait.set(Some(url.clone()));
             show_portrait_picker.set(false);
             leptos::task::spawn_local(async move {
-                let _ = crate::server::api::update_character_portrait(
-                    char_id_for_portrait,
-                    Some(url),
-                )
-                .await;
+                let _ =
+                    crate::server::api::update_character_portrait(char_id_for_portrait, Some(url))
+                        .await;
             });
         })
     };
 
     // Extract info fields for the header subtitle
-    let race = data.get("race").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let class = data.get("class").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let race = data
+        .get("race")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let class = data
+        .get("class")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
     let level = data.get("level").and_then(|v| v.as_f64()).map(|v| v as i32);
     let subtitle = {
         let mut parts = Vec::new();
@@ -651,7 +654,8 @@ fn ResourceBar(resource: ResourceInfo) -> impl IntoView {
     }
 }
 
-type SendHandle = StoredValue<Option<Box<dyn Fn(ClientMessage)>>, leptos::reactive::owner::LocalStorage>;
+type SendHandle =
+    StoredValue<Option<Box<dyn Fn(ClientMessage)>>, leptos::reactive::owner::LocalStorage>;
 
 #[component]
 fn FieldEditor(

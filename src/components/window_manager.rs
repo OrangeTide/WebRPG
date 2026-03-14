@@ -157,9 +157,11 @@ impl WindowManagerContext {
     }
 
     pub fn toggle_window(&self, id: WindowId) {
-        let is_visible = self
-            .windows
-            .with_untracked(|wins| wins.iter().find(|w| w.id == id).map(|w| w.visible && !w.minimized));
+        let is_visible = self.windows.with_untracked(|wins| {
+            wins.iter()
+                .find(|w| w.id == id)
+                .map(|w| w.visible && !w.minimized)
+        });
         match is_visible {
             Some(true) => self.close_window(id),
             _ => self.restore_window(id),
@@ -171,9 +173,9 @@ impl WindowManagerContext {
         let win_id = WindowId::CharacterEditor(character_id);
 
         // Check if already open
-        let exists = self.windows.with_untracked(|wins| {
-            wins.iter().any(|w| w.id == win_id)
-        });
+        let exists = self
+            .windows
+            .with_untracked(|wins| wins.iter().any(|w| w.id == win_id));
 
         if exists {
             self.restore_window(win_id);
@@ -183,7 +185,9 @@ impl WindowManagerContext {
 
             // Offset new windows slightly so they don't stack exactly
             let count = self.windows.with_untracked(|wins| {
-                wins.iter().filter(|w| matches!(w.id, WindowId::CharacterEditor(_))).count()
+                wins.iter()
+                    .filter(|w| matches!(w.id, WindowId::CharacterEditor(_)))
+                    .count()
             });
             let offset = (count as f64) * 25.0;
 
@@ -326,8 +330,16 @@ fn get_viewport_size() -> (f64, f64) {
     #[cfg(feature = "hydrate")]
     {
         if let Some(window) = web_sys::window() {
-            let w = window.inner_width().ok().and_then(|v| v.as_f64()).unwrap_or(1280.0);
-            let h = window.inner_height().ok().and_then(|v| v.as_f64()).unwrap_or(800.0);
+            let w = window
+                .inner_width()
+                .ok()
+                .and_then(|v| v.as_f64())
+                .unwrap_or(1280.0);
+            let h = window
+                .inner_height()
+                .ok()
+                .and_then(|v| v.as_f64())
+                .unwrap_or(800.0);
             // Subtract estimated header height (~50px) and taskbar (~36px)
             return (w, (h - 86.0).max(400.0));
         }
@@ -621,7 +633,8 @@ fn save_layout(windows: &[WindowState]) {
     if let Some(window) = web_sys::window() {
         if let Ok(Some(storage)) = window.local_storage() {
             // Only persist static windows
-            let static_wins: Vec<&WindowState> = windows.iter().filter(|w| !w.id.is_dynamic()).collect();
+            let static_wins: Vec<&WindowState> =
+                windows.iter().filter(|w| !w.id.is_dynamic()).collect();
             if let Ok(json) = serde_json::to_string(&static_wins) {
                 let _ = storage.set_item(LAYOUT_STORAGE_KEY, &json);
             }
@@ -757,7 +770,9 @@ pub fn GameWindow(
                 return t.clone();
             }
             let custom = windows.with(|wins| {
-                wins.iter().find(|w| w.id == id).and_then(|w| w.title.clone())
+                wins.iter()
+                    .find(|w| w.id == id)
+                    .and_then(|w| w.title.clone())
             });
             custom.unwrap_or_else(|| id.title().to_string())
         }
@@ -820,9 +835,7 @@ pub fn GameWindow(
     let style = {
         let windows = wm.windows;
         move || {
-            let ws = windows.with(|wins| {
-                wins.iter().find(|w| w.id == id).cloned()
-            });
+            let ws = windows.with(|wins| wins.iter().find(|w| w.id == id).cloned());
             match ws {
                 Some(ws) if ws.visible && !ws.minimized => format!(
                     "left:{}px;top:{}px;width:{}px;height:{}px;z-index:{};",

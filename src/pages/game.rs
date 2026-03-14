@@ -7,10 +7,10 @@ use crate::components::creatures::CreaturePanel;
 use crate::components::initiative::InitiativeTracker;
 use crate::components::inventory::InventoryPanel;
 use crate::components::map::MapCanvas;
-use crate::components::window_manager::{GameWindow, WindowId, WindowManager, WindowManagerContext};
-use crate::models::{
-    ChatMessageInfo, InitiativeEntryInfo, InventoryItemInfo, MapInfo, TokenInfo,
+use crate::components::window_manager::{
+    GameWindow, WindowId, WindowManager, WindowManagerContext,
 };
+use crate::models::{ChatMessageInfo, InitiativeEntryInfo, InventoryItemInfo, MapInfo, TokenInfo};
 use crate::ws::messages::{ClientMessage, GameStateSnapshot, ServerMessage};
 
 /// Shared game state provided via Leptos context to all child components.
@@ -100,7 +100,9 @@ impl GameContext {
                     .join(", ");
                 // Use negative IDs for locally-created messages to avoid
                 // collisions with DB-assigned positive IDs.
-                let local_id = self.next_local_id.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+                let local_id = self
+                    .next_local_id
+                    .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
                 self.chat_messages.update(|msgs| {
                     msgs.push(ChatMessageInfo {
                         id: local_id,
@@ -124,7 +126,8 @@ impl GameContext {
                 self.tokens.update(|tokens| tokens.push(token));
             }
             ServerMessage::TokenRemoved { token_id } => {
-                self.tokens.update(|tokens| tokens.retain(|t| t.id != token_id));
+                self.tokens
+                    .update(|tokens| tokens.retain(|t| t.id != token_id));
             }
             ServerMessage::TokenHpUpdated {
                 token_id,
@@ -214,8 +217,8 @@ pub fn GamePage() -> impl IntoView {
     // Fetch WS token and connect
     #[cfg(feature = "hydrate")]
     {
-        use wasm_bindgen::prelude::*;
         use wasm_bindgen::JsCast;
+        use wasm_bindgen::prelude::*;
 
         let ctx_ws = ctx.clone();
 
@@ -229,13 +232,15 @@ pub fn GamePage() -> impl IntoView {
             let ctx = ctx_ws.clone();
 
             leptos::task::spawn_local(async move {
-                ctx.loading_status.set(Some("Authenticating...".to_string()));
+                ctx.loading_status
+                    .set(Some("Authenticating...".to_string()));
 
                 let token = match crate::server::api::get_ws_token().await {
                     Ok(t) => t,
                     Err(e) => {
                         log::error!("Failed to get WS token: {e}");
-                        ctx.loading_error.set(Some(format!("Authentication failed: {e}")));
+                        ctx.loading_error
+                            .set(Some(format!("Authentication failed: {e}")));
                         ctx.loading_status.set(None);
                         return;
                     }
@@ -248,14 +253,14 @@ pub fn GamePage() -> impl IntoView {
                 let protocol = location.protocol().unwrap_or_default();
                 let host = location.host().unwrap_or_default();
                 let ws_protocol = if protocol == "https:" { "wss:" } else { "ws:" };
-                let ws_url =
-                    format!("{ws_protocol}//{host}/api/ws?token={token}");
+                let ws_url = format!("{ws_protocol}//{host}/api/ws?token={token}");
 
                 let ws = match web_sys::WebSocket::new(&ws_url) {
                     Ok(ws) => ws,
                     Err(e) => {
                         log::error!("Failed to create WebSocket: {e:?}");
-                        ctx.loading_error.set(Some("Failed to connect to server.".to_string()));
+                        ctx.loading_error
+                            .set(Some("Failed to connect to server.".to_string()));
                         ctx.loading_status.set(None);
                         return;
                     }
@@ -273,25 +278,26 @@ pub fn GamePage() -> impl IntoView {
                 // On open: send JoinSession
                 let ctx_open = ctx.clone();
                 let on_open = Closure::<dyn Fn()>::new(move || {
-                    ctx_open.loading_status.set(Some("Joining session...".to_string()));
-                    ctx_open.send_message(ClientMessage::JoinSession {
-                        session_id: sid,
-                    });
+                    ctx_open
+                        .loading_status
+                        .set(Some("Joining session...".to_string()));
+                    ctx_open.send_message(ClientMessage::JoinSession { session_id: sid });
                 });
                 ws.set_onopen(Some(on_open.as_ref().unchecked_ref()));
                 on_open.forget();
 
                 // On message: parse and apply
                 let ctx_msg = ctx.clone();
-                let on_message =
-                    Closure::<dyn Fn(web_sys::MessageEvent)>::new(move |e: web_sys::MessageEvent| {
+                let on_message = Closure::<dyn Fn(web_sys::MessageEvent)>::new(
+                    move |e: web_sys::MessageEvent| {
                         if let Some(text) = e.data().as_string() {
                             match serde_json::from_str::<ServerMessage>(&text) {
                                 Ok(msg) => ctx_msg.apply_server_message(msg),
                                 Err(err) => log::warn!("Failed to parse server message: {err}"),
                             }
                         }
-                    });
+                    },
+                );
                 ws.set_onmessage(Some(on_message.as_ref().unchecked_ref()));
                 on_message.forget();
 
@@ -302,7 +308,9 @@ pub fn GamePage() -> impl IntoView {
                     // Only show error if we never successfully connected
                     // (loading_status is cleared on successful snapshot)
                     if ctx_close.loading_status.get().is_some() {
-                        ctx_close.loading_error.set(Some("Connection lost before session loaded.".to_string()));
+                        ctx_close
+                            .loading_error
+                            .set(Some("Connection lost before session loaded.".to_string()));
                         ctx_close.loading_status.set(None);
                     }
                 });
@@ -314,7 +322,9 @@ pub fn GamePage() -> impl IntoView {
                 let on_error = Closure::<dyn Fn()>::new(move || {
                     log::error!("WebSocket error");
                     if ctx_err.loading_status.get().is_some() {
-                        ctx_err.loading_error.set(Some("Connection error. Please try reloading.".to_string()));
+                        ctx_err
+                            .loading_error
+                            .set(Some("Connection error. Please try reloading.".to_string()));
                         ctx_err.loading_status.set(None);
                     }
                 });

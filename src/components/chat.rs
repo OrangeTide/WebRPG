@@ -41,8 +41,7 @@ pub fn ChatPanel() -> impl IntoView {
         if let Some(el) = messages_ref.get() {
             leptos::prelude::request_animation_frame(move || {
                 let el: &web_sys::HtmlElement = &el;
-                let at_bottom =
-                    el.scroll_height() - el.scroll_top() - el.client_height() < 40;
+                let at_bottom = el.scroll_height() - el.scroll_top() - el.client_height() < 40;
                 if at_bottom || _len <= 100 {
                     el.set_scroll_top(el.scroll_height());
                 }

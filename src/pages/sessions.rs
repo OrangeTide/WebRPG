@@ -1,5 +1,5 @@
-use leptos::prelude::*;
 use leptos::form::ActionForm;
+use leptos::prelude::*;
 
 use crate::models::SessionInfo;
 use crate::server::api::{CreateSession, JoinSession};
@@ -77,10 +77,7 @@ pub fn SessionsPage() -> impl IntoView {
 
 #[allow(unused)]
 #[component]
-fn SessionListItem(
-    session: SessionInfo,
-    join_action: ServerAction<JoinSession>,
-) -> impl IntoView {
+fn SessionListItem(session: SessionInfo, join_action: ServerAction<JoinSession>) -> impl IntoView {
     let session_id = session.id;
 
     let name = session.name.clone();

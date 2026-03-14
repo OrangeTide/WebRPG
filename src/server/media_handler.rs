@@ -78,19 +78,15 @@ pub async fn upload_media(
                 file_data = Some((ct, bytes.to_vec()));
             }
             "tags" => {
-                tags_str = Some(
-                    field
-                        .text()
-                        .await
-                        .map_err(|_| StatusCode::BAD_REQUEST)?,
-                );
+                tags_str = Some(field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?);
             }
             _ => {}
         }
     }
 
     let (content_type, bytes) = file_data.ok_or(StatusCode::BAD_REQUEST)?;
-    let media_type = allowed_content_type(&content_type).ok_or(StatusCode::UNSUPPORTED_MEDIA_TYPE)?;
+    let media_type =
+        allowed_content_type(&content_type).ok_or(StatusCode::UNSUPPORTED_MEDIA_TYPE)?;
 
     // Compute SHA-256
     let mut hasher = Sha256::new();
@@ -160,10 +156,7 @@ pub async fn upload_media(
     }
 
     for tag in &tag_list {
-        let new_tag = NewMediaTag {
-            media_id,
-            tag,
-        };
+        let new_tag = NewMediaTag { media_id, tag };
         // Ignore duplicate tag errors
         let _ = diesel::insert_or_ignore_into(media_tags::table)
             .values(&new_tag)

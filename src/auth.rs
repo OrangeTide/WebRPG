@@ -2,9 +2,8 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
-static SECRET_KEY: Lazy<String> = Lazy::new(|| {
-    std::env::var("SECRET_KEY").expect("SECRET_KEY must be set")
-});
+static SECRET_KEY: Lazy<String> =
+    Lazy::new(|| std::env::var("SECRET_KEY").expect("SECRET_KEY must be set"));
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -13,8 +12,8 @@ pub struct Claims {
 }
 
 pub fn hash_password(password: &str) -> Result<String, Box<dyn Error>> {
-    use argon2::password_hash::rand_core::OsRng;
     use argon2::password_hash::SaltString;
+    use argon2::password_hash::rand_core::OsRng;
     use argon2::{Argon2, PasswordHasher};
 
     let salt = SaltString::generate(&mut OsRng);
@@ -29,8 +28,7 @@ pub fn hash_password(password: &str) -> Result<String, Box<dyn Error>> {
 pub fn verify_password(hash: &str, password: &str) -> Result<bool, Box<dyn Error>> {
     use argon2::{Argon2, PasswordHash, PasswordVerifier};
 
-    let parsed_hash =
-        PasswordHash::new(hash).map_err(|e| format!("Invalid password hash: {e}"))?;
+    let parsed_hash = PasswordHash::new(hash).map_err(|e| format!("Invalid password hash: {e}"))?;
     Ok(Argon2::default()
         .verify_password(password.as_bytes(), &parsed_hash)
         .is_ok())
@@ -38,7 +36,7 @@ pub fn verify_password(hash: &str, password: &str) -> Result<bool, Box<dyn Error
 
 pub fn generate_jwt(user_id: i32, username: &str) -> Result<String, Box<dyn Error>> {
     use chrono::{Duration, Utc};
-    use jsonwebtoken::{encode, EncodingKey, Header};
+    use jsonwebtoken::{EncodingKey, Header, encode};
 
     let expiration = Utc::now()
         .checked_add_signed(Duration::hours(24))
@@ -59,7 +57,7 @@ pub fn generate_jwt(user_id: i32, username: &str) -> Result<String, Box<dyn Erro
 }
 
 pub fn verify_jwt(token: &str) -> Result<Claims, Box<dyn Error>> {
-    use jsonwebtoken::{decode, DecodingKey, Validation};
+    use jsonwebtoken::{DecodingKey, Validation, decode};
 
     let token_data = decode::<Claims>(
         token,

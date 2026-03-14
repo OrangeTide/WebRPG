@@ -29,15 +29,15 @@ pub async fn login(username: String, password: String) -> Result<UserInfo, Serve
         .as_deref()
         .ok_or_else(|| ServerFnError::new("Account has no password set"))?;
 
-    let valid =
-        auth::verify_password(passcrypt, &password).map_err(|e| ServerFnError::new(e.to_string()))?;
+    let valid = auth::verify_password(passcrypt, &password)
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     if !valid {
         return Err(ServerFnError::new("Invalid username or password"));
     }
 
-    let token =
-        auth::generate_jwt(user.id, &user.username).map_err(|e| ServerFnError::new(e.to_string()))?;
+    let token = auth::generate_jwt(user.id, &user.username)
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     // Set JWT as HttpOnly cookie
     let response = expect_context::<leptos_axum::ResponseOptions>();
@@ -75,9 +75,7 @@ pub async fn signup(
         ));
     }
     if password.len() < 8 {
-        return Err(ServerFnError::new(
-            "Password must be at least 8 characters",
-        ));
+        return Err(ServerFnError::new("Password must be at least 8 characters"));
     }
 
     let conn = &mut db::get_conn();
@@ -114,8 +112,8 @@ pub async fn signup(
         .first(conn)
         .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
 
-    let token =
-        auth::generate_jwt(user.id, &user.username).map_err(|e| ServerFnError::new(e.to_string()))?;
+    let token = auth::generate_jwt(user.id, &user.username)
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     let response = expect_context::<leptos_axum::ResponseOptions>();
     response.insert_header(
@@ -160,12 +158,10 @@ pub async fn get_current_user() -> Result<Option<UserInfo>, ServerFnError> {
         None => return Ok(None),
     };
 
-    let token = cookie_header
-        .split(';')
-        .find_map(|cookie| {
-            let cookie = cookie.trim();
-            cookie.strip_prefix("token=")
-        });
+    let token = cookie_header.split(';').find_map(|cookie| {
+        let cookie = cookie.trim();
+        cookie.strip_prefix("token=")
+    });
 
     let token = match token {
         Some(t) if !t.is_empty() => t,
@@ -228,7 +224,7 @@ pub async fn list_sessions() -> Result<Vec<SessionInfo>, ServerFnError> {
 pub async fn create_session(name: String) -> Result<SessionInfo, ServerFnError> {
     use crate::db;
     use crate::models::db_models::NewSession;
-    use crate::schema::{sessions, session_players};
+    use crate::schema::{session_players, sessions};
     use diesel::prelude::*;
 
     let user = get_current_user()
@@ -281,12 +277,10 @@ pub async fn get_ws_token() -> Result<String, ServerFnError> {
         None => return Err(ServerFnError::new("Not logged in")),
     };
 
-    let token = cookie_header
-        .split(';')
-        .find_map(|cookie| {
-            let cookie = cookie.trim();
-            cookie.strip_prefix("token=")
-        });
+    let token = cookie_header.split(';').find_map(|cookie| {
+        let cookie = cookie.trim();
+        cookie.strip_prefix("token=")
+    });
 
     match token {
         Some(t) if !t.is_empty() => Ok(t.to_string()),
@@ -347,8 +341,8 @@ pub async fn join_session(session_id: i32) -> Result<(), ServerFnError> {
 #[server]
 pub async fn list_templates() -> Result<Vec<TemplateInfo>, ServerFnError> {
     use crate::db;
-    use crate::models::db_models::RpgTemplate;
     use crate::models::TemplateField;
+    use crate::models::db_models::RpgTemplate;
     use crate::schema::rpg_templates;
     use diesel::prelude::*;
 
@@ -377,8 +371,8 @@ pub async fn list_templates() -> Result<Vec<TemplateInfo>, ServerFnError> {
 #[server]
 pub async fn get_template(template_id: i32) -> Result<TemplateInfo, ServerFnError> {
     use crate::db;
-    use crate::models::db_models::RpgTemplate;
     use crate::models::TemplateField;
+    use crate::models::db_models::RpgTemplate;
     use crate::schema::rpg_templates;
     use diesel::prelude::*;
 
@@ -403,8 +397,8 @@ pub async fn get_template(template_id: i32) -> Result<TemplateInfo, ServerFnErro
 #[server]
 pub async fn seed_default_template() -> Result<TemplateInfo, ServerFnError> {
     use crate::db;
-    use crate::models::db_models::{NewRpgTemplate, RpgTemplate};
     use crate::models::TemplateField;
+    use crate::models::db_models::{NewRpgTemplate, RpgTemplate};
     use crate::schema::rpg_templates;
     use diesel::prelude::*;
 
@@ -462,30 +456,156 @@ fn default_5e_fields() -> Vec<crate::models::TemplateField> {
 
     vec![
         // Ability scores
-        TemplateField { name: "strength".into(), label: "Strength".into(), field_type: FieldType::Number, category: "Ability Scores".into(), default: serde_json::json!(10) },
-        TemplateField { name: "dexterity".into(), label: "Dexterity".into(), field_type: FieldType::Number, category: "Ability Scores".into(), default: serde_json::json!(10) },
-        TemplateField { name: "constitution".into(), label: "Constitution".into(), field_type: FieldType::Number, category: "Ability Scores".into(), default: serde_json::json!(10) },
-        TemplateField { name: "intelligence".into(), label: "Intelligence".into(), field_type: FieldType::Number, category: "Ability Scores".into(), default: serde_json::json!(10) },
-        TemplateField { name: "wisdom".into(), label: "Wisdom".into(), field_type: FieldType::Number, category: "Ability Scores".into(), default: serde_json::json!(10) },
-        TemplateField { name: "charisma".into(), label: "Charisma".into(), field_type: FieldType::Number, category: "Ability Scores".into(), default: serde_json::json!(10) },
+        TemplateField {
+            name: "strength".into(),
+            label: "Strength".into(),
+            field_type: FieldType::Number,
+            category: "Ability Scores".into(),
+            default: serde_json::json!(10),
+        },
+        TemplateField {
+            name: "dexterity".into(),
+            label: "Dexterity".into(),
+            field_type: FieldType::Number,
+            category: "Ability Scores".into(),
+            default: serde_json::json!(10),
+        },
+        TemplateField {
+            name: "constitution".into(),
+            label: "Constitution".into(),
+            field_type: FieldType::Number,
+            category: "Ability Scores".into(),
+            default: serde_json::json!(10),
+        },
+        TemplateField {
+            name: "intelligence".into(),
+            label: "Intelligence".into(),
+            field_type: FieldType::Number,
+            category: "Ability Scores".into(),
+            default: serde_json::json!(10),
+        },
+        TemplateField {
+            name: "wisdom".into(),
+            label: "Wisdom".into(),
+            field_type: FieldType::Number,
+            category: "Ability Scores".into(),
+            default: serde_json::json!(10),
+        },
+        TemplateField {
+            name: "charisma".into(),
+            label: "Charisma".into(),
+            field_type: FieldType::Number,
+            category: "Ability Scores".into(),
+            default: serde_json::json!(10),
+        },
         // Core stats
-        TemplateField { name: "hp_max".into(), label: "Max HP".into(), field_type: FieldType::Number, category: "Combat".into(), default: serde_json::json!(10) },
-        TemplateField { name: "armor_class".into(), label: "Armor Class".into(), field_type: FieldType::Number, category: "Combat".into(), default: serde_json::json!(10) },
-        TemplateField { name: "speed".into(), label: "Speed".into(), field_type: FieldType::Number, category: "Combat".into(), default: serde_json::json!(30) },
-        TemplateField { name: "initiative_bonus".into(), label: "Initiative Bonus".into(), field_type: FieldType::Number, category: "Combat".into(), default: serde_json::json!(0) },
-        TemplateField { name: "proficiency_bonus".into(), label: "Proficiency Bonus".into(), field_type: FieldType::Number, category: "Combat".into(), default: serde_json::json!(2) },
+        TemplateField {
+            name: "hp_max".into(),
+            label: "Max HP".into(),
+            field_type: FieldType::Number,
+            category: "Combat".into(),
+            default: serde_json::json!(10),
+        },
+        TemplateField {
+            name: "armor_class".into(),
+            label: "Armor Class".into(),
+            field_type: FieldType::Number,
+            category: "Combat".into(),
+            default: serde_json::json!(10),
+        },
+        TemplateField {
+            name: "speed".into(),
+            label: "Speed".into(),
+            field_type: FieldType::Number,
+            category: "Combat".into(),
+            default: serde_json::json!(30),
+        },
+        TemplateField {
+            name: "initiative_bonus".into(),
+            label: "Initiative Bonus".into(),
+            field_type: FieldType::Number,
+            category: "Combat".into(),
+            default: serde_json::json!(0),
+        },
+        TemplateField {
+            name: "proficiency_bonus".into(),
+            label: "Proficiency Bonus".into(),
+            field_type: FieldType::Number,
+            category: "Combat".into(),
+            default: serde_json::json!(2),
+        },
         // Character info
-        TemplateField { name: "race".into(), label: "Race".into(), field_type: FieldType::Text, category: "Info".into(), default: serde_json::json!("") },
-        TemplateField { name: "class".into(), label: "Class".into(), field_type: FieldType::Text, category: "Info".into(), default: serde_json::json!("") },
-        TemplateField { name: "level".into(), label: "Level".into(), field_type: FieldType::Number, category: "Info".into(), default: serde_json::json!(1) },
-        TemplateField { name: "background".into(), label: "Background".into(), field_type: FieldType::Text, category: "Info".into(), default: serde_json::json!("") },
-        TemplateField { name: "alignment".into(), label: "Alignment".into(), field_type: FieldType::Text, category: "Info".into(), default: serde_json::json!("") },
+        TemplateField {
+            name: "race".into(),
+            label: "Race".into(),
+            field_type: FieldType::Text,
+            category: "Info".into(),
+            default: serde_json::json!(""),
+        },
+        TemplateField {
+            name: "class".into(),
+            label: "Class".into(),
+            field_type: FieldType::Text,
+            category: "Info".into(),
+            default: serde_json::json!(""),
+        },
+        TemplateField {
+            name: "level".into(),
+            label: "Level".into(),
+            field_type: FieldType::Number,
+            category: "Info".into(),
+            default: serde_json::json!(1),
+        },
+        TemplateField {
+            name: "background".into(),
+            label: "Background".into(),
+            field_type: FieldType::Text,
+            category: "Info".into(),
+            default: serde_json::json!(""),
+        },
+        TemplateField {
+            name: "alignment".into(),
+            label: "Alignment".into(),
+            field_type: FieldType::Text,
+            category: "Info".into(),
+            default: serde_json::json!(""),
+        },
         // Skills and notes
-        TemplateField { name: "skills".into(), label: "Skills & Proficiencies".into(), field_type: FieldType::Textarea, category: "Skills".into(), default: serde_json::json!("") },
-        TemplateField { name: "features".into(), label: "Features & Traits".into(), field_type: FieldType::Textarea, category: "Skills".into(), default: serde_json::json!("") },
-        TemplateField { name: "equipment".into(), label: "Equipment".into(), field_type: FieldType::Textarea, category: "Equipment".into(), default: serde_json::json!("") },
-        TemplateField { name: "spells".into(), label: "Spells".into(), field_type: FieldType::Textarea, category: "Spells".into(), default: serde_json::json!("") },
-        TemplateField { name: "notes".into(), label: "Notes".into(), field_type: FieldType::Textarea, category: "Notes".into(), default: serde_json::json!("") },
+        TemplateField {
+            name: "skills".into(),
+            label: "Skills & Proficiencies".into(),
+            field_type: FieldType::Textarea,
+            category: "Skills".into(),
+            default: serde_json::json!(""),
+        },
+        TemplateField {
+            name: "features".into(),
+            label: "Features & Traits".into(),
+            field_type: FieldType::Textarea,
+            category: "Skills".into(),
+            default: serde_json::json!(""),
+        },
+        TemplateField {
+            name: "equipment".into(),
+            label: "Equipment".into(),
+            field_type: FieldType::Textarea,
+            category: "Equipment".into(),
+            default: serde_json::json!(""),
+        },
+        TemplateField {
+            name: "spells".into(),
+            label: "Spells".into(),
+            field_type: FieldType::Textarea,
+            category: "Spells".into(),
+            default: serde_json::json!(""),
+        },
+        TemplateField {
+            name: "notes".into(),
+            label: "Notes".into(),
+            field_type: FieldType::Textarea,
+            category: "Notes".into(),
+            default: serde_json::json!(""),
+        },
     ]
 }
 
@@ -497,8 +617,8 @@ pub async fn create_character(
     name: String,
 ) -> Result<CharacterInfo, ServerFnError> {
     use crate::db;
-    use crate::models::db_models::*;
     use crate::models::TemplateField;
+    use crate::models::db_models::*;
     use crate::schema::*;
     use diesel::prelude::*;
 
@@ -593,8 +713,8 @@ pub async fn create_character(
 #[server]
 pub async fn list_characters(session_id: i32) -> Result<Vec<CharacterInfo>, ServerFnError> {
     use crate::db;
-    use crate::models::db_models::*;
     use crate::models::ResourceInfo;
+    use crate::models::db_models::*;
     use crate::schema::*;
     use diesel::prelude::*;
 
@@ -640,12 +760,10 @@ pub async fn list_characters(session_id: i32) -> Result<Vec<CharacterInfo>, Serv
 /// Called when opening a character sheet to backfill characters created before
 /// template assignment. Returns true if any changes were made.
 #[server]
-pub async fn ensure_character_defaults(
-    character_id: i32,
-) -> Result<bool, ServerFnError> {
+pub async fn ensure_character_defaults(character_id: i32) -> Result<bool, ServerFnError> {
     use crate::db;
-    use crate::models::db_models::*;
     use crate::models::TemplateField;
+    use crate::models::db_models::*;
     use crate::schema::*;
     use diesel::prelude::*;
 
@@ -706,10 +824,7 @@ pub async fn ensure_character_defaults(
         .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
 
     if resource_count == 0 {
-        let hp_max = data
-            .get("hp_max")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(10) as i32;
+        let hp_max = data.get("hp_max").and_then(|v| v.as_i64()).unwrap_or(10) as i32;
         diesel::insert_into(character_resources::table)
             .values(&NewCharacterResource {
                 character_id,
@@ -1040,12 +1155,10 @@ pub async fn update_creature_image(
 
 /// Get the template for a session (if one is assigned).
 #[server]
-pub async fn get_session_template(
-    session_id: i32,
-) -> Result<Option<TemplateInfo>, ServerFnError> {
+pub async fn get_session_template(session_id: i32) -> Result<Option<TemplateInfo>, ServerFnError> {
     use crate::db;
-    use crate::models::db_models::*;
     use crate::models::TemplateField;
+    use crate::models::db_models::*;
     use crate::schema::*;
     use diesel::prelude::*;
 
@@ -1244,8 +1357,9 @@ pub async fn delete_media(media_id: i32) -> Result<(), ServerFnError> {
         .map_err(|e| ServerFnError::new(format!("Failed to delete media: {e}")))?;
 
     // Delete file from disk
-    let media_dir =
-        std::path::PathBuf::from(std::env::var("MEDIA_DIR").unwrap_or_else(|_| "uploads/media".to_string()));
+    let media_dir = std::path::PathBuf::from(
+        std::env::var("MEDIA_DIR").unwrap_or_else(|_| "uploads/media".to_string()),
+    );
     let file_path = media_dir.join(&m.hash[..2]).join(&m.hash);
     let _ = std::fs::remove_file(&file_path);
 
@@ -1323,7 +1437,9 @@ pub async fn update_map_background(
         .map_err(|_| ServerFnError::new("Session not found"))?;
 
     if session.gm_user_id != user.id {
-        return Err(ServerFnError::new("Only the GM can change the map background"));
+        return Err(ServerFnError::new(
+            "Only the GM can change the map background",
+        ));
     }
 
     diesel::update(maps::table.find(map_id))

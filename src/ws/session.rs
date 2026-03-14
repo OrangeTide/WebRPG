@@ -27,7 +27,10 @@ impl SessionManager {
         }
     }
 
-    pub fn get_or_create_session(&self, session_id: i32) -> dashmap::mapref::one::RefMut<'_, i32, ActiveSession> {
+    pub fn get_or_create_session(
+        &self,
+        session_id: i32,
+    ) -> dashmap::mapref::one::RefMut<'_, i32, ActiveSession> {
         self.sessions
             .entry(session_id)
             .or_insert_with(|| ActiveSession {

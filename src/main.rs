@@ -6,7 +6,7 @@ async fn main() {
     use axum::Router;
     use leptos::logging::log;
     use leptos::prelude::*;
-    use leptos_axum::{generate_route_list, LeptosRoutes};
+    use leptos_axum::{LeptosRoutes, generate_route_list};
     use webrpg::app::*;
 
     dotenvy::dotenv().ok();
@@ -45,13 +45,11 @@ async fn main() {
         std::env::var("TLS_CERT_PATH"),
         std::env::var("TLS_KEY_PATH"),
     ) {
-        (Ok(cert_path), Ok(key_path)) => {
-            Some(
-                axum_server::tls_rustls::RustlsConfig::from_pem_file(&cert_path, &key_path)
-                    .await
-                    .expect("Failed to load TLS certificate/key"),
-            )
-        }
+        (Ok(cert_path), Ok(key_path)) => Some(
+            axum_server::tls_rustls::RustlsConfig::from_pem_file(&cert_path, &key_path)
+                .await
+                .expect("Failed to load TLS certificate/key"),
+        ),
         _ => None,
     };
 
