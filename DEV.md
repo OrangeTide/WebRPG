@@ -155,8 +155,17 @@ initiative list updates, and initiative lock/unlock.
 
 The game page (`pages/game.rs`) creates a `GameContext` provided via Leptos
 context to all child components. `GameContext` holds `RwSignal`s for each piece
-of game state (map, tokens, fog, chat, initiative, inventory) and a
-`StoredValue<SendFn, LocalStorage>` for sending WebSocket messages.
+of game state (map, tokens, fog, chat, initiative, inventory) plus:
+
+- `character_revision: RwSignal<u32>` — bumped on any character data/resource
+  change; listeners (e.g. character selection list) track this to trigger
+  refetches.
+- `initiative_locked: RwSignal<bool>` — whether character sheet initiative
+  rolls are locked (GM toggle).
+- `loading_status` / `loading_error: RwSignal<Option<String>>` — startup
+  modal state.
+- `send: StoredValue<Option<SendFn>, LocalStorage>` — WebSocket send
+  function (non-`Send` JS type, stored with `LocalStorage`).
 
 Components read state reactively and send messages through the context:
 
@@ -180,8 +189,9 @@ Components read state reactively and send messages through the context:
   Includes resource tracking bars (HP, spell slots) with +/- buttons and undo.
   "Roll Initiative" button between resource bars and ability scores (disabled
   when initiative is locked). Character field edits are sent as
-  `UpdateCharacterField` WebSocket messages for real-time sync. Character
-  Selection window updates in real-time when HP or other data changes.
+  `UpdateCharacterField` WebSocket messages for real-time sync. The Character
+  Selection list uses a composite `<For>` key that includes portrait, data,
+  and resources so that any change (portrait, HP, stats) triggers a re-render.
   Supports character portraits via the media browser.
 - **CreaturePanel** — GM-only creature stat block CRUD. Create, edit, and
   delete creature stat blocks with template-driven stat fields. "Roll

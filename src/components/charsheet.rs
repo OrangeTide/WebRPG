@@ -146,7 +146,7 @@ pub fn CharacterSelection() -> impl IntoView {
             <div class="item-list">
                 <For
                     each=move || characters.get()
-                    key=|c| c.id
+                    key=|c| (c.id, c.portrait_url.clone(), c.resources.iter().map(|r| (r.id, r.current_value)).collect::<Vec<_>>(), c.data.to_string())
                     let:c
                 >
                     {
