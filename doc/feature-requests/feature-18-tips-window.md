@@ -5,3 +5,11 @@ checkbox in the corner of the window disables the window for future sessions.
 Re-enabling the tips window can be found on the user's settings profile.
 
 ## Status: Not Started
+
+## Plan
+
+TBD
+
+## Findings
+
+(none yet)

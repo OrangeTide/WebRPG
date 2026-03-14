@@ -4,3 +4,11 @@ To prevent abuse and denial of service, do not allow a player to create more
 than 3 sessions at once.
 
 ## Status: Not Started
+
+## Plan
+
+TBD
+
+## Findings
+
+(none yet)

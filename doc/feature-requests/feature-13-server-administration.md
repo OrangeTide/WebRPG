@@ -14,4 +14,18 @@ On the administration page the following actions are possible:
 - Download backup dump of database
 - Restore database from an uploaded backup
 
-## Status: Not Started
+## Status: In Progress
+
+Database has `access_level` field in users table and User model, but no admin
+checks, admin routes, or admin UI are implemented yet.
+
+## Plan
+
+TBD
+
+## Findings
+
+- `access_level` field exists in users table schema
+  (`migrations/2026-03-12-203733-0000_create_users/up.sql`)
+- `access_level` field exists in User model (`models.rs`)
+- No `ADMIN_LIST` env var handling, no admin route guards, no admin pages

@@ -5,3 +5,11 @@ Multiple codes can be created and shared a limited number of times
 (configurable). Expired invite codes are deleted after 30 days.
 
 ## Status: Not Started
+
+## Plan
+
+TBD
+
+## Findings
+
+(none yet)

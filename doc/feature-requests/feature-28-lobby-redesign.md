@@ -9,3 +9,14 @@ Design the lobby page better:
 - Sort the sessions from most recent to least recently used
 
 ## Status: Not Started
+
+Current sessions page uses a basic `<ul>` list showing only session name, GM
+username, and an "Enter" link. None of the requested improvements are present.
+
+## Plan
+
+TBD
+
+## Findings
+
+(none yet)

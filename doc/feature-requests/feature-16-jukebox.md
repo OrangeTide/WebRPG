@@ -7,3 +7,11 @@ Requirements:
 - Theme-able UI and compatible with Winamp skins.
 
 ## Status: Not Started
+
+## Plan
+
+TBD
+
+## Findings
+
+(none yet)

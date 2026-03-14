@@ -4,3 +4,11 @@ Examine the codebase and clean up and simplify the project. Suggest refactor
 options.
 
 ## Status: Not Started
+
+## Plan
+
+TBD
+
+## Findings
+
+(none yet)

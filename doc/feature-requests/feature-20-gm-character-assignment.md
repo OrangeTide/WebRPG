@@ -6,3 +6,11 @@ matrix of players versus characters with checkboxes to mark. Multiple players
 can control one character, and one player can own multiple characters.
 
 ## Status: Not Started
+
+## Plan
+
+TBD
+
+## Findings
+
+(none yet)

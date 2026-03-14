@@ -3,3 +3,11 @@
 Add turn number to the initiative tracker title bar.
 
 ## Status: Not Started
+
+## Plan
+
+TBD
+
+## Findings
+
+(none yet)

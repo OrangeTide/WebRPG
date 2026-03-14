@@ -5,3 +5,11 @@ accessed without an authentication token. Pages accessed without permissions
 should still redirect to an error page.
 
 ## Status: Not Started
+
+## Plan
+
+TBD
+
+## Findings
+
+(none yet)

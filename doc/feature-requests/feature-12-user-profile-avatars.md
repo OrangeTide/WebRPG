@@ -5,3 +5,11 @@ the game session the avatar can be overridden with one configured by the GM or
 the player's currently active token.
 
 ## Status: Not Started
+
+## Plan
+
+TBD
+
+## Findings
+
+(none yet)

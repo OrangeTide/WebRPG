@@ -8,3 +8,11 @@ light color scheme and one dark color scheme). The dark scheme defaults to the
 blue one currently in use. The light color scheme is a sandy brown color.
 
 ## Status: Not Started
+
+## Plan
+
+TBD
+
+## Findings
+
+(none yet)

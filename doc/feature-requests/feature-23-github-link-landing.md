@@ -3,3 +3,11 @@
 Add a GitHub link to this project on the landing page.
 
 ## Status: Not Started
+
+## Plan
+
+TBD
+
+## Findings
+
+(none yet)
