@@ -1,11 +1,37 @@
 # WebRPG
 
+[![PR Checks](https://github.com/OrangeTide/WebRPG/actions/workflows/pr.yml/badge.svg)](https://github.com/OrangeTide/WebRPG/actions/workflows/pr.yml)
+[![Release](https://github.com/OrangeTide/WebRPG/actions/workflows/release.yml/badge.svg)](https://github.com/OrangeTide/WebRPG/actions/workflows/release.yml)
+[![License: MIT-0](https://img.shields.io/badge/License-MIT--0-blue.svg)](https://opensource.org/license/mit-0)
+[![Rust](https://img.shields.io/badge/Rust-1.85+-orange.svg?logo=rust)](https://www.rust-lang.org/)
+[![Leptos](https://img.shields.io/badge/Leptos-0.8-red.svg)](https://leptos.dev/)
+[![Built with Claude Code](https://img.shields.io/badge/Built%20with-Claude%20Code-blueviolet.svg?logo=anthropic)](https://docs.anthropic.com/en/docs/claude-code)
+
 A virtual tabletop for roleplaying games, built with Rust.
 
 WebRPG hosts multiplayer RPG sessions with real-time synchronization over
-WebSockets. Features include dice rolling, grid maps with fog of war, token
-placement, character sheets, chat, party inventory, initiative tracking, and
-creature stat blocks.
+WebSockets.
+
+### Features
+
+- Grid maps with fog of war and background images
+- Token placement with drag-and-drop movement and HP tracking
+- Dice rolling with `NdN+M` notation
+- Template-driven character sheets with resource tracking
+- Creature stat blocks (GM only)
+- Chat with dice roll integration
+- Initiative tracking with turn order
+- Party inventory management
+- Media upload and content-addressable storage
+- Multi-window UI with draggable, resizable panels
+
+## Screenshots
+
+![Landing page](doc/screenshots/landing.png)
+*Landing page*
+
+![Game session with map, chat, character sheet, and initiative windows](doc/screenshots/game.png)
+*Game session — GM view with map, chat, character sheet, and initiative tracker*
 
 ## Prerequisites
 
@@ -18,12 +44,14 @@ creature stat blocks.
 ## Setup
 
 ```sh
-# Clone and enter the project
-cd webrpg
+git clone https://github.com/OrangeTide/WebRPG.git
+cd WebRPG
 
-# Create .env if it doesn't exist
-echo 'DATABASE_URL=database.db' >> .env
-echo 'SECRET_KEY=change-me-in-production' >> .env
+# Create .env
+cat > .env <<EOF
+DATABASE_URL=database.db
+SECRET_KEY=change-me-in-production
+EOF
 
 # Run database migrations
 diesel migration run
@@ -57,4 +85,20 @@ DATABASE_URL=database.db
 SECRET_KEY=your-secret-key
 ```
 
-See [DEV.md](DEV.md) for architecture, project structure, and testing details.
+For deployment with the included build and deploy scripts, see
+[DEV.md — Deployment](DEV.md#deployment).
+
+## Contributing
+
+See [DEV.md — Contributing](DEV.md#contributing) for code standards, PR
+guidelines, and commit message conventions.
+
+## License
+
+This project is licensed under [MIT-0](LICENSE) — a permissive license with no
+attribution requirement.
+
+## More Information
+
+See [DEV.md](DEV.md) for architecture, project structure, CI/CD, and testing
+details.

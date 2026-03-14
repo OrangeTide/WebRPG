@@ -27,11 +27,32 @@ src/
 ├── db.rs             # Diesel/SQLite connection pool (server only)
 ├── schema.rs         # Diesel table definitions (auto-generated)
 ├── models.rs         # Shared DTOs + Diesel models
-├── pages/            # Page components (landing, login, sessions, game)
-├── components/       # UI components (window manager, map, chat, charsheet, creatures, inventory, initiative, media browser)
-├── server/           # Server functions, media handler + WebSocket upgrade handler
-└── ws/               # WebSocket message types + session state manager
-migrations/           # Diesel SQL migrations
+├── pages/
+│   ├── mod.rs            # Module declarations
+│   ├── landing.rs        # Landing/intro page
+│   ├── login.rs          # Login + signup page with JWT auth
+│   ├── sessions.rs       # Session list, create/join
+│   └── game.rs           # Main game view, GameContext, WebSocket setup
+├── components/
+│   ├── mod.rs            # Module declarations
+│   ├── window_manager.rs # Draggable/resizable window system + taskbar
+│   ├── map.rs            # HTML5 Canvas map with grid, tokens, fog of war
+│   ├── chat.rs           # Chat panel with dice rolling
+│   ├── charsheet.rs      # Template-driven character sheet editor
+│   ├── creatures.rs      # GM creature stat block CRUD
+│   ├── inventory.rs      # Party inventory management
+│   ├── initiative.rs     # Initiative tracker with turn order
+│   └── media_browser.rs  # Media upload/browse/search modal
+├── server/
+│   ├── mod.rs            # Module declarations
+│   ├── api.rs            # Leptos server functions (sessions, characters, templates)
+│   ├── media_handler.rs  # Media upload/serve endpoints (CAS)
+│   └── ws_handler.rs     # WebSocket upgrade + authentication
+└── ws/
+    ├── mod.rs            # Module declarations
+    ├── messages.rs       # WebSocket message type definitions
+    └── session.rs        # Server-side session state manager
+migrations/               # Diesel SQL migrations
 ```
 
 ## Build Prerequisites
