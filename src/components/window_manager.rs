@@ -320,76 +320,264 @@ impl WindowManagerContext {
     }
 }
 
-/// Default window layout for a typical screen.
+/// Get the viewport dimensions available for window layout.
+/// Returns (width, height) in pixels, accounting for the game header.
+fn get_viewport_size() -> (f64, f64) {
+    #[cfg(feature = "hydrate")]
+    {
+        if let Some(window) = web_sys::window() {
+            let w = window.inner_width().ok().and_then(|v| v.as_f64()).unwrap_or(1280.0);
+            let h = window.inner_height().ok().and_then(|v| v.as_f64()).unwrap_or(800.0);
+            // Subtract estimated header height (~50px) and taskbar (~36px)
+            return (w, (h - 86.0).max(400.0));
+        }
+    }
+    (1280.0, 714.0) // SSR fallback
+}
+
+/// Default window layout scaled to the given viewport dimensions.
+///
+/// Three layout tiers:
+/// - **Small** (< 900px wide): Stack windows vertically, all start minimized
+///   except Map and Chat.
+/// - **Medium** (900–1399px): Two-column layout — Map on the left, sidebar
+///   panels on the right.
+/// - **Large** (1400px+): Spacious two-column layout with more room for
+///   each panel.
 pub fn default_window_layout() -> Vec<WindowState> {
-    vec![
-        WindowState {
-            id: WindowId::Map,
-            title: None,
-            x: 10.0,
-            y: 10.0,
-            width: 700.0,
-            height: 500.0,
-            z_index: 1,
-            minimized: false,
-            visible: true,
-        },
-        WindowState {
-            id: WindowId::Chat,
-            title: None,
-            x: 720.0,
-            y: 10.0,
-            width: 320.0,
-            height: 400.0,
-            z_index: 2,
-            minimized: false,
-            visible: true,
-        },
-        WindowState {
-            id: WindowId::CharacterSelection,
-            title: None,
-            x: 720.0,
-            y: 420.0,
-            width: 320.0,
-            height: 350.0,
-            z_index: 3,
-            minimized: false,
-            visible: true,
-        },
-        WindowState {
-            id: WindowId::Initiative,
-            title: None,
-            x: 10.0,
-            y: 520.0,
-            width: 280.0,
-            height: 200.0,
-            z_index: 4,
-            minimized: false,
-            visible: true,
-        },
-        WindowState {
-            id: WindowId::Inventory,
-            title: None,
-            x: 300.0,
-            y: 520.0,
-            width: 300.0,
-            height: 200.0,
-            z_index: 5,
-            minimized: true,
-            visible: true,
-        },
-        WindowState {
-            id: WindowId::Creatures,
-            title: None,
-            x: 50.0,
-            y: 50.0,
-            width: 350.0,
-            height: 400.0,
-            z_index: 6,
-            minimized: false,
-            visible: false, // GM only — toggled on by GamePage when user is GM
-        },
-    ]
+    let (vw, vh) = get_viewport_size();
+    default_window_layout_for_size(vw, vh)
+}
+
+fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
+    let pad = 10.0;
+
+    if vw < 900.0 {
+        // Small screen: stack map and chat, minimize the rest
+        let win_w = (vw - 2.0 * pad).max(400.0);
+        vec![
+            WindowState {
+                id: WindowId::Map,
+                title: None,
+                x: pad,
+                y: pad,
+                width: win_w,
+                height: (vh * 0.55).max(300.0),
+                z_index: 1,
+                minimized: false,
+                visible: true,
+            },
+            WindowState {
+                id: WindowId::Chat,
+                title: None,
+                x: pad,
+                y: pad + (vh * 0.55).max(300.0) + pad,
+                width: win_w,
+                height: (vh * 0.35).max(200.0),
+                z_index: 2,
+                minimized: false,
+                visible: true,
+            },
+            WindowState {
+                id: WindowId::CharacterSelection,
+                title: None,
+                x: pad,
+                y: pad,
+                width: win_w.min(350.0),
+                height: 300.0,
+                z_index: 3,
+                minimized: true,
+                visible: true,
+            },
+            WindowState {
+                id: WindowId::Initiative,
+                title: None,
+                x: pad,
+                y: pad,
+                width: win_w.min(300.0),
+                height: 200.0,
+                z_index: 4,
+                minimized: true,
+                visible: true,
+            },
+            WindowState {
+                id: WindowId::Inventory,
+                title: None,
+                x: pad,
+                y: pad,
+                width: win_w.min(300.0),
+                height: 200.0,
+                z_index: 5,
+                minimized: true,
+                visible: true,
+            },
+            WindowState {
+                id: WindowId::Creatures,
+                title: None,
+                x: pad,
+                y: pad,
+                width: win_w.min(350.0),
+                height: 400.0,
+                z_index: 6,
+                minimized: false,
+                visible: false,
+            },
+        ]
+    } else if vw < 1400.0 {
+        // Medium screen: two-column layout
+        let sidebar_w = 320.0_f64.min(vw * 0.3);
+        let map_w = vw - sidebar_w - 3.0 * pad;
+        let sidebar_x = map_w + 2.0 * pad;
+        let chat_h = (vh * 0.5).max(250.0);
+        let char_sel_h = vh - chat_h - 3.0 * pad;
+
+        vec![
+            WindowState {
+                id: WindowId::Map,
+                title: None,
+                x: pad,
+                y: pad,
+                width: map_w,
+                height: vh - 2.0 * pad,
+                z_index: 1,
+                minimized: false,
+                visible: true,
+            },
+            WindowState {
+                id: WindowId::Chat,
+                title: None,
+                x: sidebar_x,
+                y: pad,
+                width: sidebar_w,
+                height: chat_h,
+                z_index: 2,
+                minimized: false,
+                visible: true,
+            },
+            WindowState {
+                id: WindowId::CharacterSelection,
+                title: None,
+                x: sidebar_x,
+                y: chat_h + 2.0 * pad,
+                width: sidebar_w,
+                height: char_sel_h,
+                z_index: 3,
+                minimized: false,
+                visible: true,
+            },
+            WindowState {
+                id: WindowId::Initiative,
+                title: None,
+                x: pad,
+                y: pad,
+                width: 280.0,
+                height: 200.0,
+                z_index: 4,
+                minimized: true,
+                visible: true,
+            },
+            WindowState {
+                id: WindowId::Inventory,
+                title: None,
+                x: pad,
+                y: pad,
+                width: 300.0,
+                height: 200.0,
+                z_index: 5,
+                minimized: true,
+                visible: true,
+            },
+            WindowState {
+                id: WindowId::Creatures,
+                title: None,
+                x: 50.0,
+                y: 50.0,
+                width: 350.0,
+                height: 400.0,
+                z_index: 6,
+                minimized: false,
+                visible: false,
+            },
+        ]
+    } else {
+        // Large screen (1400px+): spacious two-column layout
+        let sidebar_w = 360.0_f64.min(vw * 0.25);
+        let map_w = vw - sidebar_w - 3.0 * pad;
+        let sidebar_x = map_w + 2.0 * pad;
+        let chat_h = (vh * 0.5).max(300.0);
+        let char_sel_h = vh - chat_h - 3.0 * pad;
+        let init_w = 280.0;
+        let init_h = 220.0;
+
+        vec![
+            WindowState {
+                id: WindowId::Map,
+                title: None,
+                x: pad,
+                y: pad,
+                width: map_w,
+                height: vh - 2.0 * pad,
+                z_index: 1,
+                minimized: false,
+                visible: true,
+            },
+            WindowState {
+                id: WindowId::Chat,
+                title: None,
+                x: sidebar_x,
+                y: pad,
+                width: sidebar_w,
+                height: chat_h,
+                z_index: 2,
+                minimized: false,
+                visible: true,
+            },
+            WindowState {
+                id: WindowId::CharacterSelection,
+                title: None,
+                x: sidebar_x,
+                y: chat_h + 2.0 * pad,
+                width: sidebar_w,
+                height: char_sel_h,
+                z_index: 3,
+                minimized: false,
+                visible: true,
+            },
+            WindowState {
+                id: WindowId::Initiative,
+                title: None,
+                x: pad,
+                y: vh - init_h - pad,
+                width: init_w,
+                height: init_h,
+                z_index: 4,
+                minimized: false,
+                visible: true,
+            },
+            WindowState {
+                id: WindowId::Inventory,
+                title: None,
+                x: init_w + 2.0 * pad,
+                y: vh - 200.0 - pad,
+                width: 300.0,
+                height: 200.0,
+                z_index: 5,
+                minimized: true,
+                visible: true,
+            },
+            WindowState {
+                id: WindowId::Creatures,
+                title: None,
+                x: 50.0,
+                y: 50.0,
+                width: 380.0,
+                height: 450.0,
+                z_index: 6,
+                minimized: false,
+                visible: false,
+            },
+        ]
+    }
 }
 
 #[cfg(feature = "hydrate")]
