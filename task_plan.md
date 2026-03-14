@@ -4,7 +4,7 @@
 Fix character sheet rendering, add HP resource bars with +/- controls, and make the Character Selection window update in real-time when character state changes.
 
 ## Current Phase
-Phase 6 — Roll Initiative (not started)
+Phase 7 — Testing (not started)
 
 ## Phases
 
@@ -45,20 +45,21 @@ Phase 6 — Roll Initiative (not started)
 - **Status:** complete
 
 ### Phase 6: Roll Initiative from Character Sheet & Creature Page
-- [ ] Add "Roll Initiative" button to character sheet editor (combat stats section)
-- [ ] Add "Roll Initiative" button to creature panel
-- [ ] Implement initiative roll calculation: d20 + dexterity modifier + initiative modifier (D&D 5e)
-- [ ] Server function `roll_initiative` that rolls, calculates, and adds entry to initiative tracker
-- [ ] Broadcast `InitiativeUpdated` to all clients after adding entry
-- [ ] Add initiative lock/unlock toggle button to Initiative window (GM control)
-- [ ] Add `InitiativeLockChanged { locked: bool }` variant to `ServerMessage`
-- [ ] Store initiative lock state in `ActiveSession` (in-memory) and broadcast on change
-- [ ] Add `initiative_locked: RwSignal<bool>` to `GameContext`, handle lock messages in `apply_server_message`
-- [ ] Character sheet "Roll Initiative" button greyed out + disabled when initiative is locked
-- [ ] Creature page "Roll Initiative" button always enabled (ignores lock)
-- [ ] Real-time lock state sync: all clients see lock/unlock changes immediately
-- [ ] Include initiative lock state in `GameStateSnapshot` so new joiners get current state
-- **Status:** not started
+- [x] Add "Roll Initiative" button to character sheet editor (combat stats section)
+- [x] Add "Roll Initiative" button to creature panel (on creature cards)
+- [x] Implement initiative roll calculation: d20 + dexterity modifier + initiative modifier (D&D 5e)
+- [x] WS handler `RollCharacterInitiative` / `RollCreatureInitiative` — rolls, adds to initiative, broadcasts
+- [x] Broadcast `InitiativeUpdated` to all clients after adding entry
+- [x] Add initiative lock/unlock toggle button to Initiative window (GM control)
+- [x] Add `InitiativeLockChanged { locked: bool }` variant to `ServerMessage`
+- [x] Store initiative lock state in `ActiveSession` (in-memory) and broadcast on change
+- [x] Add `initiative_locked: RwSignal<bool>` to `GameContext`, handle lock messages in `apply_server_message`
+- [x] Character sheet "Roll Initiative" button greyed out + disabled when initiative is locked
+- [x] Creature page "Roll Initiative" button always enabled (ignores lock)
+- [x] Real-time lock state sync: all clients see lock/unlock changes immediately
+- [x] Include initiative lock state in `GameStateSnapshot` so new joiners get current state
+- [x] Chat log: initiative rolls appear as dice results in chat
+- **Status:** complete
 
 ### Phase 7: Testing & Verification (Initiative Roll)
 - [ ] cargo check --features ssr
