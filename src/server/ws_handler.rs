@@ -614,6 +614,11 @@ fn build_snapshot(session_id: i32) -> crate::ws::messages::GameStateSnapshot {
     let (map_info, token_list, fog_cells) = if let Some(m) = map_row {
         let map_id = m.id;
 
+        // Ensure active_map_id is set so subsequent operations (e.g. SetMapBackground) work
+        if let Some(mut session) = SESSION_MANAGER.sessions.get_mut(&session_id) {
+            session.active_map_id = Some(map_id);
+        }
+
         let map_info = crate::models::MapInfo {
             id: m.id,
             name: m.name,
