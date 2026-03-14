@@ -39,18 +39,28 @@ migrations/           # Diesel SQL migrations
 For general development:
 
   - Rust (stable, 1.85+)
-  - `wasm32-unknown-unknown` target: `rustup target add wasm32-unknown-unknown`
-  - `cargo-leptos`: `cargo install cargo-leptos`
   - SQLite3 development libraries (e.g. `libsqlite3-dev` on Debian/Ubuntu)
-  - Diesel CLI: `cargo install diesel_cli --no-default-features --features sqlite`
+    ```bash
+    sudo apt install libsqlite3-dev
+    ```
+  - install tools needed for static linking:
+    ```bash
+    sudo apt install musl-tools
+    rustup target add x86_64-unknown-linux-musl
+    ```
+  - Add `wasm32-unknown-unknown` target: `rustup target add wasm32-unknown-unknown`
+  - Install cargo leptos: `cargo install cargo-leptos`
+  - Install Diesel CLI tools: `cargo install diesel_cli --no-default-features --features sqlite`
 
-For AI and MCP, commands to check and install requirements (idempotent):
+### For AI (Claude, Gemini, etc) and MCP tools
+
+Commands to check and install requirements (idempotent)
 
 Debian/ubuntu commands: #TODO: setup environment: "WEBDRIVER_PREFERRED_DRIVER": "chrome", "WEBDRIVER_HEADLESS": "true"
   ```bash
   geckodriver --version || sudo apt install firefox                   # Install Firefox (for geckodriver)
   chromedriver --version || sudo apt install chromium-chromedriver    # Install Chromium's chromedriver
-  # build from source:
+  # build rust-browser-mcp from source:
   git clone https://github.com/EmilLindfors/rust-browser-mcp.git
   cd rust-browser-mcp
   cargo build --release
@@ -245,6 +255,47 @@ The `ci/` directory contains the test scripts used by both workflows:
   routes, CSS serving, signup, session CRUD, WebSocket endpoint, media
   upload/serve/dedup/tags, invalid input handling, and game page rendering (26
   checks)
+
+## Deployment
+
+### Building a Release Tarball
+
+```sh
+scripts/build-release.sh
+```
+
+This builds the server as a fully static musl binary (no glibc dependency) and
+packages it with site assets and Diesel migrations into
+`target/webrpg-<version>.tar.gz`. The resulting binary runs on any x86_64 Linux
+regardless of the host's libc version.
+
+Requires musl toolchain (see [Build Prerequisites](#build-prerequisites)).
+
+### Deploying to a Remote Server
+
+```sh
+scripts/deploy.sh user@host [tarball]
+```
+
+If no tarball is specified, the script auto-detects the latest one in `target/`.
+It uploads the tarball via SCP, unpacks it into `~/webrpg/<release>/`, and
+creates a `current` symlink pointing to the new release. The `.env` file,
+`database.db`, and `uploads/` directory are kept at `~/webrpg/` and symlinked
+into the release, so they persist across deploys.
+
+**First deploy:**
+
+1. Run `scripts/build-release.sh` locally
+2. Run `scripts/deploy.sh user@host`
+3. SSH in and copy `~/webrpg/current/env.example` to `~/webrpg/.env`, edit it
+4. Install Diesel CLI on the server and run `cd ~/webrpg/current && diesel migration run`
+5. Start the server: `cd ~/webrpg/current && ./webrpg`
+
+**Subsequent deploys:**
+
+1. Run `scripts/build-release.sh`
+2. Run `scripts/deploy.sh user@host`
+3. Restart the server
 
 ## Contributing
 
