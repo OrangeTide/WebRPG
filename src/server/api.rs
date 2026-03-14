@@ -1412,4 +1412,3 @@ pub async fn update_character_portrait(
 
     Ok(())
 }
-

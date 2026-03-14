@@ -314,7 +314,7 @@ pub fn GamePage() -> impl IntoView {
                     ctx_close.connected.set(false);
                     // Only show error if we never successfully connected
                     // (loading_status is cleared on successful snapshot)
-                    if ctx_close.loading_status.get().is_some() {
+                    if ctx_close.loading_status.get_untracked().is_some() {
                         ctx_close
                             .loading_error
                             .set(Some("Connection lost before session loaded.".to_string()));
@@ -328,7 +328,7 @@ pub fn GamePage() -> impl IntoView {
                 let ctx_err = ctx.clone();
                 let on_error = Closure::<dyn Fn()>::new(move || {
                     log::error!("WebSocket error");
-                    if ctx_err.loading_status.get().is_some() {
+                    if ctx_err.loading_status.get_untracked().is_some() {
                         ctx_err
                             .loading_error
                             .set(Some("Connection error. Please try reloading.".to_string()));
@@ -354,13 +354,36 @@ pub fn GamePage() -> impl IntoView {
     let loading_status = ctx.loading_status;
     let loading_error = ctx.loading_error;
 
+    // Delay showing the loading modal so fast reconnects (e.g. hot-reload) don't flash it
+    let show_loading_modal = RwSignal::new(false);
+    #[cfg(feature = "hydrate")]
+    {
+        let loading_status_check = loading_status;
+        set_timeout(
+            move || {
+                if loading_status_check.get_untracked().is_some() {
+                    show_loading_modal.set(true);
+                }
+            },
+            std::time::Duration::from_millis(1000),
+        );
+        // Also show immediately if loading_status changes after the delay fires
+        Effect::new(move |_| {
+            let status = loading_status_check.get();
+            if status.is_none() {
+                show_loading_modal.set(false);
+            }
+        });
+    }
+
     view! {
         <div class="game-page">
             // Loading overlay — blocks interaction until session snapshot arrives
             {move || {
                 let status = loading_status.get();
                 let error = loading_error.get();
-                if status.is_some() || error.is_some() {
+                let show_modal = show_loading_modal.get();
+                if error.is_some() || (status.is_some() && show_modal) {
                     Some(view! {
                         <div class="loading-overlay">
                             <div class="loading-modal">
