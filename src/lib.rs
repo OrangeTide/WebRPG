@@ -14,6 +14,8 @@ pub mod db;
 #[cfg(feature = "ssr")]
 pub mod schema;
 
+pub mod vfs;
+
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn hydrate() {

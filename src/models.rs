@@ -468,4 +468,71 @@ pub mod db_models {
         pub media_id: i32,
         pub tag: &'a str,
     }
+
+    // ===== VFS models =====
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::vfs_files)]
+    pub struct VfsFile {
+        pub id: i32,
+        pub drive: String,
+        pub connection_id: Option<String>,
+        pub session_id: Option<i32>,
+        pub user_id: Option<i32>,
+        pub path: String,
+        pub is_directory: bool,
+        pub size_bytes: i32,
+        pub content_type: Option<String>,
+        pub inline_data: Option<Vec<u8>>,
+        pub media_hash: Option<String>,
+        pub modified_by: Option<i32>,
+        pub created_at: i32,
+        pub updated_at: i32,
+        pub mode: i32,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::vfs_files)]
+    pub struct NewVfsFile<'a> {
+        pub drive: &'a str,
+        pub connection_id: Option<&'a str>,
+        pub session_id: Option<i32>,
+        pub user_id: Option<i32>,
+        pub path: &'a str,
+        pub is_directory: bool,
+        pub size_bytes: i32,
+        pub content_type: Option<&'a str>,
+        pub inline_data: Option<&'a [u8]>,
+        pub media_hash: Option<&'a str>,
+        pub modified_by: Option<i32>,
+        pub mode: i32,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::vfs_archive)]
+    pub struct VfsArchive {
+        pub id: i32,
+        pub original_session_id: i32,
+        pub session_name: String,
+        pub path: String,
+        pub size_bytes: i32,
+        pub content_type: Option<String>,
+        pub inline_data: Option<Vec<u8>>,
+        pub media_hash: Option<String>,
+        pub archived_at: i32,
+        pub expires_at: i32,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::vfs_archive)]
+    pub struct NewVfsArchive<'a> {
+        pub original_session_id: i32,
+        pub session_name: &'a str,
+        pub path: &'a str,
+        pub size_bytes: i32,
+        pub content_type: Option<&'a str>,
+        pub inline_data: Option<&'a [u8]>,
+        pub media_hash: Option<&'a str>,
+        pub expires_at: i32,
+    }
 }

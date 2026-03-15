@@ -179,6 +179,41 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    vfs_archive (id) {
+        id -> Integer,
+        original_session_id -> Integer,
+        session_name -> Text,
+        path -> Text,
+        size_bytes -> Integer,
+        content_type -> Nullable<Text>,
+        inline_data -> Nullable<Binary>,
+        media_hash -> Nullable<Text>,
+        archived_at -> Integer,
+        expires_at -> Integer,
+    }
+}
+
+diesel::table! {
+    vfs_files (id) {
+        id -> Integer,
+        drive -> Text,
+        connection_id -> Nullable<Text>,
+        session_id -> Nullable<Integer>,
+        user_id -> Nullable<Integer>,
+        path -> Text,
+        is_directory -> Bool,
+        size_bytes -> Integer,
+        content_type -> Nullable<Text>,
+        inline_data -> Nullable<Binary>,
+        media_hash -> Nullable<Text>,
+        modified_by -> Nullable<Integer>,
+        created_at -> Integer,
+        updated_at -> Integer,
+        mode -> Integer,
+    }
+}
+
 diesel::joinable!(character_resources -> characters (character_id));
 diesel::joinable!(characters -> sessions (session_id));
 diesel::joinable!(characters -> users (user_id));
@@ -204,6 +239,7 @@ diesel::joinable!(token_instances -> tokens (token_id));
 diesel::joinable!(tokens -> characters (character_id));
 diesel::joinable!(tokens -> creatures (creature_id));
 diesel::joinable!(tokens -> maps (map_id));
+diesel::joinable!(vfs_files -> sessions (session_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     character_resources,
@@ -222,4 +258,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     token_instances,
     tokens,
     users,
+    vfs_archive,
+    vfs_files,
 );
