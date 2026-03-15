@@ -35,7 +35,7 @@ src/
 │   └── game.rs           # Main game view, GameContext, WebSocket setup
 ├── components/
 │   ├── mod.rs            # Module declarations
-│   ├── window_manager.rs # Draggable/resizable window system + taskbar
+│   ├── window_manager.rs # Draggable/resizable window system + dock
 │   ├── map.rs            # HTML5 Canvas map with grid, tokens, fog of war
 │   ├── chat.rs           # Chat panel with dice rolling
 │   ├── charsheet.rs      # Template-driven character sheet editor
@@ -238,9 +238,16 @@ The game page uses a windowed interface where each feature lives in its own
 draggable, resizable window (`components/window_manager.rs`). The
 `WindowManager` component wraps the game viewport and renders `GameWindow`
 children. Each window has a title bar (drag handle, minimize/close buttons),
-resizable edges/corners, and z-index stacking (click to front). Minimized
-windows dock to a taskbar at the bottom. A toolbar in the game header toggles
-window visibility. Window layout is persisted to `localStorage`.
+resizable edges/corners, and z-index stacking (click to front). Window layout
+is persisted to `localStorage`.
+
+Minimized windows appear as 64×64 tiles in a NeXTSTEP-style dock in the
+upper-left corner. The dock has a fixed system icon anchor at (0,0) and tiles
+snap to a 2D grid adjacent to existing tiles. Clicking a dock tile restores the
+window; long-pressing and dragging repositions the tile within the dock grid
+(with a snap preview ghost tile). Non-minimized windows are pushed away from
+the dock area when new tiles appear. Dock tile layout is persisted to
+`localStorage`.
 
 Default windows: Map (large, center), Chat (right), Character Sheet, Initiative,
 Inventory (minimized), Creatures (GM only).

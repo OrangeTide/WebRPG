@@ -920,6 +920,11 @@ struct DockDrag {
     /// Offset from the tile's top-left corner to the mouse position.
     offset_x: f64,
     offset_y: f64,
+    /// Starting mouse position for distance threshold check.
+    start_x: f64,
+    start_y: f64,
+    /// Whether the drag has actually started (mouse moved enough).
+    active: bool,
 }
 
 /// NeXTSTEP-style dock that shows minimized windows as 64x64 tiles.
@@ -993,8 +998,11 @@ fn Dock() -> impl IntoView {
         for w in &wins {
             if w.minimized {
                 if let Some(pos) = layout.get_pos(w.id) {
-                    // Skip the tile being dragged (it's rendered as a ghost)
-                    if drag.as_ref().is_some_and(|d| d.window_id == w.id) {
+                    // Skip the tile being actively dragged (it's rendered separately)
+                    if drag
+                        .as_ref()
+                        .is_some_and(|d| d.window_id == w.id && d.active)
+                    {
                         continue;
                     }
                     let label = w.title.as_deref().unwrap_or(w.id.dock_label());
@@ -1010,9 +1018,12 @@ fn Dock() -> impl IntoView {
         tiles
     };
 
-    // Ghost tile position (snap preview during drag)
+    // Ghost tile position (snap preview during active drag)
     let ghost_pos = move || {
         let drag = dock_drag.get()?;
+        if !drag.active {
+            return None;
+        }
         let layout = dock_layout.get_untracked();
         let snap_x = drag.mouse_x - drag.offset_x + DOCK_TILE_SIZE / 2.0;
         let snap_y = drag.mouse_y - drag.offset_y + DOCK_TILE_SIZE / 2.0;
@@ -1022,9 +1033,12 @@ fn Dock() -> impl IntoView {
         temp_layout.snap_to_grid(snap_x, snap_y)
     };
 
-    // Dragged tile visual (follows mouse)
+    // Dragged tile visual (follows mouse, only when active)
     let drag_tile_info = move || {
         let drag = dock_drag.get()?;
+        if !drag.active {
+            return None;
+        }
         let wins = wm.windows.get();
         let w = wins.iter().find(|w| w.id == drag.window_id)?;
         let label = w.title.as_deref().unwrap_or(w.id.dock_label());
@@ -1051,7 +1065,8 @@ fn Dock() -> impl IntoView {
         }
     };
 
-    let wm_click = wm.clone();
+    // Minimum distance (px) mouse must move before drag activates
+    const DRAG_THRESHOLD: f64 = 5.0;
 
     // Mouse handlers for dock tile drag
     let on_dock_mousemove = move |ev: leptos::ev::MouseEvent| {
@@ -1061,24 +1076,37 @@ fn Dock() -> impl IntoView {
                 if let Some(d) = d {
                     d.mouse_x = ev.offset_x() as f64;
                     d.mouse_y = ev.offset_y() as f64;
+                    // Activate drag once mouse moves past threshold
+                    if !d.active {
+                        let dx = d.mouse_x - d.start_x;
+                        let dy = d.mouse_y - d.start_y;
+                        if (dx * dx + dy * dy).sqrt() >= DRAG_THRESHOLD {
+                            d.active = true;
+                        }
+                    }
                 }
             });
         }
     };
 
+    let wm_mouseup = wm.clone();
     let on_dock_mouseup = move |_: leptos::ev::MouseEvent| {
         if let Some(drag) = dock_drag.get_untracked() {
-            let snap_x = drag.mouse_x - drag.offset_x + DOCK_TILE_SIZE / 2.0;
-            let snap_y = drag.mouse_y - drag.offset_y + DOCK_TILE_SIZE / 2.0;
-            dock_layout.update(|layout| {
-                // Temporarily remove the dragged tile for snapping calculation
-                let mut temp = layout.clone();
-                temp.remove(drag.window_id);
-                if let Some(new_pos) = temp.snap_to_grid(snap_x, snap_y) {
-                    layout.set_pos(drag.window_id, new_pos);
-                }
-                // If no valid snap, tile stays at its original position
-            });
+            if drag.active {
+                // Complete the drag — snap tile to new position
+                let snap_x = drag.mouse_x - drag.offset_x + DOCK_TILE_SIZE / 2.0;
+                let snap_y = drag.mouse_y - drag.offset_y + DOCK_TILE_SIZE / 2.0;
+                dock_layout.update(|layout| {
+                    let mut temp = layout.clone();
+                    temp.remove(drag.window_id);
+                    if let Some(new_pos) = temp.snap_to_grid(snap_x, snap_y) {
+                        layout.set_pos(drag.window_id, new_pos);
+                    }
+                });
+            } else {
+                // Short click — restore the window
+                wm_mouseup.restore_window(drag.window_id);
+            }
             dock_drag.set(None);
         }
     };
@@ -1093,8 +1121,8 @@ fn Dock() -> impl IntoView {
             class="dock"
             style=move || {
                 let (w, h) = dock_bounds();
-                // Expand during drag to allow snapping to new positions
-                let drag_extra = if dock_drag.get().is_some() {
+                // Expand during active drag to allow snapping to new positions
+                let drag_extra = if dock_drag.get().is_some_and(|d| d.active) {
                     DOCK_TILE_SIZE * 2.0
                 } else {
                     0.0
@@ -1125,7 +1153,6 @@ fn Dock() -> impl IntoView {
                 let:tile
             >
                 {
-                    let wm = wm_click.clone();
                     let id = tile.0;
                     let label = tile.1.clone();
                     let icon = tile.2;
@@ -1136,18 +1163,21 @@ fn Dock() -> impl IntoView {
                         <div
                             class="dock-tile"
                             style=format!("left:{}px;top:{}px;", left, top)
-                            on:click=move |_| wm.restore_window(id)
                             on:mousedown=move |ev: leptos::ev::MouseEvent| {
                                 ev.prevent_default();
-                                ev.stop_propagation();
                                 let tile_left = pos.col as f64 * DOCK_TILE_SIZE;
                                 let tile_top = pos.row as f64 * DOCK_TILE_SIZE;
+                                let mx = ev.offset_x() as f64 + tile_left;
+                                let my = ev.offset_y() as f64 + tile_top;
                                 dock_drag.set(Some(DockDrag {
                                     window_id: id,
-                                    mouse_x: ev.offset_x() as f64 + tile_left,
-                                    mouse_y: ev.offset_y() as f64 + tile_top,
+                                    mouse_x: mx,
+                                    mouse_y: my,
                                     offset_x: ev.offset_x() as f64,
                                     offset_y: ev.offset_y() as f64,
+                                    start_x: mx,
+                                    start_y: my,
+                                    active: false,
                                 }));
                             }
                             title=id.title()
