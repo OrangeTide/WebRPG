@@ -97,7 +97,7 @@ CREATE INDEX idx_vfs_archive_expires ON vfs_archive(expires_at);
 CREATE INDEX idx_vfs_archive_session ON vfs_archive(original_session_id);
 ```
 
-Note: The actual migration still includes `connection_id` and scratch drive support for backward compatibility. A future migration will remove these columns once the client-side scratch drive implementation is complete.
+Note: The actual migration still includes `connection_id` and scratch drive support. The next implementation step (step 5) is a cleanup migration to remove these columns.
 
 ### Permissions
 
@@ -123,11 +123,11 @@ Note: The actual migration still includes `connection_id` and scratch drive supp
    - ~~Unix-style permissions (rwx, umask, chmod)~~ ✓
    - ~~fnmatch pattern matching~~ ✓
 4. ~~Scratch drive server-side support~~ → **Replaced**: scratch drives are now client-side (IndexedDB)
-5. Archive logic: on game deletion, copy C: files to `vfs_archive` with 30-day expiry
-6. Cleanup job: periodically purge expired `vfs_archive` rows
-7. Leptos server functions for C: and U: drives
-8. Client-side scratch drive implementation (IndexedDB, `#[cfg(feature = "hydrate")]`)
-9. Remove `connection_id` column and scratch drive DB support (migration)
+5. Remove `connection_id` column and scratch drive DB support (cleanup migration)
+6. Archive logic: on game deletion, copy C: files to `vfs_archive` with 30-day expiry
+7. Cleanup job: periodically purge expired `vfs_archive` rows
+8. Leptos server functions for C: and U: drives (single-file CRUD)
+9. Client-side scratch drive implementation (IndexedDB, `#[cfg(feature = "hydrate")]`)
 
 ### Protocol Design
 
@@ -135,9 +135,33 @@ Note: The actual migration still includes `connection_id` and scratch drive supp
 - **A: and B: scratch drives** — entirely client-side. Stored in browser IndexedDB, scoped per-tab. No server involvement. Quota enforced client-side. The same `VfsPath`, `vfs_fnmatch`, and permission logic compiles to WASM and runs in the browser.
 - **File upload** (C:/U:): Uses existing multipart upload mechanism (same as media upload). Server computes SHA-256 hash server-side, stores in CAS, then writes the `vfs_files` row with `media_hash`. Single round-trip.
 - **File download** (C:/U:): Server function returns inline data directly for small files, or a CAS URL for large files.
+- **Multi-file upload, ZIP download/extraction**: See Feature 39 (VFS Upload & ZIP).
 - **COMMAND.COM shell** (Feature 36): Client-side WASM. Parses commands locally, calls server functions for C:/U: and IndexedDB for A:/B:. The server never sees command strings — only VFS API calls.
 - **File Browser** (Feature 37): Client-side Leptos component. Same server function API as the shell.
 - **Change notifications**: `VfsChanged` broadcast via WebSocket for C: drive modifications (shared drive), so other connected clients can refresh their view.
+
+### File Type Icons
+
+A shared Unicode icon mapping used by both COMMAND.COM (`DIR` output) and the Finder (panel icons). Icons are resolved by file extension first, then by `content_type` fallback. This is a shared Rust module that compiles to both server and WASM targets.
+
+| Icon | File Type | Extensions / Content-Type |
+|------|-----------|---------------------------|
+| 📁 | Directory | (is_directory) |
+| 🖼️ | Image | `.png`, `.jpg`, `.jpeg`, `.gif`, `.bmp`, `.svg`, `.webp`, `image/*` |
+| 📜 | Text / Document | `.txt`, `.md`, `.csv`, `.log`, `text/*` |
+| 📊 | Data / Config | `.json`, `.xml`, `.yaml`, `.yml`, `.toml` |
+| 🎵 | Audio | `.mp3`, `.ogg`, `.wav`, `.flac`, `audio/*` |
+| 🎬 | Video | `.mp4`, `.webm`, `.avi`, `video/*` |
+| 📦 | Archive / ZIP | `.zip`, `.tar`, `.gz`, `.7z`, `application/zip` |
+| 📝 | Script / Code | `.pas`, `.js`, `.rs`, `.py`, `.sh` |
+| 🗺️ | Map | `.vtt` (VTT media pack) |
+| 📄 | Unknown / Generic | (fallback) |
+
+The mapping is a simple function `fn vfs_file_icon(extension: Option<&str>, content_type: Option<&str>) -> char` returning a single Unicode character. The Finder renders these as large icons; `DIR` prefixes each filename with the icon character.
+
+### Upload & Download Architecture
+
+See Feature 39 (VFS Upload & ZIP) for multi-file upload, ZIP download/extraction, drag-and-drop, and progress indicators.
 
 ## Findings
 

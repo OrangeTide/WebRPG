@@ -8,13 +8,13 @@ The terminal is a standalone window panel (separate from game chat) with a text 
 
 | Command | Syntax | Description |
 |---------|--------|-------------|
+| `ATTRIB` / `CHMOD` | `ATTRIB [+\|-attr ...] filespec` | Display or change file permissions (GM-only to modify) |
 | `CD` / `CHDIR` | `CD [d:] [path]` | Change or display working directory |
 | `CLS` | `CLS` | Clear terminal output |
 | `CONCAT` | `CONCAT source1 source2 ... dest` | Concatenate files |
-| `COPY` | `COPY [/V] source dest` | Copy files between drives/paths |
+| `COPY` | `COPY source dest` | Copy files between drives/paths |
 | `DEL` / `ERASE` | `DEL [/P] filespec` | Delete files; /P prompts per file |
 | `DIR` | `DIR [/W] [/P] [filespec]` | List directory; /W wide, /P paged |
-| `DOWNLOAD` | `DOWNLOAD filespec` | Trigger browser download of a file |
 | `ECHO` | `ECHO [text]` | Output text to terminal |
 | `HELP` | `HELP [command]` | Show help for a command or list all |
 | `MD` / `MKDIR` | `MKDIR [d:] path` | Create directory |
@@ -23,10 +23,46 @@ The terminal is a standalone window panel (separate from game chat) with a text 
 | `REN` / `RENAME` | `REN filespec newname` | Rename files; supports wildcards |
 | `SET` | `SET [name[=value]]` | Display or set environment variables |
 | `TYPE` | `TYPE [/P] filespec` | Display file contents; /P paged |
-| `UPLOAD` | `UPLOAD [dest]` | Open browser file picker to upload |
+| `UNZIP` | `UNZIP archive.zip [dest]` | Extract ZIP into directory |
 | `VER` | `VER` | Show version info |
 | `VOL` | `VOL [d:]` | Show drive label, quota used/limit |
 | `XDIR` | `XDIR [filespec]` | Recursive directory listing |
+
+#### FTP-style File Transfer Commands
+
+These commands use FTP syntax for transferring files between the VFS and the user's local machine (browser).
+
+| Command | Syntax | Description |
+|---------|--------|-------------|
+| `GET` | `GET filespec` | Download file to browser; if filespec is a directory, downloads as ZIP |
+| `PUT` | `PUT [dest]` | Open browser file picker to upload file(s) to dest (default: cwd) |
+
+#### ATTRIB / CHMOD
+
+`ATTRIB` and `CHMOD` are aliases for the same command. Without attribute arguments, it displays the current permissions. With `+` or `-` arguments, it sets or clears permission bits (GM-only).
+
+Attribute flags use the format `{scope}{+|-}{bit}`:
+- **Scopes**: `U` (user/owner), `G` (group, reserved), `O` (other)
+- **Bits**: `R` (read), `W` (write), `X` (execute/list)
+- All flags are case-insensitive
+
+Not recursive — when used on a directory, it changes only that directory's permissions. A `/R` flag for recursive operation may be added in the future.
+
+Examples:
+```
+A:/> attrib C:/maps/dungeon.png
+rw-rw-rw-  45,312  2026-03-14 16:00  image/png  C:/maps/dungeon.png
+
+A:/> attrib o-w C:/maps/dungeon.png
+rw-rw-r--  C:/maps/dungeon.png
+
+A:/> chmod u+x o-r o-w C:/scripts/run.txt
+rwxrw----  C:/scripts/run.txt
+```
+
+### Case Sensitivity
+
+All filenames in COMMAND.COM are **case-preserving but case-insensitive**, matching modern Windows behavior. Commands, paths, and attribute flags are all case-insensitive. File names retain the casing they were created with for display purposes.
 
 ### Architecture
 
@@ -42,6 +78,8 @@ The command parser, working directory, environment variables, and output formatt
 - Command history (up/down arrow keys)
 - Output scrollback buffer
 - Pairs with Pascal compiler (Feature 31) for compile-and-run workflows
+- **Drag-and-drop upload**: Drop files or folders onto the terminal to upload to the current working directory. Folder structure is preserved. Uses shared drag-and-drop handler from Feature 37.
+- **Gas gauge progress bar**: Shared progress bar component from Feature 37, rendered inline in terminal output for uploads, downloads, and ZIP operations.
 
 ### Example Session
 
@@ -53,8 +91,8 @@ A:/> vol C:
 A:/> dir C:/maps
  Directory of C:/maps
 
-dungeon.png        45,312  2026-03-14 16:00
-forest.jpg        122,880  2026-03-14 16:05
+🖼️ dungeon.png        45,312  2026-03-14 16:00
+🖼️ forest.jpg        122,880  2026-03-14 16:05
         2 file(s)    168,192 bytes
 
 A:/> copy C:/maps/dungeon.png U:/my-maps/
@@ -64,9 +102,18 @@ A:/> cd U:/my-maps
 U:/my-maps> type readme.txt
 Welcome to my maps collection.
 
-U:/my-maps> upload
+U:/my-maps> put
 [browser file picker opens]
 Uploaded castle.png (89,400 bytes) to U:/my-maps/castle.png
+
+U:/my-maps> get C:/maps/
+Downloading C:/maps/ as maps.zip...
+[============████████████        ] 67%
+Downloaded maps.zip (168,192 bytes)
+
+U:/my-maps> unzip C:/backup.zip C:/restored/
+Extracting backup.zip to C:/restored/...
+        8 file(s) extracted.
 ```
 
 ## Dependencies

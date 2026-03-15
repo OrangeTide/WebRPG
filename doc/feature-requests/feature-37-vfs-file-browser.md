@@ -12,6 +12,22 @@ The browser uses **stacked horizontal shelf panels** that drill down vertically:
 - Panels stack vertically, each representing one level deeper in the directory hierarchy.
 - Selecting a folder in any panel opens its contents in the panel below, clearing any deeper panels.
 
+### Toolbar
+
+Below the title bar, a toolbar row with:
+- **Back button (←)** — navigate to the previously viewed directory (browser-style history)
+- **Up button (↑ directory)** — navigate to the parent directory of the current location
+- **New Folder button (📁+)** — create a new folder in the current directory (prompts for name)
+- **Upload button (↑ file)** — open multi-file browser dialog to upload to the current directory
+
+### Location Bar
+
+Below the toolbar, an editable text field showing the full path of the current directory (e.g., `C:/maps/dungeon/`). Users can:
+- Read the current path at a glance
+- Select and copy the path for pasting into COMMAND.COM or chat
+- Type or paste a path directly and press Enter to navigate there
+- The location bar updates as the user navigates via panels
+
 ### Visual Styling
 
 - NeXTSTEP gray gradient title bar with "File Viewer" label
@@ -20,17 +36,42 @@ The browser uses **stacked horizontal shelf panels** that drill down vertically:
 - Grid layout within each panel with consistent spacing
 - Horizontal scrollbar on each panel if contents overflow
 - Consistent with the existing NeXTSTEP-style dock (already in the project)
+- Toolbar buttons styled as NeXTSTEP raised buttons with icon glyphs
+- Location bar styled as an inset text field matching NeXTSTEP input fields
 
 ### Planned Features
 
 - Large icon grid view with labels (primary view, matching NeXT style)
 - Drill-down navigation via stacked panels
 - Status line showing drive quota (used/total/free)
-- Drag-and-drop file upload from desktop into any panel
 - Context menu (right-click) for copy, move, rename, delete
 - Multi-select with shift/ctrl click
-- Double-click to preview text files and images
-- Icon differentiation by file type (folder, text, image, binary)
+- Double-click to preview text files and images (see ZIP behavior below for `.zip` files)
+- Unicode icon differentiation by file type using the shared icon mapping from Feature 34 (folder, text, image, audio, video, archive, script, map, generic)
+
+### Upload & Download
+
+- **Upload**: Via toolbar button (see above) or drag-and-drop (see Shared UI Components)
+- **Folder upload**: Toolbar menu option opens folder picker (`webkitdirectory`). Preserves folder structure under current directory.
+- **Download**: Right-click context menu "Download" on a file triggers a browser save. On a folder, triggers ZIP download.
+
+### Shared UI Components
+
+This feature defines reusable UI components that COMMAND.COM (Feature 36) also uses:
+
+- **Gas gauge progress bar**: OpenStep-style progress indicator matching the NeXTSTEP visual theme. Reference: https://guidebookgallery.org/pics/gui/installation/copying/openstep42.png. In the Finder, shown in the status line. In COMMAND.COM, rendered inline in terminal output. Used for uploads, downloads, and ZIP operations.
+- **Drag-and-drop handler**: Shared logic for accepting file/folder drops from the desktop. Uses `dragenter`/`dragover`/`drop` events with `DataTransfer.items` and `webkitGetAsEntry()` for folder tree traversal. In the Finder, the drop target panel determines the destination directory. In COMMAND.COM, the drop target is the working directory.
+- **File count confirmation dialog**: When an operation involves more than 25 files, prompts the user to confirm before proceeding (see Feature 39 limits).
+
+### ZIP File Handling
+
+Clicking (or double-clicking) a `.zip` file presents a dialog with four options:
+- **Extract Here** — extract contents into the current directory
+- **Extract to Destination** — prompts for a destination path, then extracts there
+- **Browse ZIP** — opens the ZIP as a read-only virtual directory in a new File Viewer panel stack (browse contents without extracting)
+- **Cancel** — dismiss the dialog
+
+Right-click on a `.zip` also offers these options in the context menu.
 
 ## Dependencies
 
