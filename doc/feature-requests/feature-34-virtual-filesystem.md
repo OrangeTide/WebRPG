@@ -5,7 +5,7 @@ Add a virtual file system with global shared storage and private per-user storag
 ### Drive Letters
 
 - **A:, B:** — Temporary scratch drives (10 MB each). Per-tab, stored client-side in browser IndexedDB. Contents disappear when the tab closes. Useful for intermediate computation, clipboard-style scratch space, etc.
-- **C:** — Shared read/write drive for the game session (100 MB). All players and the GM can read and write. Persists for the lifetime of the game. When a game is deleted, the C: contents are archived and held for 30 days, accessible by a server administrator for recovery.
+- **C:** — Shared read/write drive for the game session (100 MB). All players and the GM can read and write. Persists for the lifetime of the game. Deleted when the game is deleted.
 - **U:** — Private per-user storage (10 MB for non-GM users, 20 MB for GMs). Tied to the user's account, not a specific session. Accessible from any game session and (in the future) from an out-of-game utility page.
 - **D: through T:** — Reserved for future use (e.g., GM-only drives, read-only asset libraries).
 
@@ -48,7 +48,7 @@ See Feature 36 (VFS Terminal Shell) and Feature 37 (VFS File Browser) for UI acc
 - **A:, B: scratch drives** — stored entirely client-side in browser IndexedDB. Scoped per-tab using a random session key. No server involvement. Quota enforced client-side.
 - **C:, U: persistent drives** — metadata in `vfs_files` table, with small files inline and large files in content-addressable storage.
 - **Inline threshold** — files ≤ 8 KB stored as BLOBs in `vfs_files.inline_data`. Larger files stored via CAS with `media_hash` reference. This threshold may need tuning with a benchmark in the future.
-- **Archive** — when a game is deleted, C: drive contents are copied to `vfs_archive` with a 30-day expiry. A server admin can recover them.
+- **Deletion** — when a game is deleted, C: drive files are deleted. Admins should use standard database backups for recovery if needed.
 
 ### Database Schema
 
@@ -124,10 +124,8 @@ Note: The actual migration still includes `connection_id` and scratch drive supp
    - ~~fnmatch pattern matching~~ ✓
 4. ~~Scratch drive server-side support~~ → **Replaced**: scratch drives are now client-side (IndexedDB)
 5. Remove `connection_id` column and scratch drive DB support (cleanup migration)
-6. Archive logic: on game deletion, copy C: files to `vfs_archive` with 30-day expiry
-7. Cleanup job: periodically purge expired `vfs_archive` rows
-8. Leptos server functions for C: and U: drives (single-file CRUD)
-9. Client-side scratch drive implementation (IndexedDB, `#[cfg(feature = "hydrate")]`)
+6. Leptos server functions for C: and U: drives (single-file CRUD)
+7. Client-side scratch drive implementation (IndexedDB, `#[cfg(feature = "hydrate")]`)
 
 ### Protocol Design
 

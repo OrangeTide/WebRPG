@@ -11,22 +11,16 @@ The terminal is a standalone window panel (separate from game chat) with a text 
 | `ATTRIB` / `CHMOD` | `ATTRIB [+\|-attr ...] filespec` | Display or change file permissions (GM-only to modify) |
 | `CD` / `CHDIR` | `CD [d:] [path]` | Change or display working directory |
 | `CLS` | `CLS` | Clear terminal output |
-| `CONCAT` | `CONCAT source1 source2 ... dest` | Concatenate files |
 | `COPY` | `COPY source dest` | Copy files between drives/paths |
-| `DEL` / `ERASE` | `DEL [/P] filespec` | Delete files; /P prompts per file |
-| `DIR` | `DIR [/W] [/P] [filespec]` | List directory; /W wide, /P paged |
-| `ECHO` | `ECHO [text]` | Output text to terminal |
+| `DEL` / `ERASE` | `DEL [-p] filespec` | Delete files; -p prompts per file |
+| `DIR` | `DIR [-w] [-p] [filespec]` | List directory; -w wide, -p paged |
 | `HELP` | `HELP [command]` | Show help for a command or list all |
 | `MD` / `MKDIR` | `MKDIR [d:] path` | Create directory |
-| `MOVE` | `MOVE source [dest]` | Move files within same drive |
 | `RD` / `RMDIR` | `RMDIR path` | Remove empty directory |
-| `REN` / `RENAME` | `REN filespec newname` | Rename files; supports wildcards |
-| `SET` | `SET [name[=value]]` | Display or set environment variables |
-| `TYPE` | `TYPE [/P] filespec` | Display file contents; /P paged |
-| `UNZIP` | `UNZIP archive.zip [dest]` | Extract ZIP into directory |
+| `TYPE` / `CAT` | `TYPE filespec` | Display file contents |
 | `VER` | `VER` | Show version info |
-| `VOL` | `VOL [d:]` | Show drive label, quota used/limit |
-| `XDIR` | `XDIR [filespec]` | Recursive directory listing |
+
+Additional commands deferred to Feature 42: CONCAT, ECHO, MORE, MOVE, REN/RENAME, SET, UNZIP, VOL, XDIR.
 
 #### FTP-style File Transfer Commands
 
@@ -46,7 +40,7 @@ Attribute flags use the format `{scope}{+|-}{bit}`:
 - **Bits**: `R` (read), `W` (write), `X` (execute/list)
 - All flags are case-insensitive
 
-Not recursive — when used on a directory, it changes only that directory's permissions. A `/R` flag for recursive operation may be added in the future.
+Not recursive — when used on a directory, it changes only that directory's permissions. A `-r` flag for recursive operation may be added in the future.
 
 Examples:
 ```
@@ -59,6 +53,17 @@ rw-rw-r--  C:/maps/dungeon.png
 A:/> chmod u+x o-r o-w C:/scripts/run.txt
 rwxrw----  C:/scripts/run.txt
 ```
+
+### Command Switches
+
+Switches use `-` (hyphen) instead of the DOS `/` convention, since `/` is the path separator. Use `--` to stop switch parsing (everything after `--` is treated as arguments, not switches). This follows Unix convention.
+
+Examples:
+- `dir -w C:/maps` — wide directory listing
+- `del -p C:/temp/*` — delete with per-file prompt
+- `del -- -weird-filename.txt` — delete a file whose name starts with `-`
+
+Note: ATTRIB/CHMOD attribute flags (`u+r`, `o-w`, etc.) are not command switches — they are positional arguments and are not affected by `--`.
 
 ### Case Sensitivity
 
@@ -84,10 +89,6 @@ The command parser, working directory, environment variables, and output formatt
 ### Example Session
 
 ```
-A:/> vol C:
- Volume in drive C: is GAME-SESSION
- 100 MB total, 45 MB used, 55 MB free
-
 A:/> dir C:/maps
  Directory of C:/maps
 
@@ -111,9 +112,11 @@ Downloading C:/maps/ as maps.zip...
 [============████████████        ] 67%
 Downloaded maps.zip (168,192 bytes)
 
-U:/my-maps> unzip C:/backup.zip C:/restored/
-Extracting backup.zip to C:/restored/...
-        8 file(s) extracted.
+U:/my-maps> help dir
+DIR [-w] [-p] [filespec]
+  List directory contents.
+  -w  Wide format
+  -p  Paged output
 ```
 
 ## Dependencies

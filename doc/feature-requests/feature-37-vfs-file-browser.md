@@ -4,13 +4,12 @@ A graphical file browser window for the Virtual File System (Feature 34), styled
 
 ### Visual Design (NeXTSTEP File Viewer style)
 
-The browser uses **stacked horizontal shelf panels** that drill down vertically:
+Single-panel view showing one directory at a time as an icon grid. Navigation via double-click (enter folder), toolbar buttons (back, up), or the location bar.
 
-- **Top shelf** — displays available drives as large icons (A:, B:, C:, U:) with a status line showing total/used/free space for the selected drive.
-- **Second panel** — shows the contents of the selected drive as a grid of icons with labels below each.
-- **Third panel** — shows the contents of the selected folder from the panel above.
-- Panels stack vertically, each representing one level deeper in the directory hierarchy.
-- Selecting a folder in any panel opens its contents in the panel below, clearing any deeper panels.
+- At the root level, shows available drives as large icons (A:, B:, C:, U:) with a status line showing total/used/free space for the selected drive.
+- Inside a drive/folder, shows contents as a grid of icons with labels below each.
+- Double-clicking a folder navigates into it, replacing the current view.
+- Stacked multi-panel drill-down navigation is a future enhancement.
 
 ### Toolbar
 
@@ -42,7 +41,7 @@ Below the toolbar, an editable text field showing the full path of the current d
 ### Planned Features
 
 - Large icon grid view with labels (primary view, matching NeXT style)
-- Drill-down navigation via stacked panels
+- Single-panel navigation with back/up buttons and location bar
 - Status line showing drive quota (used/total/free)
 - Context menu (right-click) for copy, move, rename, delete
 - Multi-select with shift/ctrl click
@@ -65,10 +64,9 @@ This feature defines reusable UI components that COMMAND.COM (Feature 36) also u
 
 ### ZIP File Handling
 
-Clicking (or double-clicking) a `.zip` file presents a dialog with four options:
+Clicking (or double-clicking) a `.zip` file presents a dialog with three options:
 - **Extract Here** — extract contents into the current directory
 - **Extract to Destination** — prompts for a destination path, then extracts there
-- **Browse ZIP** — opens the ZIP as a read-only virtual directory in a new File Viewer panel stack (browse contents without extracting)
 - **Cancel** — dismiss the dialog
 
 Right-click on a `.zip` also offers these options in the context menu.
@@ -86,5 +84,5 @@ Right-click on a `.zip` also offers these options in the context menu.
 ## Findings
 
 - Reference screenshot: https://eshop.macsales.com/blog/wp-content/uploads/2025/02/NeXT_screenshot.jpg
-- The NeXT File Viewer uses vertically stacked panels (not column browser), each panel showing one directory level as an icon grid
+- The NeXT File Viewer uses vertically stacked panels (not column browser), each panel showing one directory level as an icon grid — deferred to a future enhancement; v1 uses single-panel navigation for simplicity
 - The project already has a NeXTSTEP-style dock, so the visual language is established
