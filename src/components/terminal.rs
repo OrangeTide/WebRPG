@@ -4,6 +4,76 @@ use leptos::prelude::*;
 use crate::vfs;
 use crate::vfs::{Drive, VfsPath};
 
+/// Terminal color theme.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+enum TermTheme {
+    GrayOnBlack,
+    GreenOnBlack,
+    AmberOnBlack,
+    WhiteOnBlue,
+    HotDogStand,
+}
+
+impl TermTheme {
+    fn label(self) -> &'static str {
+        match self {
+            Self::GrayOnBlack => "Gray on Black",
+            Self::GreenOnBlack => "Green on Black",
+            Self::AmberOnBlack => "Amber on Black",
+            Self::WhiteOnBlue => "White on Blue",
+            Self::HotDogStand => "Hot Dog Stand",
+        }
+    }
+
+    fn css_vars(self) -> (&'static str, &'static str, &'static str) {
+        // Returns (fg, bg, caret) colors
+        match self {
+            Self::GrayOnBlack => ("#aaaaaa", "#0c0c0c", "#aaaaaa"),
+            Self::GreenOnBlack => ("#00aa00", "#0c0c0c", "#00aa00"),
+            Self::AmberOnBlack => ("#aa5500", "#0c0c0c", "#aa5500"),
+            Self::WhiteOnBlue => ("#56ffff", "#0000aa", "#56ffff"),
+            Self::HotDogStand => {
+                // Randomly pick one of two combos; resolved at render time
+                // We'll handle this specially in the component
+                ("#000000", "#ffff00", "#000000")
+            }
+        }
+    }
+
+    fn all() -> &'static [Self] {
+        &[
+            Self::GrayOnBlack,
+            Self::GreenOnBlack,
+            Self::AmberOnBlack,
+            Self::WhiteOnBlue,
+            Self::HotDogStand,
+        ]
+    }
+}
+
+#[cfg(feature = "hydrate")]
+const TERM_THEME_KEY: &str = "webrpg_term_theme";
+
+#[cfg(feature = "hydrate")]
+fn load_term_theme() -> TermTheme {
+    web_sys::window()
+        .and_then(|w| w.local_storage().ok()?)
+        .and_then(|s| s.get_item(TERM_THEME_KEY).ok()?)
+        .and_then(|json| serde_json::from_str(&json).ok())
+        .unwrap_or(TermTheme::GrayOnBlack)
+}
+
+#[cfg(feature = "hydrate")]
+fn save_term_theme(theme: TermTheme) {
+    if let Some(window) = web_sys::window() {
+        if let Ok(Some(storage)) = window.local_storage() {
+            if let Ok(json) = serde_json::to_string(&theme) {
+                let _ = storage.set_item(TERM_THEME_KEY, &json);
+            }
+        }
+    }
+}
+
 /// A single line of terminal output.
 #[derive(Debug, Clone)]
 struct TermLine {
@@ -1458,6 +1528,37 @@ pub fn TerminalPanel() -> impl IntoView {
     let output_ref = NodeRef::<leptos::html::Div>::new();
     let input_ref = NodeRef::<leptos::html::Input>::new();
 
+    // Color theme — default to gray-on-black (matches SSR), then load saved preference post-hydration
+    let theme = RwSignal::new(TermTheme::GrayOnBlack);
+    // Hot Dog Stand random variant: 0 = black-on-yellow, 1 = white-on-red
+    let hotdog_variant = RwSignal::new(0u8);
+    #[cfg(feature = "hydrate")]
+    Effect::new(move |prev: Option<()>| {
+        if prev.is_none() {
+            // First run (post-hydration): load saved theme so the signal change updates the DOM
+            let saved = load_term_theme();
+            if saved != TermTheme::GrayOnBlack {
+                theme.set(saved);
+            }
+            hotdog_variant.set(if js_sys::Math::random() < 0.5 { 0 } else { 1 });
+        }
+    });
+
+    let theme_style = move || {
+        let t = theme.get();
+        if t == TermTheme::HotDogStand {
+            let variant = hotdog_variant.get();
+            if variant == 0 {
+                "color:#000000;background:#ffff00;caret-color:#000000;".to_string()
+            } else {
+                "color:#ffffff;background:#aa0000;caret-color:#ffffff;".to_string()
+            }
+        } else {
+            let (fg, bg, caret) = t.css_vars();
+            format!("color:{fg};background:{bg};caret-color:{caret};")
+        }
+    };
+
     #[cfg(feature = "hydrate")]
     let scratch_drives =
         expect_context::<RwSignal<crate::scratch_drive::ScratchDrives, LocalStorage>>();
@@ -1704,12 +1805,37 @@ pub fn TerminalPanel() -> impl IntoView {
         }
     };
 
+    let show_theme_popup = RwSignal::new(false);
+    let theme_popup_pos = RwSignal::new(None::<(i32, i32)>);
+
+    let select_theme = move |new_theme: TermTheme| {
+        theme.set(new_theme);
+        #[cfg(feature = "hydrate")]
+        save_term_theme(new_theme);
+        if new_theme == TermTheme::HotDogStand {
+            #[cfg(feature = "hydrate")]
+            hotdog_variant.set(if js_sys::Math::random() < 0.5 { 0 } else { 1 });
+        }
+        show_theme_popup.set(false);
+    };
+
     view! {
-        <div class="terminal-panel" on:click=move |_| {
+        <div class="terminal-panel" style=move || theme_style() on:click=move |_| {
             if let Some(el) = input_ref.get() {
                 let _ = el.focus();
             }
         }>
+            <div class="terminal-toolbar">
+                <button
+                    class="terminal-theme-btn"
+                    title="Color Theme"
+                    on:click=move |ev: leptos::ev::MouseEvent| {
+                        ev.stop_propagation();
+                        theme_popup_pos.set(Some((ev.client_x(), ev.client_y() + 4)));
+                        show_theme_popup.update(|v| *v = !*v);
+                    }
+                >"\u{1f3a8}"</button>
+            </div>
             <div class="terminal-output" node_ref=output_ref>
                 <For
                     each=move || {
@@ -1736,5 +1862,28 @@ pub fn TerminalPanel() -> impl IntoView {
                 />
             </div>
         </div>
+
+        // Theme popup — rendered outside the terminal panel to avoid overflow clipping
+        {move || show_theme_popup.get().then(|| {
+            let current = theme.get();
+            let (px, py) = theme_popup_pos.get().unwrap_or((0, 0));
+            view! {
+                <div class="terminal-theme-backdrop" on:click=move |_| show_theme_popup.set(false) on:contextmenu=move |ev: leptos::ev::MouseEvent| { ev.prevent_default(); show_theme_popup.set(false); }>
+                    <div class="terminal-theme-popup" style=format!("left:{}px;top:{}px;", px, py) on:click:stopPropagation=|_: leptos::ev::MouseEvent| {}>
+                        {TermTheme::all().iter().map(|t| {
+                            let t = *t;
+                            let (fg, bg, _) = t.css_vars();
+                            view! {
+                                <label class="terminal-theme-option" on:click=move |_| select_theme(t)>
+                                    <span class="terminal-theme-radio">{if t == current { "\u{25c9}" } else { "\u{25cb}" }}</span>
+                                    <span class="terminal-theme-swatch" style=format!("color:{fg};background:{bg};")>"Aa"</span>
+                                    <span>{t.label()}</span>
+                                </label>
+                            }
+                        }).collect_view()}
+                    </div>
+                </div>
+            }
+        })}
     }
 }

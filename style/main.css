@@ -1851,7 +1851,78 @@ h1, h2, h3, h4 {
     background: #0c0c0c;
     font-family: "Courier New", "Consolas", monospace;
     font-size: 0.8rem;
-    color: #c0c0c0;
+    color: #aaaaaa;
+}
+
+.terminal-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 2px 4px;
+    background: var(--color-bg-input);
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+
+.terminal-theme-btn {
+    font-size: 0.85rem;
+    padding: 1px 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.terminal-theme-btn:hover {
+    background: var(--color-btn-bg);
+    border-radius: 3px;
+}
+
+.terminal-theme-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10002;
+}
+
+.terminal-theme-popup {
+    position: fixed;
+    background: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    padding: 4px 0;
+    z-index: 10003;
+    min-width: 160px;
+}
+
+.terminal-theme-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--color-text);
+    white-space: nowrap;
+}
+
+.terminal-theme-option:hover {
+    background: var(--color-btn-bg);
+}
+
+.terminal-theme-radio {
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.terminal-theme-swatch {
+    display: inline-block;
+    width: 24px;
+    text-align: center;
+    font-family: "Courier New", monospace;
+    font-size: 0.75rem;
+    font-weight: bold;
+    border-radius: 2px;
+    line-height: 1.4;
 }
 
 .terminal-output {
@@ -1876,7 +1947,7 @@ h1, h2, h3, h4 {
 }
 
 .terminal-prompt {
-    color: #c0c0c0;
+    color: inherit;
     white-space: nowrap;
     margin-right: 0;
     font-family: inherit;
@@ -1887,12 +1958,12 @@ h1, h2, h3, h4 {
     background: transparent;
     border: none;
     outline: none;
-    color: #c0c0c0;
+    color: inherit;
     font-family: inherit;
     font-size: inherit;
     padding: 0.2rem 0;
     min-width: 0;
-    caret-color: #c0c0c0;
+    caret-color: inherit;
 }
 
 /* === File Browser (File Viewer) === */
