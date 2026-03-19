@@ -291,7 +291,8 @@ graphical file browser (File Viewer).
 **File Viewer (Finder):**
 
 The File Viewer is a graphical file browser (`src/components/file_browser.rs`)
-styled after the NeXTSTEP File Viewer. It provides:
+inspired by the NeXTSTEP File Viewer. It uses icon grids and inset panels but
+toolbar buttons have not yet been re-themed to full NeXTSTEP style. It provides:
 
 - Drive list root view with A:/B:/C:/U: icons
 - Icon grid directory view with file type icons and labels

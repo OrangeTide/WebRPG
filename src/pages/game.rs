@@ -16,6 +16,82 @@ use crate::components::window_manager::{
 use crate::models::{ChatMessageInfo, InitiativeEntryInfo, InventoryItemInfo, MapInfo, TokenInfo};
 use crate::ws::messages::{ClientMessage, GameStateSnapshot, ServerMessage};
 
+// ---------------------------------------------------------------------------
+// Loading state — centralised status messages with severity levels
+// ---------------------------------------------------------------------------
+
+/// Severity level for the loading modal, mapped to CSS classes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LoadingLevel {
+    /// Blue — default progress steps (Initializing, Authenticating).
+    Info,
+    /// Yellow — transient / in-flight actions (Connecting, Joining).
+    Warn,
+    /// Red — fatal errors that block the session.
+    Error,
+    /// Green — success (Connected). Shown briefly before the modal closes.
+    Success,
+}
+
+impl LoadingLevel {
+    /// CSS class suffix applied to the loading modal.
+    pub fn css_class(&self) -> &'static str {
+        match self {
+            LoadingLevel::Info => "loading-info",
+            LoadingLevel::Warn => "loading-warn",
+            LoadingLevel::Error => "loading-error",
+            LoadingLevel::Success => "loading-success",
+        }
+    }
+}
+
+/// A loading-modal state: message + severity.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoadingState {
+    pub message: &'static str,
+    pub level: LoadingLevel,
+}
+
+// Pre-defined loading states (single source of truth for all messages).
+impl LoadingState {
+    pub const INITIALIZING: Self = Self {
+        message: "Initializing\u{2026}",
+        level: LoadingLevel::Info,
+    };
+    pub const AUTHENTICATING: Self = Self {
+        message: "Authenticating\u{2026}",
+        level: LoadingLevel::Info,
+    };
+    pub const CONNECTING: Self = Self {
+        message: "Connecting\u{2026}",
+        level: LoadingLevel::Warn,
+    };
+    pub const JOINING: Self = Self {
+        message: "Joining session\u{2026}",
+        level: LoadingLevel::Warn,
+    };
+    pub const CONNECTED: Self = Self {
+        message: "Connected",
+        level: LoadingLevel::Success,
+    };
+    pub const AUTH_FAILED: Self = Self {
+        message: "Authentication failed",
+        level: LoadingLevel::Error,
+    };
+    pub const CONNECT_FAILED: Self = Self {
+        message: "Connection failed",
+        level: LoadingLevel::Error,
+    };
+    pub const CONNECTION_LOST: Self = Self {
+        message: "Connection lost",
+        level: LoadingLevel::Error,
+    };
+    pub const CONNECTION_ERROR: Self = Self {
+        message: "Connection error",
+        level: LoadingLevel::Error,
+    };
+}
+
 /// Shared game state provided via Leptos context to all child components.
 #[derive(Clone)]
 pub struct GameContext {
@@ -34,10 +110,8 @@ pub struct GameContext {
     pub character_revision: RwSignal<u32>,
     /// Whether initiative rolls from character sheets are locked.
     pub initiative_locked: RwSignal<bool>,
-    /// Loading status message shown in the startup modal.
-    pub loading_status: RwSignal<Option<String>>,
-    /// Error message shown in the startup modal (replaces loading).
-    pub loading_error: RwSignal<Option<String>>,
+    /// Loading modal state. `Some(…)` shows the modal; `None` hides it.
+    pub loading: RwSignal<Option<LoadingState>>,
     /// Decremented for each locally-created message to avoid ID collisions with DB rows.
     next_local_id: std::sync::Arc<std::sync::atomic::AtomicI32>,
 }
@@ -68,8 +142,7 @@ impl GameContext {
         self.initiative_locked.set(snapshot.initiative_locked);
         self.connected.set(true);
         // Clear loading modal — game is ready
-        self.loading_status.set(None);
-        self.loading_error.set(None);
+        self.loading.set(None);
     }
 
     fn apply_server_message(&self, msg: ServerMessage) {
@@ -221,8 +294,7 @@ pub fn GamePage() -> impl IntoView {
         send: StoredValue::new_local(None),
         character_revision: RwSignal::new(0),
         initiative_locked: RwSignal::new(false),
-        loading_status: RwSignal::new(Some("Initializing...".to_string())),
-        loading_error: RwSignal::new(None),
+        loading: RwSignal::new(Some(LoadingState::INITIALIZING)),
         next_local_id: std::sync::Arc::new(std::sync::atomic::AtomicI32::new(-1)),
     };
 
@@ -264,21 +336,18 @@ pub fn GamePage() -> impl IntoView {
             let ctx = ctx_ws.clone();
 
             leptos::task::spawn_local(async move {
-                ctx.loading_status
-                    .set(Some("Authenticating...".to_string()));
+                ctx.loading.set(Some(LoadingState::AUTHENTICATING));
 
                 let token = match crate::server::api::get_ws_token().await {
                     Ok(t) => t,
                     Err(e) => {
                         log::error!("Failed to get WS token: {e}");
-                        ctx.loading_error
-                            .set(Some(format!("Authentication failed: {e}")));
-                        ctx.loading_status.set(None);
+                        ctx.loading.set(Some(LoadingState::AUTH_FAILED));
                         return;
                     }
                 };
 
-                ctx.loading_status.set(Some("Connecting...".to_string()));
+                ctx.loading.set(Some(LoadingState::CONNECTING));
 
                 let window = web_sys::window().expect("no window");
                 let location = window.location();
@@ -291,9 +360,7 @@ pub fn GamePage() -> impl IntoView {
                     Ok(ws) => ws,
                     Err(e) => {
                         log::error!("Failed to create WebSocket: {e:?}");
-                        ctx.loading_error
-                            .set(Some("Failed to connect to server.".to_string()));
-                        ctx.loading_status.set(None);
+                        ctx.loading.set(Some(LoadingState::CONNECT_FAILED));
                         return;
                     }
                 };
@@ -310,9 +377,7 @@ pub fn GamePage() -> impl IntoView {
                 // On open: send JoinSession
                 let ctx_open = ctx.clone();
                 let on_open = Closure::<dyn Fn()>::new(move || {
-                    ctx_open
-                        .loading_status
-                        .set(Some("Joining session...".to_string()));
+                    ctx_open.loading.set(Some(LoadingState::JOINING));
                     ctx_open.send_message(ClientMessage::JoinSession { session_id: sid });
                 });
                 ws.set_onopen(Some(on_open.as_ref().unchecked_ref()));
@@ -338,12 +403,9 @@ pub fn GamePage() -> impl IntoView {
                 let on_close = Closure::<dyn Fn()>::new(move || {
                     ctx_close.connected.set(false);
                     // Only show error if we never successfully connected
-                    // (loading_status is cleared on successful snapshot)
-                    if ctx_close.loading_status.get_untracked().is_some() {
-                        ctx_close
-                            .loading_error
-                            .set(Some("Connection lost before session loaded.".to_string()));
-                        ctx_close.loading_status.set(None);
+                    // (loading is cleared on successful snapshot)
+                    if ctx_close.loading.get_untracked().is_some() {
+                        ctx_close.loading.set(Some(LoadingState::CONNECTION_LOST));
                     }
                 });
                 ws.set_onclose(Some(on_close.as_ref().unchecked_ref()));
@@ -353,11 +415,8 @@ pub fn GamePage() -> impl IntoView {
                 let ctx_err = ctx.clone();
                 let on_error = Closure::<dyn Fn()>::new(move || {
                     log::error!("WebSocket error");
-                    if ctx_err.loading_status.get_untracked().is_some() {
-                        ctx_err
-                            .loading_error
-                            .set(Some("Connection error. Please try reloading.".to_string()));
-                        ctx_err.loading_status.set(None);
+                    if ctx_err.loading.get_untracked().is_some() {
+                        ctx_err.loading.set(Some(LoadingState::CONNECTION_ERROR));
                     }
                 });
                 ws.set_onerror(Some(on_error.as_ref().unchecked_ref()));
@@ -376,26 +435,24 @@ pub fn GamePage() -> impl IntoView {
 
     let session_name = ctx.session_name;
     let connected = ctx.connected;
-    let loading_status = ctx.loading_status;
-    let loading_error = ctx.loading_error;
+    let loading = ctx.loading;
 
     // Delay showing the loading modal so fast reconnects (e.g. hot-reload) don't flash it
     let show_loading_modal = RwSignal::new(false);
     #[cfg(feature = "hydrate")]
     {
-        let loading_status_check = loading_status;
         set_timeout(
             move || {
-                if loading_status_check.get_untracked().is_some() {
+                if loading.get_untracked().is_some() {
                     show_loading_modal.set(true);
                 }
             },
             std::time::Duration::from_millis(1000),
         );
-        // Also show immediately if loading_status changes after the delay fires
+        // Hide modal once loading clears
         Effect::new(move |_| {
-            let status = loading_status_check.get();
-            if status.is_none() {
+            let state = loading.get();
+            if state.is_none() {
                 show_loading_modal.set(false);
             }
         });
@@ -405,34 +462,37 @@ pub fn GamePage() -> impl IntoView {
         <div class="game-page">
             // Loading overlay — blocks interaction until session snapshot arrives
             {move || {
-                let status = loading_status.get();
-                let error = loading_error.get();
+                let state = loading.get();
                 let show_modal = show_loading_modal.get();
-                if error.is_some() || (status.is_some() && show_modal) {
-                    Some(view! {
-                        <div class="loading-overlay">
-                            <div class="loading-modal">
-                                {if let Some(err) = error {
-                                    view! {
-                                        <div class="loading-error">
-                                            <div class="loading-error-icon">"!"</div>
-                                            <p>{err}</p>
-                                            <a href="/sessions" class="btn-back-sessions">"Back to Sessions"</a>
-                                        </div>
-                                    }.into_any()
-                                } else {
-                                    view! {
-                                        <div class="loading-progress">
-                                            <div class="loading-spinner"></div>
-                                            <p>{status.unwrap_or_default()}</p>
-                                        </div>
-                                    }.into_any()
-                                }}
+                match state {
+                    Some(ref s) if s.level == LoadingLevel::Error || show_modal => {
+                        let css = format!("loading-modal {}", s.level.css_class());
+                        let is_error = s.level == LoadingLevel::Error;
+                        let msg = s.message.to_string();
+                        Some(view! {
+                            <div class="loading-overlay">
+                                <div class={css}>
+                                    {if is_error {
+                                        view! {
+                                            <div class="loading-error">
+                                                <div class="loading-error-icon">"!"</div>
+                                                <p>{msg}</p>
+                                                <a href="/sessions" class="btn-back-sessions">"Back to Sessions"</a>
+                                            </div>
+                                        }.into_any()
+                                    } else {
+                                        view! {
+                                            <div class="loading-progress">
+                                                <div class="loading-spinner"></div>
+                                                <p>{msg}</p>
+                                            </div>
+                                        }.into_any()
+                                    }}
+                                </div>
                             </div>
-                        </div>
-                    })
-                } else {
-                    None
+                        })
+                    }
+                    _ => None,
                 }
             }}
 
@@ -446,7 +506,7 @@ pub fn GamePage() -> impl IntoView {
                     }
                 }}</h1>
                 <div class="game-header-right">
-                    <span class="connection-status">
+                    <span class=move || if connected.get() { "connection-status connected" } else { "connection-status" }>
                         {move || if connected.get() { "Connected" } else { "Connecting..." }}
                     </span>
                 </div>

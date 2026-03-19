@@ -2,7 +2,7 @@
 
 The File Viewer is a graphical file browser for managing files on the Virtual File System. It provides a point-and-click alternative to [COMMAND.COM](help:command-com) for browsing drives, uploading and downloading files, and previewing content.
 
-The File Viewer's design is inspired by the NeXTSTEP File Viewer, with an icon grid layout, inset content panels, and raised toolbar buttons.
+The File Viewer's design is inspired by the NeXTSTEP File Viewer, with an icon grid layout and inset content panels. Toolbar buttons use emoji glyphs and have not yet been re-themed to match the full NeXTSTEP raised button aesthetic.
 
 ## Opening the File Viewer
 
