@@ -4,9 +4,11 @@ use leptos::reactive::owner::LocalStorage;
 use crate::components::charsheet::{CharacterEditorPanel, CharacterSelection};
 use crate::components::chat::ChatPanel;
 use crate::components::creatures::CreaturePanel;
+use crate::components::file_browser::FileBrowserPanel;
 use crate::components::initiative::InitiativeTracker;
 use crate::components::inventory::InventoryPanel;
 use crate::components::map::MapCanvas;
+use crate::components::terminal::TerminalPanel;
 use crate::components::window_manager::{
     GameWindow, WindowId, WindowManager, WindowManagerContext,
 };
@@ -183,6 +185,10 @@ impl GameContext {
             ServerMessage::Error { message } => {
                 log::warn!("Server error: {message}");
             }
+            ServerMessage::VfsChanged { .. } => {
+                // VFS change notifications will be handled by the file browser
+                // and terminal components once they are implemented.
+            }
         }
     }
 }
@@ -220,6 +226,23 @@ pub fn GamePage() -> impl IntoView {
     };
 
     provide_context(ctx.clone());
+
+    #[cfg(feature = "hydrate")]
+    {
+        let scratch_ctx: RwSignal<crate::scratch_drive::ScratchDrives, LocalStorage> =
+            RwSignal::new_local(crate::scratch_drive::ScratchDrives { a: None, b: None });
+        provide_context(scratch_ctx);
+        leptos::task::spawn_local(async move {
+            let random = (js_sys::Math::random() * 1_000_000.0) as u64;
+            let a = crate::scratch_drive::open_scratch_db(&format!("webrpg_scratch_A_{random}"))
+                .await
+                .ok();
+            let b = crate::scratch_drive::open_scratch_db(&format!("webrpg_scratch_B_{random}"))
+                .await
+                .ok();
+            scratch_ctx.set(crate::scratch_drive::ScratchDrives { a, b });
+        });
+    }
 
     // Fetch WS token and connect
     #[cfg(feature = "hydrate")]
@@ -444,6 +467,12 @@ pub fn GamePage() -> impl IntoView {
                 </GameWindow>
                 <GameWindow id=WindowId::Creatures>
                     <CreaturePanel />
+                </GameWindow>
+                <GameWindow id=WindowId::Terminal>
+                    <TerminalPanel />
+                </GameWindow>
+                <GameWindow id=WindowId::FileBrowser>
+                    <FileBrowserPanel />
                 </GameWindow>
                 <DynamicCharacterWindows />
             </WindowManager>

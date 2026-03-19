@@ -123,7 +123,7 @@ pub async fn upload_media(
             hash: &hash,
             content_type: &content_type,
             media_type,
-            size_bytes: bytes.len() as i32,
+            size_bytes: bytes.len() as i64,
             uploaded_by: user_id,
         };
 

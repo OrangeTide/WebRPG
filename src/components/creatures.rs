@@ -198,32 +198,33 @@ pub fn CreaturePanel() -> impl IntoView {
                         };
                         view! {
                             <div class="item-card creature-card-item">
-                                <div class="item-card-portrait">
-                                    {if let Some(url) = image.clone() {
-                                        view! { <img src=url alt="icon" /> }.into_any()
-                                    } else {
-                                        view! { <div class="item-card-icon">"&#x1f47e;"</div> }.into_any()
-                                    }}
-                                </div>
-                                <div
-                                    class="item-card-info"
+                                <div class="creature-card-top"
                                     on:click=move |_| set_editing.set(Some(cid))
                                 >
-                                    <strong>{name}</strong>
-                                    {(!stats_summary.is_empty()).then(|| view! {
-                                        <span class="item-card-stat">{stats_summary}</span>
-                                    })}
+                                    <div class="item-card-portrait">
+                                        {if let Some(url) = image.clone() {
+                                            view! { <img src=url alt="icon" /> }.into_any()
+                                        } else {
+                                            view! { <div class="item-card-icon">"&#x1f47e;"</div> }.into_any()
+                                        }}
+                                    </div>
+                                    <div class="item-card-info">
+                                        <strong>{name}</strong>
+                                        {(!stats_summary.is_empty()).then(|| view! {
+                                            <span class="item-card-stat">{stats_summary}</span>
+                                        })}
+                                    </div>
+                                    <button
+                                        class="btn-delete"
+                                        title="Delete creature"
+                                        on:click:stopPropagation=move |_: leptos::ev::MouseEvent| delete_creature(cid)
+                                    >"x"</button>
                                 </div>
                                 <button
                                     class="btn-roll-initiative"
                                     title="Roll Initiative"
                                     on:click=roll_init
                                 >"Roll Initiative"</button>
-                                <button
-                                    class="btn-delete"
-                                    title="Delete creature"
-                                    on:click=move |_| delete_creature(cid)
-                                >"x"</button>
                             </div>
                         }
                     }

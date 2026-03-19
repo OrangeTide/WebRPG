@@ -14,6 +14,7 @@ pub mod db;
 #[cfg(feature = "ssr")]
 pub mod schema;
 
+pub mod scratch_drive;
 pub mod vfs;
 
 #[cfg(feature = "hydrate")]

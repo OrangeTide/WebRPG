@@ -262,6 +262,60 @@ POST to `/api/media/upload` (JWT auth from cookie, 20 MB limit). Serve via
 GIF, WebP (images), WAV, MP3 (audio). Tags are stored in the `media_tags` table;
 the original filename is automatically added as a tag on upload.
 
+### Virtual File System
+
+The VFS provides a unified file system abstraction across multiple storage
+backends, exposed through both a command-line terminal (COMMAND.COM) and a
+graphical file browser (File Viewer).
+
+**Drive letters:**
+
+| Drive | Scope | Storage | Description |
+|-------|-------|---------|-------------|
+| A:, B: | Per-tab | IndexedDB (browser) | Scratch drives — ephemeral, client-side only |
+| C: | Per-session | SQLite (server) | Session-scoped shared storage |
+| U: | Per-user | SQLite (server) | User-scoped persistent storage |
+
+**Scratch drive limitations (A: and B:):**
+
+- Data is stored in the browser's IndexedDB and is not shared between tabs or
+  users. Each tab gets its own isolated scratch drives.
+- IndexedDB does not support native rename. Renaming a file reads the content,
+  writes it to the new path, and deletes the original. Renaming a directory
+  recursively moves all children.
+- Directory rename is limited to **64 levels of nesting**. Operations on deeper
+  directory trees will fail with an error. This limit prevents stack overflow in
+  the browser's WASM runtime.
+- Scratch drive data is lost when the tab is closed.
+
+**File Viewer (Finder):**
+
+The File Viewer is a graphical file browser (`src/components/file_browser.rs`)
+styled after the NeXTSTEP File Viewer. It provides:
+
+- Drive list root view with A:/B:/C:/U: icons
+- Icon grid directory view with file type icons and labels
+- Toolbar: back, forward, up, new folder, upload, rename, download, delete
+- Editable location bar with Enter-to-navigate
+- Multi-select with Ctrl+click (toggle) and Shift+click (range)
+- Right-click context menu (download, rename, delete)
+- Double-click file preview (text as monospace, images scaled to fit)
+- Status bar with item count, selection count, and drive quota
+
+**COMMAND.COM:**
+
+The terminal emulator (`src/components/terminal.rs`) provides a DOS-style
+command-line interface to the VFS. Commands: ATTRIB, CD, CLS, COPY, DEL, DIR,
+EXIT, GET, HELP, MKDIR, PUT, RMDIR, TYPE, VER. Bare drive letters (e.g. `C:`)
+switch drives. EXIT minimizes the terminal to the dock.
+
+**Help documentation:**
+
+Help pages for the online help system (Feature 38) are authored as Markdown
+files in the `help/` directory. Each file covers one topic with a slug-based
+filename (e.g. `file-viewer.md`, `command-com.md`). Cross-references use
+`[link text](help:topic-slug)` syntax.
+
 ## CI / CD
 
 ### Pull Requests

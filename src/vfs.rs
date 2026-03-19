@@ -8,16 +8,16 @@
 //! | Drive | Scope | Storage | Quota | Lifetime |
 //! |-------|-------|---------|-------|----------|
 //! | A:, B: | Per-tab | Browser IndexedDB | 10 MB each | Disappears when tab closes |
-//! | C: | Per-game session | Server DB + CAS | 100 MB | Persists with game; archived 30 days |
+//! | C: | Per-game session | Server DB + CAS | 100 MB | Persists with game |
 //! | U: | Per-user account | Server DB + CAS | 10/20 MB | Persists with account |
 //!
 //! D: through T: are reserved for future use.
 //!
-//! Scratch drives (A:, B:) are implemented client-side and do not use the
-//! server-side database operations in this module. The server-side
-//! `connection_id` support is deprecated and will be removed in a future
-//! migration. Path parsing, pattern matching, and permission logic compile
-//! to both server and WASM targets.
+//! Scratch drives (A:, B:) are implemented entirely client-side in browser
+//! IndexedDB and do not use the server-side database operations in this
+//! module. The server-side database only stores C: and U: drives.
+//! Path parsing, pattern matching, and permission logic compile to both
+//! server and WASM targets.
 //!
 //! ## Path Syntax
 //!
@@ -47,9 +47,8 @@
 //!
 //! ## Scope and Ownership
 //!
-//! Each drive type uses a different scope column in `vfs_files`:
+//! Each server-side drive type uses a different scope column in `vfs_files`:
 //!
-//! - **A:/B:**: `connection_id` (UUID per WebSocket connection)
 //! - **C:**: `session_id` (game session)
 //! - **U:**: `user_id` (user account)
 //!
@@ -59,16 +58,21 @@
 //!
 //! ## Permissions
 //!
-//! Files use Unix-style `rwx` permission bits. The owner is always the
-//! GM; all other users are "other". The group bits (0o070) are reserved
-//! but unused.
+//! Files use Unix-style `rwx` permission bits with three scopes:
+//!
+//! - **Owner (0o700)**: GM — always has full access regardless of bits.
+//! - **Group (0o070)**: Registered players in the session.
+//! - **Other (0o007)**: Anyone connected to the game.
+//!
+//! Only `r` and `w` are enforced server-side. The `x` bit is stored but
+//! not checked — COMMAND.COM and the Finder display it as a visual aesthetic.
+//! There is no `gid` column; group membership is derived from `session_players`.
 //!
 //! - New files get mode `0o666` (rw-rw-rw-) minus the umask.
 //! - New directories get mode `0o777` (rwxrwxrwx) minus the umask.
 //! - The GM always has full access regardless of permission bits.
-//! - `r` (read) controls [`vfs_read`].
+//! - `r` (read) controls [`vfs_read`] and [`vfs_list`].
 //! - `w` (write) controls [`vfs_write`] overwrites and [`vfs_delete`].
-//! - `x` (execute) on directories controls [`vfs_list`] traversal.
 //! - [`vfs_chmod`] is GM-only.
 //!
 //! ## Filename Rules
@@ -117,11 +121,22 @@ pub const INLINE_THRESHOLD: usize = 8 * 1024; // 8 KB
 
 // ===== Unix-style permissions =====
 
-/// Permission bits (Unix-style octal). Owner = GM, other = everyone else.
-/// The "group" bits (070) are unused but reserved.
+/// Permission bits (Unix-style octal).
+///
+/// Scopes:
+/// - **Owner (0o700)**: GM — always has full access regardless of bits.
+/// - **Group (0o070)**: Registered players in the session.
+/// - **Other (0o007)**: Anyone connected to the game.
+///
+/// Only `r` (read) and `w` (write/delete) are enforced server-side.
+/// The `x` (execute) bit is stored but not checked — COMMAND.COM and the
+/// Finder may display it as a visual aesthetic.
 pub const MODE_OWNER_R: i32 = 0o400;
 pub const MODE_OWNER_W: i32 = 0o200;
 pub const MODE_OWNER_X: i32 = 0o100;
+pub const MODE_GROUP_R: i32 = 0o040;
+pub const MODE_GROUP_W: i32 = 0o020;
+pub const MODE_GROUP_X: i32 = 0o010;
 pub const MODE_OTHER_R: i32 = 0o004;
 pub const MODE_OTHER_W: i32 = 0o002;
 pub const MODE_OTHER_X: i32 = 0o001;
@@ -140,13 +155,25 @@ pub fn apply_umask(default_mode: i32, umask: i32) -> i32 {
 
 /// Check if a permission is allowed for a given user.
 ///
-/// The GM (owner) is checked against the owner bits (0o700).
-/// All other users are checked against the "other" bits (0o007).
-/// The GM always has access regardless of permission bits — the owner
-/// bits are checked for consistency but never deny the GM.
-pub fn check_permission(mode: i32, is_gm: bool, perm: i32) -> bool {
+/// - **GM (owner)**: always has full access — never denied.
+/// - **Player (group)**: checked against group bits (0o070). A "player"
+///   is a registered member of the session (in `session_players`).
+/// - **Other**: checked against other bits (0o007). Anyone connected
+///   to the game who is not a registered player.
+///
+/// The `is_player` parameter indicates session membership. When `false`,
+/// only the "other" bits are checked. The `x` bit is never enforced
+/// server-side — only `r` and `w` matter.
+pub fn check_permission(mode: i32, is_gm: bool, is_player: bool, perm: i32) -> bool {
     if is_gm {
         return true; // GM always has full access
+    }
+    if is_player {
+        // Check group bits (shift perm left by 3 to align with group position)
+        let group_perm = perm << 3;
+        if (mode & group_perm) != 0 {
+            return true;
+        }
     }
     // Check "other" bits
     (mode & perm) != 0
@@ -161,10 +188,10 @@ pub enum Drive {
     U,
 }
 
-/// How a drive is scoped — determines which ID column is used.
+/// How a server-side drive is scoped — determines which ID column is used.
+/// Scratch drives (A:, B:) are client-side only and have no server scope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DriveScope {
-    Connection,
     Session,
     User,
 }
@@ -198,11 +225,29 @@ impl Drive {
         }
     }
 
-    pub fn scope(&self) -> DriveScope {
+    /// Returns `true` for scratch drives (A:, B:) which are client-side
+    /// only (IndexedDB). Returns `false` for server-backed drives (C:, U:).
+    pub fn is_scratch(&self) -> bool {
+        matches!(self, Drive::A | Drive::B)
+    }
+
+    /// Extract the session ID needed for server API calls on this drive.
+    /// Returns `Some(session_id)` for session-scoped drives (C:),
+    /// `None` for user-scoped (U:) or scratch drives (A:, B:).
+    pub fn session_id(&self, session_id: i32) -> Option<i32> {
+        match self.scope() {
+            Some(DriveScope::Session) => Some(session_id),
+            _ => None,
+        }
+    }
+
+    /// Returns the server-side scope for this drive, or `None` for
+    /// scratch drives (A:, B:) which are client-side only.
+    pub fn scope(&self) -> Option<DriveScope> {
         match self {
-            Drive::A | Drive::B => DriveScope::Connection,
-            Drive::C => DriveScope::Session,
-            Drive::U => DriveScope::User,
+            Drive::A | Drive::B => None,
+            Drive::C => Some(DriveScope::Session),
+            Drive::U => Some(DriveScope::User),
         }
     }
 
@@ -532,7 +577,7 @@ pub fn vfs_fnmatch(pattern: &str, name: &str) -> bool {
 pub struct VfsEntry {
     pub path: String,
     pub is_directory: bool,
-    pub size_bytes: i32,
+    pub size_bytes: i64,
     pub content_type: Option<String>,
     pub modified_by: Option<i32>,
     pub created_at: i32,
@@ -584,13 +629,18 @@ impl From<VfsPathError> for VfsError {
 }
 
 /// Scope identifier for VFS operations — determines which files are visible.
+/// Only covers server-side drives (C: and U:). Scratch drives (A:, B:) are
+/// handled client-side in browser IndexedDB.
 #[cfg(feature = "ssr")]
 #[derive(Debug, Clone)]
 pub struct VfsScope {
-    pub connection_id: Option<String>,
     pub session_id: Option<i32>,
     pub user_id: Option<i32>,
     pub is_gm: bool,
+    /// Whether the user is a registered player in the session.
+    /// Controls whether group permission bits (0o070) are checked.
+    /// For U: drive operations this is always `false` (no session context).
+    pub is_player: bool,
     /// Umask applied to newly created files and directories.
     /// Default: `0o000` (no bits masked — full default permissions).
     pub umask: i32,
@@ -600,24 +650,22 @@ pub struct VfsScope {
 impl VfsScope {
     fn scope_for_drive(&self, drive: Drive) -> Result<DriveFilter, VfsError> {
         match drive.scope() {
-            DriveScope::Connection => {
-                let cid = self.connection_id.as_ref().ok_or_else(|| {
-                    VfsError::StorageError("no connection_id for scratch drive".to_string())
-                })?;
-                Ok(DriveFilter::Connection(cid.clone()))
-            }
-            DriveScope::Session => {
+            Some(DriveScope::Session) => {
                 let sid = self.session_id.ok_or_else(|| {
                     VfsError::StorageError("no session_id for session drive".to_string())
                 })?;
                 Ok(DriveFilter::Session(sid))
             }
-            DriveScope::User => {
+            Some(DriveScope::User) => {
                 let uid = self.user_id.ok_or_else(|| {
                     VfsError::StorageError("no user_id for user drive".to_string())
                 })?;
                 Ok(DriveFilter::User(uid))
             }
+            None => Err(VfsError::StorageError(format!(
+                "drive {}: is client-side only, not stored in database",
+                drive.letter()
+            ))),
         }
     }
 }
@@ -625,7 +673,6 @@ impl VfsScope {
 #[cfg(feature = "ssr")]
 #[derive(Debug, Clone)]
 enum DriveFilter {
-    Connection(String),
     Session(i32),
     User(i32),
 }
@@ -665,7 +712,6 @@ fn scoped_query<'a>(
         .filter(vfs_files::drive.eq(drive_str))
         .into_boxed();
     match filter {
-        DriveFilter::Connection(cid) => query.filter(vfs_files::connection_id.eq(cid.clone())),
         DriveFilter::Session(sid) => query.filter(vfs_files::session_id.eq(*sid)),
         DriveFilter::User(uid) => query.filter(vfs_files::user_id.eq(*uid)),
     }
@@ -673,11 +719,10 @@ fn scoped_query<'a>(
 
 /// Extract scope IDs from a [`DriveFilter`] for building [`NewVfsFile`] structs.
 #[cfg(feature = "ssr")]
-fn scope_ids(filter: &DriveFilter) -> (Option<&str>, Option<i32>, Option<i32>) {
+fn scope_ids(filter: &DriveFilter) -> (Option<i32>, Option<i32>) {
     match filter {
-        DriveFilter::Connection(cid) => (Some(cid.as_str()), None, None),
-        DriveFilter::Session(sid) => (None, Some(*sid), None),
-        DriveFilter::User(uid) => (None, None, Some(*uid)),
+        DriveFilter::Session(sid) => (Some(*sid), None),
+        DriveFilter::User(uid) => (None, Some(*uid)),
     }
 }
 
@@ -690,13 +735,6 @@ fn scoped_delete_path(
     path: &str,
 ) -> Result<usize, diesel::result::Error> {
     match filter {
-        DriveFilter::Connection(cid) => diesel::delete(
-            vfs_files::table
-                .filter(vfs_files::drive.eq(drive_str))
-                .filter(vfs_files::connection_id.eq(cid.as_str()))
-                .filter(vfs_files::path.eq(path)),
-        )
-        .execute(conn),
         DriveFilter::Session(sid) => diesel::delete(
             vfs_files::table
                 .filter(vfs_files::drive.eq(drive_str))
@@ -721,7 +759,7 @@ fn scoped_update_file(
     drive_str: &str,
     filter: &DriveFilter,
     path: &str,
-    size: i32,
+    size: i64,
     content_type: Option<&str>,
     inline_data: Option<&[u8]>,
     media_hash: Option<&str>,
@@ -744,12 +782,6 @@ fn scoped_update_file(
         };
     }
     match filter {
-        DriveFilter::Connection(cid) => do_update!(
-            vfs_files::table
-                .filter(vfs_files::drive.eq(drive_str))
-                .filter(vfs_files::connection_id.eq(cid.as_str()))
-                .filter(vfs_files::path.eq(path))
-        ),
         DriveFilter::Session(sid) => do_update!(
             vfs_files::table
                 .filter(vfs_files::drive.eq(drive_str))
@@ -789,12 +821,6 @@ fn scoped_update_path(
         };
     }
     match filter {
-        DriveFilter::Connection(cid) => do_update!(
-            vfs_files::table
-                .filter(vfs_files::drive.eq(drive_str))
-                .filter(vfs_files::connection_id.eq(cid.as_str()))
-                .filter(vfs_files::path.eq(old_path))
-        ),
         DriveFilter::Session(sid) => do_update!(
             vfs_files::table
                 .filter(vfs_files::drive.eq(drive_str))
@@ -863,7 +889,7 @@ pub fn vfs_list(
     drive: Drive,
     dir_path: &str,
 ) -> Result<Vec<VfsEntry>, VfsError> {
-    // Check execute permission on the directory (root is always accessible)
+    // Check read permission on the directory (root is always accessible)
     if dir_path != "/" {
         let dir_entry = vfs_stat(conn, scope, drive, dir_path)?;
         if !dir_entry.is_directory {
@@ -873,7 +899,7 @@ pub fn vfs_list(
                 dir_path
             )));
         }
-        if !check_permission(dir_entry.mode, scope.is_gm, MODE_OTHER_X) {
+        if !check_permission(dir_entry.mode, scope.is_gm, scope.is_player, MODE_OTHER_R) {
             return Err(VfsError::PermissionDenied(format!(
                 "{}:{}",
                 drive.letter(),
@@ -904,20 +930,25 @@ pub fn vfs_list(
 }
 
 /// Get total bytes used on a drive for quota enforcement.
+///
+/// Uses raw SQL for `SUM(size_bytes)` because Diesel's typed `sum()` over
+/// a `BigInt` column returns `Numeric` (→ `BigDecimal`), which doesn't
+/// convert to `i64` without pulling in the `bigdecimal` crate.  The raw
+/// `COALESCE(SUM(...), 0)` returns a plain integer that maps to `BigInt`.
 #[cfg(feature = "ssr")]
 pub fn vfs_drive_usage(
     conn: &mut diesel::SqliteConnection,
     scope: &VfsScope,
     drive: Drive,
 ) -> Result<u64, VfsError> {
-    use diesel::dsl::sum;
-
     let filter = scope.scope_for_drive(drive)?;
-    let total: Option<i64> = scoped_query(drive.as_str(), &filter)
-        .select(sum(vfs_files::size_bytes))
+    let total: i64 = scoped_query(drive.as_str(), &filter)
+        .select(diesel::dsl::sql::<diesel::sql_types::BigInt>(
+            "COALESCE(SUM(size_bytes), 0)",
+        ))
         .first(conn)
         .map_err(|e| VfsError::DatabaseError(e.to_string()))?;
-    Ok(total.unwrap_or(0) as u64)
+    Ok(total as u64)
 }
 
 /// Ensure the parent directory of `path` exists.
@@ -1013,10 +1044,9 @@ fn vfs_mkdir_one(
         )));
     }
 
-    let (connection_id, session_id, user_id_col) = scope_ids(&filter);
+    let (session_id, user_id_col) = scope_ids(&filter);
     let new_file = NewVfsFile {
         drive: drive.as_str(),
-        connection_id,
         session_id,
         user_id: user_id_col,
         path,
@@ -1109,7 +1139,7 @@ pub fn vfs_write(
     create_parents: bool,
 ) -> Result<(), VfsError> {
     let filter = scope.scope_for_drive(drive)?;
-    let size = data.len() as i32;
+    let size = data.len() as i64;
 
     // Reject large files without a CAS hash
     if data.len() > INLINE_THRESHOLD && media_hash.is_none() {
@@ -1138,7 +1168,7 @@ pub fn vfs_write(
 
     // Permission check on overwrite
     if let Some(ref entry) = existing {
-        if !check_permission(entry.mode, scope.is_gm, MODE_OTHER_W) {
+        if !check_permission(entry.mode, scope.is_gm, scope.is_player, MODE_OTHER_W) {
             return Err(VfsError::PermissionDenied(format!(
                 "{}:{}",
                 drive.letter(),
@@ -1187,10 +1217,9 @@ pub fn vfs_write(
         )
         .map_err(|e| VfsError::DatabaseError(e.to_string()))?;
     } else {
-        let (connection_id, session_id, user_id_col) = scope_ids(&filter);
+        let (session_id, user_id_col) = scope_ids(&filter);
         let new_file = NewVfsFile {
             drive: drive.as_str(),
-            connection_id,
             session_id,
             user_id: user_id_col,
             path,
@@ -1243,7 +1272,7 @@ pub fn vfs_read(
         )));
     }
 
-    if !check_permission(file.mode, scope.is_gm, MODE_OTHER_R) {
+    if !check_permission(file.mode, scope.is_gm, scope.is_player, MODE_OTHER_R) {
         return Err(VfsError::PermissionDenied(format!(
             "{}:{}",
             drive.letter(),
@@ -1279,7 +1308,7 @@ pub enum VfsFileContent {
     CasReference {
         hash: String,
         content_type: Option<String>,
-        size_bytes: i32,
+        size_bytes: i64,
     },
 }
 
@@ -1296,7 +1325,7 @@ pub fn vfs_delete(
     let entry = vfs_stat(conn, scope, drive, path)?;
 
     // Write permission required to delete
-    if !check_permission(entry.mode, scope.is_gm, MODE_OTHER_W) {
+    if !check_permission(entry.mode, scope.is_gm, scope.is_player, MODE_OTHER_W) {
         return Err(VfsError::PermissionDenied(format!(
             "{}:{}",
             drive.letter(),
@@ -1462,7 +1491,7 @@ fn vfs_write_cas_ref(
     scope: &VfsScope,
     drive: Drive,
     path: &str,
-    size_bytes: i32,
+    size_bytes: i64,
     content_type: Option<&str>,
     media_hash: &str,
     user_id: i32,
@@ -1517,10 +1546,9 @@ fn vfs_write_cas_ref(
         )
         .map_err(|e| VfsError::DatabaseError(e.to_string()))?;
     } else {
-        let (connection_id, session_id, user_id_col) = scope_ids(&filter);
+        let (session_id, user_id_col) = scope_ids(&filter);
         let new_file = NewVfsFile {
             drive: drive.as_str(),
-            connection_id,
             session_id,
             user_id: user_id_col,
             path,
@@ -1575,12 +1603,6 @@ pub fn vfs_chmod(
         };
     }
     let updated = match &filter {
-        DriveFilter::Connection(cid) => do_chmod!(
-            vfs_files::table
-                .filter(vfs_files::drive.eq(drive_str))
-                .filter(vfs_files::connection_id.eq(cid.as_str()))
-                .filter(vfs_files::path.eq(path))
-        ),
         DriveFilter::Session(sid) => do_chmod!(
             vfs_files::table
                 .filter(vfs_files::drive.eq(drive_str))
@@ -1602,17 +1624,27 @@ pub fn vfs_chmod(
     Ok(())
 }
 
-/// Delete all files on scratch drives for a given connection.
-///
-/// Called on WebSocket disconnect to clean up ephemeral A: and B: drives.
-#[cfg(feature = "ssr")]
-pub fn vfs_cleanup_connection(
-    conn: &mut diesel::SqliteConnection,
-    connection_id: &str,
-) -> Result<usize, VfsError> {
-    diesel::delete(vfs_files::table.filter(vfs_files::connection_id.eq(connection_id)))
-        .execute(conn)
-        .map_err(|e| VfsError::DatabaseError(e.to_string()))
+/// Format a byte count with comma-separated thousands (e.g. 1,234,567).
+pub fn format_bytes(bytes: u64) -> String {
+    let s = bytes.to_string();
+    let mut result = String::new();
+    for (i, c) in s.chars().rev().enumerate() {
+        if i > 0 && i % 3 == 0 {
+            result.push(',');
+        }
+        result.push(c);
+    }
+    result.chars().rev().collect()
+}
+
+/// Extract file extension from a VFS path (e.g. "/foo/bar.txt" → Some("txt")).
+pub fn path_extension(path: &str) -> Option<&str> {
+    let filename = path.rsplit('/').next()?;
+    let dot_pos = filename.rfind('.')?;
+    if dot_pos == 0 {
+        return None;
+    }
+    Some(&filename[dot_pos + 1..])
 }
 
 #[cfg(test)]
@@ -1835,13 +1867,11 @@ mod tests {
     mod db_tests {
         use super::super::*;
         use diesel::SqliteConnection;
-        use diesel::prelude::*;
 
         const VFS_SCHEMA: &str = r#"
             CREATE TABLE vfs_files (
                 id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                 drive CHAR(1) NOT NULL,
-                connection_id VARCHAR(36),
                 session_id INTEGER,
                 user_id INTEGER,
                 path TEXT NOT NULL,
@@ -1855,9 +1885,8 @@ mod tests {
                 updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
                 mode INTEGER NOT NULL DEFAULT 438,
                 CHECK (
-                    (drive IN ('A','B') AND connection_id IS NOT NULL AND session_id IS NULL AND user_id IS NULL) OR
-                    (drive = 'C' AND session_id IS NOT NULL AND connection_id IS NULL AND user_id IS NULL) OR
-                    (drive = 'U' AND user_id IS NOT NULL AND connection_id IS NULL AND session_id IS NULL)
+                    (drive = 'C' AND session_id IS NOT NULL AND user_id IS NULL) OR
+                    (drive = 'U' AND user_id IS NOT NULL AND session_id IS NULL)
                 )
             );
         "#;
@@ -1870,30 +1899,20 @@ mod tests {
 
         fn user_scope() -> VfsScope {
             VfsScope {
-                connection_id: None,
                 session_id: None,
                 user_id: Some(1),
                 is_gm: false,
+                is_player: false,
                 umask: DEFAULT_UMASK,
             }
         }
 
         fn session_scope() -> VfsScope {
             VfsScope {
-                connection_id: None,
                 session_id: Some(1),
                 user_id: Some(1),
                 is_gm: false,
-                umask: DEFAULT_UMASK,
-            }
-        }
-
-        fn scratch_scope() -> VfsScope {
-            VfsScope {
-                connection_id: Some("test-conn-001".to_string()),
-                session_id: Some(1),
-                user_id: Some(1),
-                is_gm: false,
+                is_player: true,
                 umask: DEFAULT_UMASK,
             }
         }
@@ -2106,14 +2125,14 @@ mod tests {
         #[test]
         fn quota_exceeded() {
             let mut conn = test_db();
-            // Use scratch drive (10 MB limit) for a tractable test
-            let scope = scratch_scope();
+            // U: drive has 10 MB limit for non-GM users
+            let scope = user_scope();
             // Write a 5 MB file (needs media_hash since it exceeds inline threshold)
             let data_5mb = vec![0u8; 5 * 1024 * 1024];
             vfs_write(
                 &mut conn,
                 &scope,
-                Drive::A,
+                Drive::U,
                 "/big1.bin",
                 &data_5mb,
                 None,
@@ -2126,7 +2145,7 @@ mod tests {
             vfs_write(
                 &mut conn,
                 &scope,
-                Drive::A,
+                Drive::U,
                 "/big2.bin",
                 &data_5mb,
                 None,
@@ -2140,7 +2159,7 @@ mod tests {
                 vfs_write(
                     &mut conn,
                     &scope,
-                    Drive::A,
+                    Drive::U,
                     "/overflow.bin",
                     &[0u8],
                     None,
@@ -2257,54 +2276,20 @@ mod tests {
         }
 
         #[test]
-        fn cleanup_connection() {
-            let mut conn = test_db();
-            let scope = scratch_scope();
-            vfs_write(
-                &mut conn,
-                &scope,
-                Drive::A,
-                "/tmp1.txt",
-                b"a",
-                None,
-                None,
-                1,
-                false,
-            )
-            .unwrap();
-            vfs_write(
-                &mut conn,
-                &scope,
-                Drive::A,
-                "/tmp2.txt",
-                b"b",
-                None,
-                None,
-                1,
-                false,
-            )
-            .unwrap();
-
-            let deleted = vfs_cleanup_connection(&mut conn, "test-conn-001").unwrap();
-            assert_eq!(deleted, 2);
-            assert_eq!(vfs_drive_usage(&mut conn, &scope, Drive::A).unwrap(), 0);
-        }
-
-        #[test]
         fn scope_isolation() {
             let mut conn = test_db();
             let scope1 = VfsScope {
-                connection_id: None,
                 session_id: None,
                 user_id: Some(1),
                 is_gm: false,
+                is_player: true,
                 umask: DEFAULT_UMASK,
             };
             let scope2 = VfsScope {
-                connection_id: None,
                 session_id: None,
                 user_id: Some(2),
                 is_gm: false,
+                is_player: true,
                 umask: DEFAULT_UMASK,
             };
             vfs_write(
@@ -2484,17 +2469,17 @@ mod tests {
         fn copy_across_scopes() {
             let mut conn = test_db();
             let user_scope = VfsScope {
-                connection_id: None,
                 session_id: None,
                 user_id: Some(1),
                 is_gm: false,
+                is_player: true,
                 umask: DEFAULT_UMASK,
             };
             let session_scope = VfsScope {
-                connection_id: None,
                 session_id: Some(1),
                 user_id: Some(1),
                 is_gm: false,
+                is_player: true,
                 umask: DEFAULT_UMASK,
             };
 
@@ -2579,17 +2564,17 @@ mod tests {
         fn permission_read_denied() {
             let mut conn = test_db();
             let gm_scope = VfsScope {
-                connection_id: None,
                 session_id: Some(1),
                 user_id: Some(1),
                 is_gm: true,
+                is_player: true,
                 umask: DEFAULT_UMASK,
             };
             let player_scope = VfsScope {
-                connection_id: None,
                 session_id: Some(1),
                 user_id: Some(1),
                 is_gm: false,
+                is_player: true,
                 umask: DEFAULT_UMASK,
             };
 
@@ -2622,17 +2607,17 @@ mod tests {
         fn permission_write_denied() {
             let mut conn = test_db();
             let gm_scope = VfsScope {
-                connection_id: None,
                 session_id: Some(1),
                 user_id: Some(1),
                 is_gm: true,
+                is_player: true,
                 umask: DEFAULT_UMASK,
             };
             let player_scope = VfsScope {
-                connection_id: None,
                 session_id: Some(1),
                 user_id: Some(1),
                 is_gm: false,
+                is_player: true,
                 umask: DEFAULT_UMASK,
             };
 
@@ -2672,17 +2657,17 @@ mod tests {
         fn permission_delete_denied() {
             let mut conn = test_db();
             let gm_scope = VfsScope {
-                connection_id: None,
                 session_id: Some(1),
                 user_id: Some(1),
                 is_gm: true,
+                is_player: true,
                 umask: DEFAULT_UMASK,
             };
             let player_scope = VfsScope {
-                connection_id: None,
                 session_id: Some(1),
                 user_id: Some(1),
                 is_gm: false,
+                is_player: true,
                 umask: DEFAULT_UMASK,
             };
 
@@ -2710,17 +2695,17 @@ mod tests {
         fn permission_list_denied() {
             let mut conn = test_db();
             let gm_scope = VfsScope {
-                connection_id: None,
                 session_id: Some(1),
                 user_id: Some(1),
                 is_gm: true,
+                is_player: true,
                 umask: DEFAULT_UMASK,
             };
             let player_scope = VfsScope {
-                connection_id: None,
                 session_id: Some(1),
                 user_id: Some(1),
                 is_gm: false,
+                is_player: true,
                 umask: DEFAULT_UMASK,
             };
 
@@ -2734,13 +2719,65 @@ mod tests {
         }
 
         #[test]
-        fn umask_applied() {
+        fn permission_group_allows_player() {
             let mut conn = test_db();
-            let scope = VfsScope {
-                connection_id: None,
+            let gm_scope = VfsScope {
+                session_id: Some(1),
+                user_id: Some(1),
+                is_gm: true,
+                is_player: true,
+                umask: DEFAULT_UMASK,
+            };
+            // Player is a registered session member (is_player: true)
+            let player_scope = VfsScope {
                 session_id: Some(1),
                 user_id: Some(1),
                 is_gm: false,
+                is_player: true,
+                umask: DEFAULT_UMASK,
+            };
+            // Guest is connected but not a registered player (is_player: false)
+            let guest_scope = VfsScope {
+                session_id: Some(1),
+                user_id: Some(1),
+                is_gm: false,
+                is_player: false,
+                umask: DEFAULT_UMASK,
+            };
+
+            // Create a file with group-read but no other-read: rw-r-----
+            vfs_write(
+                &mut conn,
+                &gm_scope,
+                Drive::C,
+                "/team-only.txt",
+                b"secret",
+                None,
+                None,
+                1,
+                false,
+            )
+            .unwrap();
+            vfs_chmod(&mut conn, &gm_scope, Drive::C, "/team-only.txt", 0o640, 1).unwrap();
+
+            // Player can read (group bits allow it)
+            assert!(vfs_read(&mut conn, &player_scope, Drive::C, "/team-only.txt").is_ok());
+
+            // Guest cannot read (other bits deny it)
+            assert!(matches!(
+                vfs_read(&mut conn, &guest_scope, Drive::C, "/team-only.txt"),
+                Err(VfsError::PermissionDenied(_))
+            ));
+        }
+
+        #[test]
+        fn umask_applied() {
+            let mut conn = test_db();
+            let scope = VfsScope {
+                session_id: Some(1),
+                user_id: Some(1),
+                is_gm: false,
+                is_player: true,
                 umask: 0o022, // remove write from group/other
             };
 

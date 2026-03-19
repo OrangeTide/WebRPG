@@ -9,6 +9,8 @@ pub enum WindowId {
     Initiative,
     Inventory,
     Creatures,
+    Terminal,
+    FileBrowser,
     /// Dynamic window for editing a specific character (by character_id).
     CharacterEditor(i32),
 }
@@ -22,6 +24,8 @@ impl WindowId {
             WindowId::Initiative => "Initiative",
             WindowId::Inventory => "Inventory",
             WindowId::Creatures => "Creatures",
+            WindowId::Terminal => "COMMAND.COM",
+            WindowId::FileBrowser => "File Viewer",
             WindowId::CharacterEditor(_) => "Character Sheet",
         }
     }
@@ -35,6 +39,8 @@ impl WindowId {
             WindowId::Initiative,
             WindowId::Inventory,
             WindowId::Creatures,
+            WindowId::Terminal,
+            WindowId::FileBrowser,
         ]
     }
 
@@ -47,6 +53,8 @@ impl WindowId {
             WindowId::Initiative => (220.0, 150.0),
             WindowId::Inventory => (250.0, 150.0),
             WindowId::Creatures => (280.0, 250.0),
+            WindowId::Terminal => (500.0, 300.0),
+            WindowId::FileBrowser => (450.0, 350.0),
             WindowId::CharacterEditor(_) => (300.0, 350.0),
         }
     }
@@ -65,6 +73,8 @@ impl WindowId {
             WindowId::Initiative => "\u{2694}",          // ⚔ crossed swords
             WindowId::Inventory => "\u{1f392}",          // 🎒 backpack
             WindowId::Creatures => "\u{1f409}",          // 🐉 dragon
+            WindowId::Terminal => "\u{1f4bb}",           // 💻 personal computer
+            WindowId::FileBrowser => "\u{1f4c2}",        // 📂 open file folder
             WindowId::CharacterEditor(_) => "\u{1f4dc}", // 📜 scroll
         }
     }
@@ -78,6 +88,8 @@ impl WindowId {
             WindowId::Initiative => "Init",
             WindowId::Inventory => "Items",
             WindowId::Creatures => "Beasts",
+            WindowId::Terminal => "Term",
+            WindowId::FileBrowser => "Files",
             WindowId::CharacterEditor(_) => "Sheet",
         }
     }
@@ -457,6 +469,26 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 z_index: 6,
                 minimized: true,
             },
+            WindowState {
+                id: WindowId::Terminal,
+                title: None,
+                x: pad,
+                y: pad,
+                width: win_w.min(500.0),
+                height: 300.0,
+                z_index: 7,
+                minimized: true,
+            },
+            WindowState {
+                id: WindowId::FileBrowser,
+                title: None,
+                x: pad,
+                y: pad,
+                width: win_w.min(450.0),
+                height: 350.0,
+                z_index: 8,
+                minimized: true,
+            },
         ]
     } else if vw < 1400.0 {
         // Medium screen: two-column layout
@@ -525,6 +557,26 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 width: 350.0,
                 height: 400.0,
                 z_index: 6,
+                minimized: true,
+            },
+            WindowState {
+                id: WindowId::Terminal,
+                title: None,
+                x: 60.0,
+                y: 60.0,
+                width: 600.0,
+                height: 400.0,
+                z_index: 7,
+                minimized: true,
+            },
+            WindowState {
+                id: WindowId::FileBrowser,
+                title: None,
+                x: 80.0,
+                y: 40.0,
+                width: 550.0,
+                height: 450.0,
+                z_index: 8,
                 minimized: true,
             },
         ]
@@ -597,6 +649,26 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 width: 380.0,
                 height: 450.0,
                 z_index: 6,
+                minimized: true,
+            },
+            WindowState {
+                id: WindowId::Terminal,
+                title: None,
+                x: 80.0,
+                y: 80.0,
+                width: 600.0,
+                height: 400.0,
+                z_index: 7,
+                minimized: true,
+            },
+            WindowState {
+                id: WindowId::FileBrowser,
+                title: None,
+                x: 120.0,
+                y: 60.0,
+                width: 550.0,
+                height: 450.0,
+                z_index: 8,
                 minimized: true,
             },
         ]
@@ -935,6 +1007,7 @@ fn Dock() -> impl IntoView {
     let wm = expect_context::<WindowManagerContext>();
     let dock_layout = RwSignal::new(DockLayout::new());
     let dock_drag = RwSignal::new(None::<DockDrag>);
+    let show_settings = RwSignal::new(false);
 
     // Load dock layout from localStorage after hydration
     #[cfg(feature = "hydrate")]
@@ -1140,7 +1213,9 @@ fn Dock() -> impl IntoView {
             // System icon (anchor tile at 0,0)
             <div
                 class="dock-tile dock-tile-system"
-                title="WebRPG"
+                title="Settings"
+                on:click=move |_| show_settings.set(true)
+                style="cursor: pointer;"
             >
                 <span class="dock-tile-icon">{"\u{1f6e1}"}</span>
                 <span class="dock-tile-label">"WebRPG"</span>
@@ -1218,6 +1293,25 @@ fn Dock() -> impl IntoView {
                 })
             }}
         </div>
+
+        // Settings dialog
+        {move || {
+            show_settings.get().then(|| {
+                view! {
+                    <div class="settings-backdrop" on:click=move |_| show_settings.set(false)>
+                        <div class="settings-dialog" on:click:stopPropagation=|_: leptos::ev::MouseEvent| {}>
+                            <div class="settings-title">
+                                <span>"Settings"</span>
+                                <button class="settings-close" on:click=move |_| show_settings.set(false)>"\u{2715}"</button>
+                            </div>
+                            <div class="settings-body">
+                                <p>"Settings go here."</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            })
+        }}
     }
 }
 

@@ -72,7 +72,7 @@ pub struct MediaInfo {
     pub url: String,
     pub content_type: String,
     pub media_type: String,
-    pub size_bytes: i32,
+    pub size_bytes: i64,
     pub tags: Vec<String>,
 }
 
@@ -151,6 +151,43 @@ pub struct InitiativeEntryInfo {
     pub is_current_turn: bool,
     /// Portrait/icon URL for display (not persisted in DB).
     pub portrait_url: Option<String>,
+}
+
+// ===== VFS DTOs =====
+
+/// VFS file/directory metadata (serializable version of `vfs::VfsEntry`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VfsEntryInfo {
+    pub path: String,
+    pub is_directory: bool,
+    pub size_bytes: i64,
+    pub content_type: Option<String>,
+    pub modified_by: Option<i32>,
+    pub created_at: i32,
+    pub updated_at: i32,
+    pub mode: i32,
+}
+
+/// VFS file content — inline data or a CAS URL for download.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum VfsFileData {
+    Inline {
+        data: Vec<u8>,
+        content_type: Option<String>,
+    },
+    CasUrl {
+        url: String,
+        content_type: Option<String>,
+        size_bytes: i64,
+    },
+}
+
+/// VFS drive usage info.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VfsDriveInfo {
+    pub drive: char,
+    pub used_bytes: u64,
+    pub quota_bytes: u64,
 }
 
 // ===== Diesel models (server only) =====
@@ -439,7 +476,7 @@ pub mod db_models {
         pub hash: String,
         pub content_type: String,
         pub media_type: String,
-        pub size_bytes: i32,
+        pub size_bytes: i64,
         pub uploaded_by: i32,
         pub created_at: String,
     }
@@ -450,7 +487,7 @@ pub mod db_models {
         pub hash: &'a str,
         pub content_type: &'a str,
         pub media_type: &'a str,
-        pub size_bytes: i32,
+        pub size_bytes: i64,
         pub uploaded_by: i32,
     }
 
@@ -476,12 +513,11 @@ pub mod db_models {
     pub struct VfsFile {
         pub id: i32,
         pub drive: String,
-        pub connection_id: Option<String>,
         pub session_id: Option<i32>,
         pub user_id: Option<i32>,
         pub path: String,
         pub is_directory: bool,
-        pub size_bytes: i32,
+        pub size_bytes: i64,
         pub content_type: Option<String>,
         pub inline_data: Option<Vec<u8>>,
         pub media_hash: Option<String>,
@@ -495,44 +531,15 @@ pub mod db_models {
     #[diesel(table_name = crate::schema::vfs_files)]
     pub struct NewVfsFile<'a> {
         pub drive: &'a str,
-        pub connection_id: Option<&'a str>,
         pub session_id: Option<i32>,
         pub user_id: Option<i32>,
         pub path: &'a str,
         pub is_directory: bool,
-        pub size_bytes: i32,
+        pub size_bytes: i64,
         pub content_type: Option<&'a str>,
         pub inline_data: Option<&'a [u8]>,
         pub media_hash: Option<&'a str>,
         pub modified_by: Option<i32>,
         pub mode: i32,
-    }
-
-    #[derive(Debug, Queryable, Selectable)]
-    #[diesel(table_name = crate::schema::vfs_archive)]
-    pub struct VfsArchive {
-        pub id: i32,
-        pub original_session_id: i32,
-        pub session_name: String,
-        pub path: String,
-        pub size_bytes: i32,
-        pub content_type: Option<String>,
-        pub inline_data: Option<Vec<u8>>,
-        pub media_hash: Option<String>,
-        pub archived_at: i32,
-        pub expires_at: i32,
-    }
-
-    #[derive(Debug, Insertable)]
-    #[diesel(table_name = crate::schema::vfs_archive)]
-    pub struct NewVfsArchive<'a> {
-        pub original_session_id: i32,
-        pub session_name: &'a str,
-        pub path: &'a str,
-        pub size_bytes: i32,
-        pub content_type: Option<&'a str>,
-        pub inline_data: Option<&'a [u8]>,
-        pub media_hash: Option<&'a str>,
-        pub expires_at: i32,
     }
 }

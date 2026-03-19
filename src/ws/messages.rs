@@ -159,6 +159,13 @@ pub enum ServerMessage {
     MapBackgroundChanged {
         background_url: Option<String>,
     },
+    /// Notifies clients that a file on C: drive has changed.
+    VfsChanged {
+        /// The path that was affected (e.g. "/maps/dungeon.png").
+        path: String,
+        /// What happened: "write", "delete", "mkdir", "rename", "chmod".
+        action: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

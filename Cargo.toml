@@ -71,6 +71,22 @@ web-sys = { version = "0.3", optional = true, features = [
     "File",
     "FileList",
     "Storage",
+    "HtmlAnchorElement",
+    "Url",
+    "BlobPropertyBag",
+    "IdbFactory",
+    "IdbDatabase",
+    "IdbTransaction",
+    "IdbTransactionMode",
+    "IdbObjectStore",
+    "IdbObjectStoreParameters",
+    "IdbRequest",
+    "IdbOpenDbRequest",
+    "IdbKeyRange",
+    "IdbCursorWithValue",
+    "IdbCursorDirection",
+    "DomException",
+    "DomStringList",
 ] }
 
 [features]
