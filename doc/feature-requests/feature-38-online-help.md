@@ -1,15 +1,15 @@
 # Feature 38: Online Help System
 
-Provide an in-game help browser window for accessing internal documentation. The visual design is based on the Windows 3.0 Help system (https://guidebookgallery.org/pics/gui/system/features/help/win30.png), re-themed to match the project's NeXTSTEP visual style.
+Provide an in-game help browser window for accessing internal documentation. The visual design is based on the Windows 3.0 Help system (https://guidebookgallery.org/pics/gui/system/features/help/win30.png). The content panel and toolbar use a retro gray aesthetic but toolbar buttons have not yet been re-themed to the full NeXTSTEP raised button style.
 
 ### Visual Design
 
 A dedicated window panel with:
-- **Title bar** — NeXTSTEP gray gradient, showing the current topic title
-- **Button bar** — Back, History, Index buttons (styled as NeXTSTEP raised buttons)
+- **Title bar** — gray gradient, showing the current topic title
+- **Button bar** — Back, Forward, Up, Home, Top, Index, Search buttons (emoji glyphs, not yet re-themed to NeXTSTEP raised buttons)
 - **Content area** — Rendered help content with clickable cross-reference links (green underlined text, Win3.0 style), section headings, and inline formatting
 
-The layout and navigation mirrors Windows 3.0 Help (topic-based with hyperlinks between topics), but all chrome uses the NeXTSTEP visual language already established in the project.
+The layout and navigation mirrors Windows 3.0 Help (topic-based with hyperlinks between topics). Chrome uses the project's retro gray aesthetic (dock tiles have NeXTSTEP 3D borders; toolbar buttons and panels are not yet fully re-themed).
 
 Full-text search is a future enhancement. For now, the Index button shows a list of all topic titles/slugs for navigation.
 
@@ -94,12 +94,40 @@ Help documents link to each other using a `help:` URI scheme: `[link text](help:
 
 (none — this is a standalone window. Feature 36's `HELP` command consumes this system, not the other way around.)
 
-## Status: Not Started
+## Status: In Progress
+
+### Completed
+- HelpViewer WindowId with dock icon (📖), title "Help", default layouts (all tiers, minimized)
+- Help viewer component (`src/components/help_viewer.rs`) with:
+  - Toolbar: Back, Forward, Up, Home, Top (scroll), Index, Search (greyed out)
+  - Index view listing all help topics from `help/` directory
+  - Topic view rendering Markdown via pulldown-cmark
+  - `help:slug` link interception for internal navigation
+  - Back/forward history stacks
+- Server functions: `get_help_content(slug)`, `list_help_topics()`
+- HelpContext for cross-window navigation
+- `?` help button in window title bars (shown when `help_topic()` returns Some)
+- CSS: gray toolbar, inset content panel, green underlined help links
+- `help_topic()` method on WindowId mapping FileBrowser → "file-viewer"
+
+### Remaining
+- COMMAND.COM `HELP` command integration
+- More help topic files (vfs, command-com, getting-started, etc.)
+- Add `help_topic()` mappings as more help files are written
 
 ## Plan
 
-(none yet)
+### Implementation Steps
+
+1. ~~Add HelpViewer WindowId, component, toolbar, content rendering~~ ✓
+2. ~~Server functions for help content retrieval~~ ✓
+3. ~~? button in window title bars~~ ✓
+4. ~~CSS styling~~ ✓
+5. COMMAND.COM HELP command integration (Feature 36)
+6. Write additional help topic files
 
 ## Findings
 
-(none yet)
+- pulldown-cmark v0.11 compiles cleanly to WASM (~25KB), zero dependencies conflicts
+- `help:slug` URL scheme preserved in rendered HTML; clicks intercepted via `closest("a[href^='help:']")` for proper event delegation (handles nested elements like `<a><code>text</code></a>`)
+- Help files read directly from `help/` directory at runtime — no database needed for v1

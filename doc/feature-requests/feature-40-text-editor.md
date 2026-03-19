@@ -33,9 +33,9 @@ An interactive text editor window that can edit a temporary buffer or any file a
 
 ### Visual Design
 
-- NeXTSTEP-styled window panel consistent with the existing UI
+- Window panel consistent with the existing retro gray UI aesthetic
 - Monospace font in the editing area
-- Toolbar with NeXTSTEP raised buttons
+- Toolbar with emoji glyph buttons (matching File Viewer / Help Viewer style; NeXTSTEP raised buttons are a planned re-theme)
 - Modal quit dialog matching the project's dialog style
 
 ## Dependencies

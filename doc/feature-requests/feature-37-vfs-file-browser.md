@@ -1,6 +1,6 @@
 # Feature 37: VFS File Browser
 
-A graphical file browser window for the Virtual File System (Feature 34), styled after the NeXTSTEP File Viewer. Provides a visual alternative to the Terminal Shell (Feature 36) for users who prefer point-and-click interaction.
+A graphical file browser window for the Virtual File System (Feature 34), inspired by the NeXTSTEP File Viewer. Provides a visual alternative to the Terminal Shell (Feature 36) for users who prefer point-and-click interaction.
 
 ### Visual Design (NeXTSTEP File Viewer style)
 
@@ -29,14 +29,14 @@ Below the toolbar, an editable text field showing the full path of the current d
 
 ### Visual Styling
 
-- NeXTSTEP gray gradient title bar with "File Viewer" label
+- Gray gradient title bar with "File Viewer" label
 - Light gray panel backgrounds with subtle inset borders
 - Large icons (folders, documents, images) with filename labels centered below
 - Grid layout within each panel with consistent spacing
 - Horizontal scrollbar on each panel if contents overflow
-- Consistent with the existing NeXTSTEP-style dock (already in the project)
-- Toolbar buttons styled as NeXTSTEP raised buttons with icon glyphs
-- Location bar styled as an inset text field matching NeXTSTEP input fields
+- Consistent with the existing dock style (already in the project)
+- Toolbar buttons with emoji icon glyphs (not yet re-themed to NeXTSTEP raised buttons)
+- Location bar styled as an inset text field
 
 ### Planned Features
 
@@ -47,6 +47,10 @@ Below the toolbar, an editable text field showing the full path of the current d
 - Multi-select with shift/ctrl click
 - Double-click to preview text files and images (see ZIP behavior below for `.zip` files)
 - Unicode icon differentiation by file type using the shared icon mapping from Feature 34 (folder, text, image, audio, video, archive, script, map, generic)
+- Multiple Finder windows open simultaneously (dynamic WindowId like CharacterEditor)
+- Drag-and-drop files/directories between Finder windows to copy/move
+- Re-theme toolbar buttons to NeXTSTEP raised button style (asymmetric 3D borders)
+- Closer visual alignment with the NeXTSTEP File Viewer (reference screenshot in Findings)
 
 ### Upload & Download
 
@@ -75,11 +79,37 @@ Right-click on a `.zip` also offers these options in the context menu.
 
 - **Feature 34: Virtual File System** — provides the backend VFS operations
 
-## Status: Not Started
+## Status: In Progress
+
+### Completed
+- WindowId, component, root view, directory view, toolbar, location bar, navigation
+- Scratch drive (A:/B:) browsing via IndexedDB
+- Upload button with file picker (small inline + large via CAS)
+- Delete and rename buttons with confirmation dialogs
+- Single-click selection with visual highlight
+- Status line with drive quota display
+- Download button and download functionality (inline + CAS files)
+- Right-click context menu with Download, Rename, Delete
+- Double-click file preview for text and images (inline + CAS URL)
+- Preview overlay with close button (text as monospace, images scaled to fit)
+- Multi-select with Ctrl+click (toggle) and Shift+click (range)
+- Multi-delete and multi-download support
+- Help manual page (`help/file-viewer.md`)
 
 ## Plan
 
-(none yet)
+### Implementation Steps
+
+1. Add `FileBrowser` to `WindowId` enum (title "File Viewer", dock icon, min size)
+2. Create `src/components/file_browser.rs` with the Finder component
+3. Root view: drive icon grid (A:, B:, C:, U:) with usage stats
+4. Directory view: icon grid with file type icons, labels, sizes
+5. Toolbar: back, up, new folder, upload buttons
+6. Location bar: editable path with Enter-to-navigate
+7. Navigation: double-click folders, back/up history stack
+8. Status line: drive quota display (used/total/free)
+9. Add CSS for file browser
+10. Wire into `game.rs` with `GameWindow`
 
 ## Findings
 

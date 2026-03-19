@@ -81,6 +81,7 @@ The command parser, working directory, environment variables, and output formatt
 - `*` and `?` wildcard support in file specifications (via `vfs_fnmatch`)
 - Case-insensitive command names (matching DOS convention)
 - Command history (up/down arrow keys)
+- **Tab completion**: Press Tab to complete command names and file/directory paths. If the cursor is at the first token position, completes against command names. Otherwise, completes against file and directory names in the relevant directory (resolved from the working directory). If exactly one match, inserts it. If multiple matches, shows the list in the terminal output and completes the common prefix. Completion is case-insensitive (matching DOS convention). Directories are completed with a trailing `/`.
 - Output scrollback buffer
 - Pairs with Pascal compiler (Feature 31) for compile-and-run workflows
 - **Drag-and-drop upload**: Drop files or folders onto the terminal to upload to the current working directory. Folder structure is preserved. Uses shared drag-and-drop handler from Feature 37.
@@ -123,14 +124,26 @@ DIR [-w] [-p] [filespec]
 
 - **Feature 34: Virtual File System** — provides the backend VFS operations
 
-## Status: Not Started
+## Status: Done
 
 ## Plan
 
-(none yet)
+### Implementation Steps
+
+1. ~~Add `Terminal` variant to `WindowId` enum~~ ✓
+2. ~~Create `src/components/terminal.rs` with shell component~~ ✓
+3. ~~Add terminal CSS~~ ✓
+4. ~~Wire into `game.rs` with `GameWindow`~~ ✓
+5. ~~Implement core commands: VER, CLS, CD, DIR, TYPE, HELP, MKDIR, RMDIR, DEL, COPY, ATTRIB/CHMOD~~ ✓
+6. ~~Command history (up/down arrow)~~ ✓
+7. ~~Tab completion (command names + file paths)~~ ✓
+8. ~~FTP-style commands: GET, PUT~~ ✓
+9. ~~Client-side scratch drive support (A:, B: via IndexedDB)~~ ✓
 
 ## Findings
 
+- Component is `src/components/terminal.rs`, ~1500 lines
+- Scratch drive module is `src/scratch_drive.rs`, ~330 lines (IndexedDB-backed)
 - MSX-DOS 2 COMMAND2.COM source used as reference: https://www.msxarchive.nl/pub/msx/mirrors/msx2.com/sources/command.txt
 - Hardware-specific commands skipped: ASSIGN, BASIC, BUFFERS, CHKDSK, DISKCOPY, FIXDISK, FORMAT, MODE, PAUSE, RAMDISK, UNDEL, VERIFY
 - Batch file support (REM, PAUSE, IF, GOTO) deferred — can add later, especially once Pascal compiler exists

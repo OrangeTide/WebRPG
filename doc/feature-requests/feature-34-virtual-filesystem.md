@@ -31,7 +31,7 @@ See Feature 36 (VFS Terminal Shell) and Feature 37 (VFS File Browser) for UI acc
 
 (none)
 
-## Status: In Progress
+## Status: Done
 
 ## Plan
 
@@ -78,36 +78,19 @@ CREATE TABLE vfs_files (
 CREATE UNIQUE INDEX idx_vfs_files_c ON vfs_files(session_id, path) WHERE drive = 'C';
 CREATE UNIQUE INDEX idx_vfs_files_u ON vfs_files(user_id, path) WHERE drive = 'U';
 CREATE INDEX idx_vfs_files_media ON vfs_files(media_hash) WHERE media_hash IS NOT NULL;
-
--- Archived C: drive contents (retained 30 days after game deletion)
-CREATE TABLE vfs_archive (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    original_session_id INTEGER NOT NULL,
-    session_name TEXT NOT NULL,             -- snapshot of session name at deletion time
-    path TEXT NOT NULL,
-    size_bytes INTEGER NOT NULL DEFAULT 0,
-    content_type VARCHAR(100),
-    inline_data BLOB,
-    media_hash VARCHAR(64),
-    archived_at INTEGER NOT NULL DEFAULT (unixepoch()),
-    expires_at INTEGER NOT NULL              -- archived_at + 30 days
-);
-
-CREATE INDEX idx_vfs_archive_expires ON vfs_archive(expires_at);
-CREATE INDEX idx_vfs_archive_session ON vfs_archive(original_session_id);
 ```
-
-Note: The actual migration still includes `connection_id` and scratch drive support. The next implementation step (step 5) is a cleanup migration to remove these columns.
 
 ### Permissions
 
 - Unix-style `rwx` permission bits stored as `mode` column (integer bitmask)
-- Owner = GM, other = everyone else in scope. Group bits (070) reserved.
+- Three scopes: **Owner** = GM, **Group** = registered players in session, **Other** = anyone connected
+- No `gid` column — group membership is derived from `session_players` at check time
+- Only `r` (read) and `w` (write/delete) are enforced server-side
+- The `x` bit is stored but not checked — COMMAND.COM and the Finder display it as a visual aesthetic
 - Default file mode: `0o666` (rw-rw-rw-), default dir mode: `0o777` (rwxrwxrwx)
 - Umask applied on creation (default `0o000` — no bits masked)
 - GM always has full access regardless of permissions
 - `chmod` is GM-only
-- `r` controls read, `w` controls write/delete, `x` on directories controls listing
 
 ### Implementation Steps
 
@@ -115,7 +98,7 @@ Note: The actual migration still includes `connection_id` and scratch drive supp
 2. ~~Add Diesel models and schema module for `vfs_files` and `vfs_archive`~~ ✓
 3. ~~Build a `vfs` Rust module with:~~ ✓
    - ~~Path parser (drive letter + Unix path normalization)~~ ✓
-   - ~~Drive enum with scope rules (connection/session/user)~~ ✓
+   - ~~Drive enum with scope rules (session/user)~~ ✓
    - ~~CRUD operations (create, read, update, delete, list, stat, copy, rename)~~ ✓
    - ~~Size quota enforcement per drive~~ ✓
    - ~~Inline vs CAS threshold logic~~ ✓
@@ -123,9 +106,9 @@ Note: The actual migration still includes `connection_id` and scratch drive supp
    - ~~Unix-style permissions (rwx, umask, chmod)~~ ✓
    - ~~fnmatch pattern matching~~ ✓
 4. ~~Scratch drive server-side support~~ → **Replaced**: scratch drives are now client-side (IndexedDB)
-5. Remove `connection_id` column and scratch drive DB support (cleanup migration)
-6. Leptos server functions for C: and U: drives (single-file CRUD)
-7. Client-side scratch drive implementation (IndexedDB, `#[cfg(feature = "hydrate")]`)
+5. ~~Remove `connection_id` column, scratch drive DB support, and `vfs_archive` table (cleanup migration)~~ ✓
+6. ~~Leptos server functions for C: and U: drives (single-file CRUD)~~ ✓
+7. ~~Client-side scratch drive implementation (IndexedDB, `#[cfg(feature = "hydrate")]`)~~ ✓
 
 ### Protocol Design
 
@@ -171,7 +154,7 @@ See Feature 39 (VFS Upload & ZIP) for multi-file upload, ZIP download/extraction
 - Multi-step operations (directory rename, overwrite) don't use explicit transactions. Similar to early DOS/CP/M behavior. A single-query `UPDATE ... SET path = :new || substr(path, length(:old)+1)` approach would make directory renames atomic.
 - Open file tracking and unlinking of referenced files is a future work item to explore.
 - `mode` column added via migration 0006: `ALTER TABLE vfs_files ADD COLUMN mode INTEGER NOT NULL DEFAULT 438` (438 = 0o666).
-- 79 tests covering path parsing, DB operations, permissions, fnmatch, and copy.
+- 79 tests covering path parsing, DB operations, permissions (including group), fnmatch, and copy.
 - **Scratch drives moved to client-side**: Originally designed as server-side DB storage with `connection_id`. Moved to browser IndexedDB because: (1) scratch drives are inherently per-tab, (2) the COMMAND.COM shell is client-side so it can access IndexedDB directly, (3) eliminates the need for access tokens bridging stateless server functions to stateful connections, (4) reduces server load and DB storage.
 - **COMMAND.COM shell is client-side**: The shell parser runs in WASM. Server functions already enforce security on C:/U: operations, so a server-side shell adds no security benefit. The Finder (Feature 37) faces the same architecture — both are client-side UIs calling server functions. Shell state (cwd, env vars, history) is naturally per-tab.
 - Browser storage options considered: `sessionStorage` (5-10 MB, string-only), `IndexedDB` (large capacity, binary-friendly — chosen), `OPFS` (newer, less portable).
