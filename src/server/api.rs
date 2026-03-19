@@ -5,6 +5,32 @@ use crate::models::{
     VfsFileData,
 };
 
+/// Set a JWT authentication cookie on the current response.
+#[cfg(feature = "ssr")]
+fn set_jwt_cookie(token: &str) -> Result<(), ServerFnError> {
+    let response = expect_context::<leptos_axum::ResponseOptions>();
+    response.insert_header(
+        axum::http::header::SET_COOKIE,
+        axum::http::HeaderValue::from_str(&format!(
+            "token={token}; HttpOnly; Path=/; Max-Age=86400; SameSite=Strict"
+        ))
+        .map_err(|e| ServerFnError::new(e.to_string()))?,
+    );
+    Ok(())
+}
+
+/// Clear the JWT authentication cookie (logout).
+#[cfg(feature = "ssr")]
+fn clear_jwt_cookie() {
+    let response = expect_context::<leptos_axum::ResponseOptions>();
+    response.insert_header(
+        axum::http::header::SET_COOKIE,
+        axum::http::HeaderValue::from_static(
+            "token=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict",
+        ),
+    );
+}
+
 #[server]
 pub async fn login(username: String, password: String) -> Result<UserInfo, ServerFnError> {
     use crate::auth;
@@ -41,16 +67,7 @@ pub async fn login(username: String, password: String) -> Result<UserInfo, Serve
 
     let token = auth::generate_jwt(user.id, &user.username)
         .map_err(|e| ServerFnError::new(e.to_string()))?;
-
-    // Set JWT as HttpOnly cookie
-    let response = expect_context::<leptos_axum::ResponseOptions>();
-    response.insert_header(
-        axum::http::header::SET_COOKIE,
-        axum::http::HeaderValue::from_str(&format!(
-            "token={token}; HttpOnly; Path=/; Max-Age=86400; SameSite=Strict"
-        ))
-        .map_err(|e| ServerFnError::new(e.to_string()))?,
-    );
+    set_jwt_cookie(&token)?;
 
     Ok(UserInfo {
         id: user.id,
@@ -117,15 +134,7 @@ pub async fn signup(
 
     let token = auth::generate_jwt(user.id, &user.username)
         .map_err(|e| ServerFnError::new(e.to_string()))?;
-
-    let response = expect_context::<leptos_axum::ResponseOptions>();
-    response.insert_header(
-        axum::http::header::SET_COOKIE,
-        axum::http::HeaderValue::from_str(&format!(
-            "token={token}; HttpOnly; Path=/; Max-Age=86400; SameSite=Strict"
-        ))
-        .map_err(|e| ServerFnError::new(e.to_string()))?,
-    );
+    set_jwt_cookie(&token)?;
 
     Ok(UserInfo {
         id: user.id,
@@ -136,13 +145,7 @@ pub async fn signup(
 
 #[server]
 pub async fn logout() -> Result<(), ServerFnError> {
-    let response = expect_context::<leptos_axum::ResponseOptions>();
-    response.insert_header(
-        axum::http::header::SET_COOKIE,
-        axum::http::HeaderValue::from_static(
-            "token=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict",
-        ),
-    );
+    clear_jwt_cookie();
     Ok(())
 }
 
@@ -1504,6 +1507,32 @@ fn vfs_scope_for(
     }
 }
 
+/// Common VFS preamble: authenticate, get DB connection, parse drive, build scope.
+/// Returns (connection, drive, scope, user_id) or an error.
+#[cfg(feature = "ssr")]
+async fn vfs_auth_scope(
+    drive_str: &str,
+    session_id: Option<i32>,
+) -> Result<
+    (
+        diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
+        crate::vfs::Drive,
+        crate::vfs::VfsScope,
+        i32,
+    ),
+    ServerFnError,
+> {
+    use crate::db;
+
+    let user = get_current_user()
+        .await?
+        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
+    let mut conn = db::get_conn();
+    let drive = parse_drive(drive_str)?;
+    let scope = vfs_scope_for(drive, session_id, user.id, &mut conn)?;
+    Ok((conn, drive, scope, user.id))
+}
+
 /// Broadcast a VfsChanged notification for C: drive modifications.
 #[cfg(feature = "ssr")]
 fn vfs_broadcast(session_id: Option<i32>, path: &str, action: &str) {
@@ -1528,15 +1557,10 @@ pub async fn vfs_list_dir(
     path: String,
     session_id: Option<i32>,
 ) -> Result<Vec<VfsEntryInfo>, ServerFnError> {
-    use crate::db;
     use crate::vfs;
 
-    let user = get_current_user()
-        .await?
-        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
-    let conn = &mut db::get_conn();
-    let drive = parse_drive(&drive)?;
-    let scope = vfs_scope_for(drive, session_id, user.id, conn)?;
+    let (mut conn, drive, scope, _user_id) = vfs_auth_scope(&drive, session_id).await?;
+    let conn = &mut conn;
     let parsed = vfs::VfsPath::parse(&format!("{}:{}", drive.letter(), path))
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
@@ -1565,15 +1589,10 @@ pub async fn vfs_stat_file(
     path: String,
     session_id: Option<i32>,
 ) -> Result<VfsEntryInfo, ServerFnError> {
-    use crate::db;
     use crate::vfs;
 
-    let user = get_current_user()
-        .await?
-        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
-    let conn = &mut db::get_conn();
-    let drive = parse_drive(&drive)?;
-    let scope = vfs_scope_for(drive, session_id, user.id, conn)?;
+    let (mut conn, drive, scope, _user_id) = vfs_auth_scope(&drive, session_id).await?;
+    let conn = &mut conn;
     let parsed = vfs::VfsPath::parse(&format!("{}:{}", drive.letter(), path))
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
@@ -1600,15 +1619,10 @@ pub async fn vfs_read_file(
     path: String,
     session_id: Option<i32>,
 ) -> Result<VfsFileData, ServerFnError> {
-    use crate::db;
     use crate::vfs;
 
-    let user = get_current_user()
-        .await?
-        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
-    let conn = &mut db::get_conn();
-    let drive = parse_drive(&drive)?;
-    let scope = vfs_scope_for(drive, session_id, user.id, conn)?;
+    let (mut conn, drive, scope, _user_id) = vfs_auth_scope(&drive, session_id).await?;
+    let conn = &mut conn;
     let parsed = vfs::VfsPath::parse(&format!("{}:{}", drive.letter(), path))
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
@@ -1641,15 +1655,10 @@ pub async fn vfs_write_file(
     content_type: Option<String>,
     session_id: Option<i32>,
 ) -> Result<(), ServerFnError> {
-    use crate::db;
     use crate::vfs;
 
-    let user = get_current_user()
-        .await?
-        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
-    let conn = &mut db::get_conn();
-    let drive = parse_drive(&drive)?;
-    let scope = vfs_scope_for(drive, session_id, user.id, conn)?;
+    let (mut conn, drive, scope, user_id) = vfs_auth_scope(&drive, session_id).await?;
+    let conn = &mut conn;
     let parsed = vfs::VfsPath::parse(&format!("{}:{}", drive.letter(), path))
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
@@ -1661,7 +1670,7 @@ pub async fn vfs_write_file(
         &data,
         content_type.as_deref(),
         None,
-        user.id,
+        user_id,
         true,
     )
     .map_err(|e| ServerFnError::new(e.to_string()))?;
@@ -1680,15 +1689,10 @@ pub async fn vfs_write_cas(
     content_type: Option<String>,
     session_id: Option<i32>,
 ) -> Result<(), ServerFnError> {
-    use crate::db;
     use crate::vfs;
 
-    let user = get_current_user()
-        .await?
-        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
-    let conn = &mut db::get_conn();
-    let drive = parse_drive(&drive)?;
-    let scope = vfs_scope_for(drive, session_id, user.id, conn)?;
+    let (mut conn, drive, scope, user_id) = vfs_auth_scope(&drive, session_id).await?;
+    let conn = &mut conn;
     let parsed = vfs::VfsPath::parse(&format!("{}:{}", drive.letter(), path))
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
@@ -1715,7 +1719,7 @@ pub async fn vfs_write_cas(
         &dummy,
         content_type.as_deref(),
         Some(&media_hash),
-        user.id,
+        user_id,
         true,
     )
     .map_err(|e| ServerFnError::new(e.to_string()))?;
@@ -1731,19 +1735,14 @@ pub async fn vfs_mkdir_dir(
     path: String,
     session_id: Option<i32>,
 ) -> Result<(), ServerFnError> {
-    use crate::db;
     use crate::vfs;
 
-    let user = get_current_user()
-        .await?
-        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
-    let conn = &mut db::get_conn();
-    let drive = parse_drive(&drive)?;
-    let scope = vfs_scope_for(drive, session_id, user.id, conn)?;
+    let (mut conn, drive, scope, user_id) = vfs_auth_scope(&drive, session_id).await?;
+    let conn = &mut conn;
     let parsed = vfs::VfsPath::parse(&format!("{}:{}", drive.letter(), path))
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-    vfs::vfs_mkdir(conn, &scope, drive, &parsed.path, user.id, true)
+    vfs::vfs_mkdir(conn, &scope, drive, &parsed.path, user_id, true)
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     vfs_broadcast(session_id, &parsed.path, "mkdir");
@@ -1757,15 +1756,10 @@ pub async fn vfs_delete_file(
     path: String,
     session_id: Option<i32>,
 ) -> Result<(), ServerFnError> {
-    use crate::db;
     use crate::vfs;
 
-    let user = get_current_user()
-        .await?
-        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
-    let conn = &mut db::get_conn();
-    let drive = parse_drive(&drive)?;
-    let scope = vfs_scope_for(drive, session_id, user.id, conn)?;
+    let (mut conn, drive, scope, _user_id) = vfs_auth_scope(&drive, session_id).await?;
+    let conn = &mut conn;
     let parsed = vfs::VfsPath::parse(&format!("{}:{}", drive.letter(), path))
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
@@ -1784,21 +1778,16 @@ pub async fn vfs_rename_file(
     new_path: String,
     session_id: Option<i32>,
 ) -> Result<(), ServerFnError> {
-    use crate::db;
     use crate::vfs;
 
-    let user = get_current_user()
-        .await?
-        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
-    let conn = &mut db::get_conn();
-    let drive = parse_drive(&drive)?;
-    let scope = vfs_scope_for(drive, session_id, user.id, conn)?;
+    let (mut conn, drive, scope, user_id) = vfs_auth_scope(&drive, session_id).await?;
+    let conn = &mut conn;
     let old = vfs::VfsPath::parse(&format!("{}:{}", drive.letter(), old_path))
         .map_err(|e| ServerFnError::new(e.to_string()))?;
     let new = vfs::VfsPath::parse(&format!("{}:{}", drive.letter(), new_path))
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-    vfs::vfs_rename(conn, &scope, drive, &old.path, &new.path, user.id)
+    vfs::vfs_rename(conn, &scope, drive, &old.path, &new.path, user_id)
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     vfs_broadcast(session_id, &old.path, "rename");
@@ -1814,24 +1803,19 @@ pub async fn vfs_copy_file(
     dst_path: String,
     session_id: Option<i32>,
 ) -> Result<(), ServerFnError> {
-    use crate::db;
     use crate::vfs;
 
-    let user = get_current_user()
-        .await?
-        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
-    let conn = &mut db::get_conn();
-    let src_drv = parse_drive(&src_drive)?;
+    let (mut conn, src_drv, src_scope, user_id) = vfs_auth_scope(&src_drive, session_id).await?;
+    let conn = &mut conn;
     let dst_drv = parse_drive(&dst_drive)?;
-    let src_scope = vfs_scope_for(src_drv, session_id, user.id, conn)?;
-    let dst_scope = vfs_scope_for(dst_drv, session_id, user.id, conn)?;
+    let dst_scope = vfs_scope_for(dst_drv, session_id, user_id, conn)?;
     let src = vfs::VfsPath::parse(&format!("{}:{}", src_drv.letter(), src_path))
         .map_err(|e| ServerFnError::new(e.to_string()))?;
     let dst = vfs::VfsPath::parse(&format!("{}:{}", dst_drv.letter(), dst_path))
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     vfs::vfs_copy(
-        conn, &src_scope, src_drv, &src.path, &dst_scope, dst_drv, &dst.path, user.id, true,
+        conn, &src_scope, src_drv, &src.path, &dst_scope, dst_drv, &dst.path, user_id, true,
     )
     .map_err(|e| ServerFnError::new(e.to_string()))?;
 
@@ -1850,19 +1834,14 @@ pub async fn vfs_chmod_file(
     mode: i32,
     session_id: Option<i32>,
 ) -> Result<(), ServerFnError> {
-    use crate::db;
     use crate::vfs;
 
-    let user = get_current_user()
-        .await?
-        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
-    let conn = &mut db::get_conn();
-    let drive = parse_drive(&drive)?;
-    let scope = vfs_scope_for(drive, session_id, user.id, conn)?;
+    let (mut conn, drive, scope, user_id) = vfs_auth_scope(&drive, session_id).await?;
+    let conn = &mut conn;
     let parsed = vfs::VfsPath::parse(&format!("{}:{}", drive.letter(), path))
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-    vfs::vfs_chmod(conn, &scope, drive, &parsed.path, mode, user.id)
+    vfs::vfs_chmod(conn, &scope, drive, &parsed.path, mode, user_id)
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     vfs_broadcast(session_id, &parsed.path, "chmod");
@@ -1875,15 +1854,10 @@ pub async fn vfs_get_drive_info(
     drive: String,
     session_id: Option<i32>,
 ) -> Result<crate::models::VfsDriveInfo, ServerFnError> {
-    use crate::db;
     use crate::vfs;
 
-    let user = get_current_user()
-        .await?
-        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
-    let conn = &mut db::get_conn();
-    let drive = parse_drive(&drive)?;
-    let scope = vfs_scope_for(drive, session_id, user.id, conn)?;
+    let (mut conn, drive, scope, _user_id) = vfs_auth_scope(&drive, session_id).await?;
+    let conn = &mut conn;
 
     let used_bytes =
         vfs::vfs_drive_usage(conn, &scope, drive).map_err(|e| ServerFnError::new(e.to_string()))?;
