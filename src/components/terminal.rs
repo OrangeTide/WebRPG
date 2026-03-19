@@ -1225,8 +1225,7 @@ async fn cmd_put(
                 }
             }
         } else {
-            match upload_large_file(&file, &dest.drive, &file_path, size, content_type, sid).await
-            {
+            match upload_large_file(&file, &dest.drive, &file_path, size, content_type, sid).await {
                 Ok(()) => {
                     output.push(format!(
                         "Uploaded {} ({} bytes) to {}:{}",

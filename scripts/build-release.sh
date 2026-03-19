@@ -8,6 +8,7 @@ BIN_TARGET="x86_64-unknown-linux-musl"
 RELEASE_NAME="webrpg-${VERSION}"
 RELEASE_DIR="target/release-package"
 TARBALL="target/${RELEASE_NAME}.tar.gz"
+SRC_TARBALL="target/${RELEASE_NAME}-src.tar.gz"
 
 echo "Building WebRPG v${VERSION} release (static musl binary)..."
 
@@ -40,5 +41,11 @@ EOF
 # Tar it up
 tar -czf "$TARBALL" -C "$RELEASE_DIR" "$RELEASE_NAME"
 
+# Source code snapshot via git archive
+echo "Creating source snapshot..."
+git archive --format=tar.gz --prefix="${RELEASE_NAME}-src/" -o "$SRC_TARBALL" HEAD
+
 echo "Release tarball: $TARBALL"
 echo "Size: $(du -h "$TARBALL" | cut -f1)"
+echo "Source tarball:  $SRC_TARBALL"
+echo "Size: $(du -h "$SRC_TARBALL" | cut -f1)"
