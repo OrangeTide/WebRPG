@@ -27,7 +27,7 @@ if [ $# -ge 2 ]; then
     TARBALL="$2"
 else
     cd "$(dirname "$0")/.."
-    TARBALL=$(ls -t target/webrpg-*.tar.gz 2>/dev/null | head -1)
+    TARBALL=$(ls -t target/webrpg-*.tar.gz 2>/dev/null | grep -v -- '-src\.tar\.gz$' | head -1)
     if [ -z "$TARBALL" ]; then
         echo "Error: No release tarball found. Run scripts/build-release.sh first."
         exit 1
