@@ -5,6 +5,7 @@ use crate::components::charsheet::{CharacterEditorPanel, CharacterSelection};
 use crate::components::chat::ChatPanel;
 use crate::components::creatures::CreaturePanel;
 use crate::components::file_browser::FileBrowserPanel;
+use crate::components::help_viewer::{HelpContext, HelpViewerPanel};
 use crate::components::initiative::InitiativeTracker;
 use crate::components::inventory::InventoryPanel;
 use crate::components::map::MapCanvas;
@@ -226,6 +227,7 @@ pub fn GamePage() -> impl IntoView {
     };
 
     provide_context(ctx.clone());
+    provide_context(HelpContext::new());
 
     #[cfg(feature = "hydrate")]
     {
@@ -473,6 +475,9 @@ pub fn GamePage() -> impl IntoView {
                 </GameWindow>
                 <GameWindow id=WindowId::FileBrowser>
                     <FileBrowserPanel />
+                </GameWindow>
+                <GameWindow id=WindowId::HelpViewer>
+                    <HelpViewerPanel />
                 </GameWindow>
                 <DynamicCharacterWindows />
             </WindowManager>
