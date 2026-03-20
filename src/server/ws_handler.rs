@@ -800,6 +800,63 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
 
 // ===== Helper functions =====
 
+/// Resolve the facing-arrow color for a token.
+///
+/// - Player character → that player's ping_color
+/// - NPC character (owned by GM) → the token's own color
+/// - Creature → GM's ping_color
+/// - Generic token → map default_token_color
+fn resolve_facing_color(
+    conn: &mut diesel::SqliteConnection,
+    session_id: i32,
+    character_id: Option<i32>,
+    creature_id: Option<i32>,
+    token_color: &str,
+    map_default_color: &str,
+) -> String {
+    use crate::schema::{characters, sessions, users};
+    use diesel::prelude::*;
+
+    let gm_user_id: i32 = sessions::table
+        .find(session_id)
+        .select(sessions::gm_user_id)
+        .first(conn)
+        .unwrap_or(0);
+
+    if let Some(cid) = character_id {
+        // Look up the character's owning user
+        if let Ok(char_user_id) = characters::table
+            .find(cid)
+            .select(characters::user_id)
+            .first::<i32>(conn)
+        {
+            if char_user_id != gm_user_id {
+                // Player-owned character → player's ping color
+                return users::table
+                    .find(char_user_id)
+                    .select(users::ping_color)
+                    .first::<String>(conn)
+                    .unwrap_or_else(|_| token_color.to_string());
+            } else {
+                // NPC (GM-owned character) → token's own color
+                return token_color.to_string();
+            }
+        }
+    }
+
+    if creature_id.is_some() {
+        // Creature → GM's ping color
+        return users::table
+            .find(gm_user_id)
+            .select(users::ping_color)
+            .first::<String>(conn)
+            .unwrap_or_else(|_| map_default_color.to_string());
+    }
+
+    // Generic token → map default color
+    map_default_color.to_string()
+}
+
 fn is_gm(session_id: i32, user_id: i32) -> bool {
     use crate::db;
     use crate::schema::sessions;
@@ -851,6 +908,7 @@ fn build_snapshot(session_id: i32, user_id: i32) -> crate::ws::messages::GameSta
             session.active_map_id = Some(map_id);
         }
 
+        let default_token_color = m.default_token_color.clone();
         let map_info = crate::models::MapInfo {
             id: m.id,
             name: m.name,
@@ -858,6 +916,7 @@ fn build_snapshot(session_id: i32, user_id: i32) -> crate::ws::messages::GameSta
             height: m.height,
             cell_size: m.cell_size,
             background_url: m.background_url,
+            default_token_color: m.default_token_color,
         };
 
         let db_tokens: Vec<Token> = tokens::table
@@ -881,6 +940,15 @@ fn build_snapshot(session_id: i32, user_id: i32) -> crate::ws::messages::GameSta
                     .and_then(|i| serde_json::from_str(&i.conditions_json).ok())
                     .unwrap_or_default();
 
+                let facing_color = Some(resolve_facing_color(
+                    conn,
+                    session_id,
+                    t.character_id,
+                    t.creature_id,
+                    &t.color,
+                    &default_token_color,
+                ));
+
                 crate::models::TokenInfo {
                     id: t.id,
                     label: t.label,
@@ -896,6 +964,7 @@ fn build_snapshot(session_id: i32, user_id: i32) -> crate::ws::messages::GameSta
                     conditions,
                     character_id: t.character_id,
                     creature_id: t.creature_id,
+                    facing_color,
                 }
             })
             .collect();
@@ -1065,10 +1134,10 @@ fn place_token(
     let conn = &mut db::get_conn();
 
     // Get active map for this session
-    let map_id: i32 = maps::table
+    let (map_id, map_default_color): (i32, String) = maps::table
         .filter(maps::session_id.eq(session_id))
         .order(maps::id.desc())
-        .select(maps::id)
+        .select((maps::id, maps::default_token_color))
         .first(conn)
         .map_err(|_| "No active map for this session".to_string())?;
 
@@ -1129,6 +1198,15 @@ fn place_token(
         (None, None)
     };
 
+    let facing_color = Some(resolve_facing_color(
+        conn,
+        session_id,
+        character_id,
+        creature_id,
+        color,
+        &map_default_color,
+    ));
+
     Ok(crate::models::TokenInfo {
         id: token_id,
         label: label.to_string(),
@@ -1144,6 +1222,7 @@ fn place_token(
         conditions: vec![],
         character_id,
         creature_id,
+        facing_color,
     })
 }
 
@@ -1207,6 +1286,8 @@ fn load_map_with_tokens(
         .first(conn)
         .map_err(|_| "Map not found".to_string())?;
 
+    let session_id = m.session_id;
+    let default_token_color = m.default_token_color.clone();
     let map_info = crate::models::MapInfo {
         id: m.id,
         name: m.name,
@@ -1214,6 +1295,7 @@ fn load_map_with_tokens(
         height: m.height,
         cell_size: m.cell_size,
         background_url: m.background_url,
+        default_token_color: m.default_token_color,
     };
 
     let db_tokens: Vec<Token> = tokens::table
@@ -1237,6 +1319,15 @@ fn load_map_with_tokens(
                 .and_then(|i| serde_json::from_str(&i.conditions_json).ok())
                 .unwrap_or_default();
 
+            let facing_color = Some(resolve_facing_color(
+                conn,
+                session_id,
+                t.character_id,
+                t.creature_id,
+                &t.color,
+                &default_token_color,
+            ));
+
             crate::models::TokenInfo {
                 id: t.id,
                 label: t.label,
@@ -1252,6 +1343,7 @@ fn load_map_with_tokens(
                 conditions,
                 character_id: t.character_id,
                 creature_id: t.creature_id,
+                facing_color,
             }
         })
         .collect();
