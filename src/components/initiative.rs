@@ -316,6 +316,19 @@ pub fn InitiativeTracker() -> impl IntoView {
                                     on:click=move |_| set_current_turn(idx)
                                 >{entry.label.clone()}</span>
                                 <button
+                                    class="init-find"
+                                    data-tooltip="Find on Map"
+                                    on:click={
+                                        let label = entry.label.clone();
+                                        move |_| ctx.center_on_token_label.set(Some(label.clone()))
+                                    }
+                                >
+                                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </button>
+                                <button
                                     class="init-remove"
                                     on:click=move |_| remove_entry(idx)
                                 >

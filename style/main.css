@@ -1809,6 +1809,18 @@ h1, h2, h3, h4 {
     text-decoration: underline;
 }
 
+.init-find {
+    padding: 0 0.3em;
+    opacity: 0.5;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: var(--color-text-dim);
+    display: inline-flex;
+    align-items: center;
+}
+.init-find:hover { opacity: 1; color: #fff; }
+
 .init-remove {
     font-size: 0.7rem;
     padding: 0 0.3em;

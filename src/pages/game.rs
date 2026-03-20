@@ -123,6 +123,8 @@ pub struct GameContext {
     pub map_view_center: RwSignal<(f32, f32)>,
     /// When set, the map component centers on the token with this character_id.
     pub center_on_character: RwSignal<Option<i32>>,
+    /// When set, the map component centers on the first token matching this label.
+    pub center_on_token_label: RwSignal<Option<String>>,
     /// When set, the Creatures window is brought to front and scrolls to this creature_id.
     pub focus_creature: RwSignal<Option<i32>>,
     /// Whether initiative rolls from character sheets are locked.
@@ -391,6 +393,7 @@ pub fn GamePage() -> impl IntoView {
         viewport_override: RwSignal::new(None),
         map_view_center: RwSignal::new((0.0, 0.0)),
         center_on_character: RwSignal::new(None),
+        center_on_token_label: RwSignal::new(None),
         focus_creature: RwSignal::new(None),
         initiative_locked: RwSignal::new(false),
         loading: RwSignal::new(Some(LoadingState::INITIALIZING)),
