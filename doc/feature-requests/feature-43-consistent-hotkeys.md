@@ -17,4 +17,9 @@ Use a consistent set of hot keys in all apps. Default to native keys to match wh
 
 ## Findings
 
-(none yet)
+No unified hotkey system has been implemented yet:
+- The map component (`src/components/map.rs`) has its own keydown handler with tool shortcuts (S, M, space, P, G, T, Escape, Delete) but these are map-specific, not part of a cross-app hotkey framework.
+- The file browser (`src/components/file_browser.rs`) has a single `ctrl_key() || meta_key()` check (line 816) but no systematic Ctrl/Cmd+A/C/X/V handling for file operations.
+- Other components with keydown handlers (charsheet, creatures, terminal, initiative, chat) handle keys independently with no shared hotkey infrastructure.
+- No `HotkeyManager`, `register_hotkey`, or centralized key-binding system exists.
+- The Plan section was added in commit 7bd390b but no code changes were made.

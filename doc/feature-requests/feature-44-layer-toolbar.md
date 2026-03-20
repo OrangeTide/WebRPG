@@ -72,4 +72,8 @@ Layer visibility is temporary client-side state (not persisted). Defaults are lo
 
 ## Findings
 
-(none yet)
+No layer support exists in the codebase:
+- The `tokens` table in `src/schema.rs` has no `layer` column.
+- No layer toolbar UI, layer visibility state, or layer switching logic in `src/components/map.rs`.
+- No `layer` field in `TokenInfo` DTO or `PlaceToken`/`MoveTokens` messages.
+- The prerequisite Feature 32 (Map Viewport Panning) is complete, so this feature is unblocked.

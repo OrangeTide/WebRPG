@@ -40,4 +40,9 @@ Each map window has its own layer toolbar state (active layer, layer visibility)
 
 ## Findings
 
-(none yet)
+No multi-map-window support exists:
+- The map component renders a single map view; there is no mechanism to open multiple independent map windows.
+- No `MoveTokenToMap` or equivalent cross-map token transfer message in `src/ws/messages.rs`.
+- No global drag state or cross-window drag-and-drop coordination.
+- No broadcast map indicator distinguishing the active map from secondary windows.
+- The prerequisite Feature 44 (Layer Toolbar) is itself not started, so this feature remains blocked.
