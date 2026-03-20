@@ -1169,6 +1169,8 @@ h1, h2, h3, h4 {
     cursor: pointer;
     font-size: 0.9rem;
     padding: 0.2rem 0.4rem;
+    display: inline-flex;
+    align-items: center;
 }
 
 .btn-delete:hover {
@@ -1782,6 +1784,8 @@ h1, h2, h3, h4 {
     background: none;
     border: none;
     color: var(--color-text-dim);
+    display: inline-flex;
+    align-items: center;
 }
 
 .init-remove:hover {
@@ -1906,6 +1910,17 @@ h1, h2, h3, h4 {
     font-size: 0.75rem;
     padding: 0.15em 0.5em;
 }
+.inv-remove {
+    background: none;
+    border: none;
+    color: var(--color-text-disabled);
+    cursor: pointer;
+    opacity: 0.5;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.3em;
+}
+.inv-remove:hover { opacity: 1; color: var(--color-accent); }
 
 /* === Media Browser === */
 .media-browser-overlay {
