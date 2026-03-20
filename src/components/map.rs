@@ -80,7 +80,8 @@ pub fn MapCanvas() -> impl IntoView {
 
     // --- Rotate tool state ---
     let rotate_anchor_angle = RwSignal::new(Option::<f64>::None);
-    let rotate_initial_rotations = RwSignal::new(Vec::<(i32, f32)>::new());
+    // (id, initial_rotation, initial_x, initial_y) — positions in world pixels
+    let rotate_initial_state = RwSignal::new(Vec::<(i32, f32, f64, f64)>::new());
     let rotate_center = RwSignal::new((0.0_f64, 0.0_f64));
 
     // --- Viewport state ---
@@ -801,8 +802,19 @@ pub fn MapCanvas() -> impl IntoView {
                             let anchor = (wy - center_y).atan2(wx - center_x);
                             rotate_anchor_angle.set(Some(anchor));
                             rotate_center.set((center_x, center_y));
-                            rotate_initial_rotations
-                                .set(selected_tokens.iter().map(|t| (t.id, t.rotation)).collect());
+                            rotate_initial_state.set(
+                                selected_tokens
+                                    .iter()
+                                    .map(|t| {
+                                        (
+                                            t.id,
+                                            t.rotation,
+                                            (t.x as f64 + 0.5) * cell,
+                                            (t.y as f64 + 0.5) * cell,
+                                        )
+                                    })
+                                    .collect(),
+                            );
                             set_dragging.set(true);
                         }
                     }
@@ -907,15 +919,30 @@ pub fn MapCanvas() -> impl IntoView {
                     MapTool::Rotate => {
                         if dragging.get() {
                             if let Some(anchor) = rotate_anchor_angle.get() {
+                                let map_data = map.get();
+                                let Some(m) = map_data else { return };
+                                let cell = m.cell_size as f64;
                                 let (cx, cy) = rotate_center.get();
                                 let current_angle = (wy - cy).atan2(wx - cx);
                                 let delta = current_angle - anchor;
-                                let initials = rotate_initial_rotations.get();
+                                let cos_d = delta.cos();
+                                let sin_d = delta.sin();
+                                let initials = rotate_initial_state.get();
+                                let multi = initials.len() > 1;
                                 tokens.update(|ts| {
                                     for t in ts.iter_mut() {
-                                        if let Some(&(_, init_rot)) =
-                                            initials.iter().find(|(id, _)| *id == t.id)
+                                        if let Some(&(_, init_rot, ix, iy)) =
+                                            initials.iter().find(|(id, ..)| *id == t.id)
                                         {
+                                            if multi {
+                                                // Orbit position around group center
+                                                let rx = ix - cx;
+                                                let ry = iy - cy;
+                                                let new_wx = cx + rx * cos_d - ry * sin_d;
+                                                let new_wy = cy + rx * sin_d + ry * cos_d;
+                                                t.x = (new_wx / cell - 0.5) as f32;
+                                                t.y = (new_wy / cell - 0.5) as f32;
+                                            }
                                             t.rotation = init_rot + delta as f32;
                                         }
                                     }
@@ -1012,21 +1039,28 @@ pub fn MapCanvas() -> impl IntoView {
                     if rotate_anchor_angle.get().is_some() {
                         let sel = selected_ids.get();
                         let tokens_data = tokens.get();
-                        let rotations: Vec<(i32, f32)> = tokens_data
-                            .iter()
-                            .filter(|t| sel.contains(&t.id))
-                            .map(|t| (t.id, t.rotation))
-                            .collect();
-                        if !rotations.is_empty() {
-                            send.with_value(|f| {
-                                if let Some(f) = f {
+                        let selected: Vec<_> =
+                            tokens_data.iter().filter(|t| sel.contains(&t.id)).collect();
+                        let rotations: Vec<(i32, f32)> =
+                            selected.iter().map(|t| (t.id, t.rotation)).collect();
+                        send.with_value(|f| {
+                            if let Some(f) = f {
+                                // Only send position changes for multi-token orbit
+                                if selected.len() > 1 {
+                                    let moves: Vec<(i32, f32, f32)> =
+                                        selected.iter().map(|t| (t.id, t.x, t.y)).collect();
+                                    if !moves.is_empty() {
+                                        f(ClientMessage::MoveTokens { moves });
+                                    }
+                                }
+                                if !rotations.is_empty() {
                                     f(ClientMessage::RotateTokens { rotations });
                                 }
-                            });
-                        }
+                            }
+                        });
                     }
                     rotate_anchor_angle.set(None);
-                    rotate_initial_rotations.set(Vec::new());
+                    rotate_initial_state.set(Vec::new());
                     set_dragging.set(false);
                 }
             }
@@ -1098,9 +1132,21 @@ pub fn MapCanvas() -> impl IntoView {
                         measure_end.set(None);
                         measure_cursor.set(None);
                     }
-                    "g" | "G" => snap_to_grid.update(|v| *v = !*v),
+                    "g" | "G" => {
+                        snap_to_grid.update(|v| *v = !*v);
+                        if snap_to_grid.get()
+                            && active_tool.get() == MapTool::Rotate
+                            && selected_ids.get().len() > 1
+                        {
+                            active_tool.set(MapTool::Select);
+                        }
+                    }
                     "p" | "P" => active_tool.set(MapTool::Ping),
-                    "r" | "R" => active_tool.set(MapTool::Rotate),
+                    "r" | "R" => {
+                        if !snap_to_grid.get() || selected_ids.get().len() <= 1 {
+                            active_tool.set(MapTool::Rotate);
+                        }
+                    }
                     "t" | "T" => show_token_list.update(|v| *v = !*v),
                     "Escape" => {
                         measure_start.set(None);
@@ -1136,7 +1182,7 @@ pub fn MapCanvas() -> impl IntoView {
         }
     };
 
-    // Right-click: rotate selected tokens
+    // Right-click: rotate selected tokens (orbit around group center)
     let on_contextmenu = {
         #[cfg(feature = "hydrate")]
         {
@@ -1148,30 +1194,77 @@ pub fn MapCanvas() -> impl IntoView {
                     return;
                 }
 
+                // Multi-token rotation disabled in snap-to-grid mode
+                if snap_to_grid.get() && sel.len() > 1 {
+                    return;
+                }
+
+                let map_data = map.get();
+                let Some(m) = map_data else { return };
+                let cell = m.cell_size as f64;
+
                 // 15 degrees per click; shift = counterclockwise
                 let angle = if ev.shift_key() {
                     -std::f64::consts::PI / 12.0
                 } else {
                     std::f64::consts::PI / 12.0
                 };
+                let cos_a = angle.cos();
+                let sin_a = angle.sin();
 
+                // Compute group center
+                let selected_tokens: Vec<_> = tokens
+                    .get()
+                    .iter()
+                    .filter(|t| sel.contains(&t.id))
+                    .cloned()
+                    .collect();
+                let count = selected_tokens.len() as f64;
+                let center_x = selected_tokens
+                    .iter()
+                    .map(|t| (t.x as f64 + 0.5) * cell)
+                    .sum::<f64>()
+                    / count;
+                let center_y = selected_tokens
+                    .iter()
+                    .map(|t| (t.y as f64 + 0.5) * cell)
+                    .sum::<f64>()
+                    / count;
+
+                let multi = selected_tokens.len() > 1;
                 let mut rotations = Vec::new();
+                let mut moves = Vec::new();
                 tokens.update(|ts| {
                     for t in ts.iter_mut() {
                         if sel.contains(&t.id) {
+                            if multi {
+                                // Orbit position around group center
+                                let wx = (t.x as f64 + 0.5) * cell;
+                                let wy = (t.y as f64 + 0.5) * cell;
+                                let rx = wx - center_x;
+                                let ry = wy - center_y;
+                                let new_wx = center_x + rx * cos_a - ry * sin_a;
+                                let new_wy = center_y + rx * sin_a + ry * cos_a;
+                                t.x = (new_wx / cell - 0.5) as f32;
+                                t.y = (new_wy / cell - 0.5) as f32;
+                                moves.push((t.id, t.x, t.y));
+                            }
                             t.rotation += angle as f32;
                             rotations.push((t.id, t.rotation));
                         }
                     }
                 });
 
-                if !rotations.is_empty() {
-                    send.with_value(|f| {
-                        if let Some(f) = f {
+                send.with_value(|f| {
+                    if let Some(f) = f {
+                        if !moves.is_empty() {
+                            f(ClientMessage::MoveTokens { moves });
+                        }
+                        if !rotations.is_empty() {
                             f(ClientMessage::RotateTokens { rotations });
                         }
-                    });
-                }
+                    }
+                });
             }
         }
         #[cfg(not(feature = "hydrate"))]
@@ -1499,6 +1592,7 @@ pub fn MapCanvas() -> impl IntoView {
                 <button
                     class=move || if active_tool.get() == MapTool::Rotate { "map-tool-btn active" } else { "map-tool-btn" }
                     on:click=move |_| active_tool.set(MapTool::Rotate)
+                    disabled=move || snap_to_grid.get() && (selected_ids.get().len() > 1)
                     data-tooltip="Rotate (R)"
                 >
                     // circular arrow icon

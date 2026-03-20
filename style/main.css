@@ -823,6 +823,16 @@ h1, h2, h3, h4 {
     color: var(--color-text);
 }
 
+.map-tool-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.map-tool-btn:disabled:hover {
+    background: transparent;
+    color: inherit;
+}
+
 .map-tool-btn.active {
     background: var(--color-accent);
     color: #fff;
