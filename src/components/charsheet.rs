@@ -146,7 +146,7 @@ pub fn CharacterSelection() -> impl IntoView {
                         class="btn-add"
                         data-tooltip="Place All on Map"
                         on:click=place_all
-                    >"\u{1f30d}"</button>
+                    >"\u{1f5fa}"</button>
                 </Show>
                 <button
                     class="btn-add"
