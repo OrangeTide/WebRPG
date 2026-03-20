@@ -1049,10 +1049,67 @@ pub fn MapCanvas() -> impl IntoView {
     };
 
     // --- Create Map form state ---
+    let show_create_map = RwSignal::new(false);
     let (new_map_name, set_new_map_name) = signal("Map".to_string());
     let (new_map_width, set_new_map_width) = signal(20i32);
     let (new_map_height, set_new_map_height) = signal(15i32);
+    let (new_map_cell_size, set_new_map_cell_size) = signal(40i32);
+    let (new_map_bg_url, set_new_map_bg_url) = signal(Option::<String>::None);
+    let show_map_image_picker = RwSignal::new(false);
     let session_id = ctx.session_id;
+
+    // Map list for switcher
+    let map_list = RwSignal::new(Vec::<crate::models::MapInfo>::new());
+    let show_map_list = RwSignal::new(false);
+
+    // Fetch map list when dropdown is opened
+    #[cfg(feature = "hydrate")]
+    let fetch_map_list = move || {
+        let sid = session_id.get();
+        if sid == 0 {
+            return;
+        }
+        leptos::task::spawn_local(async move {
+            match crate::server::api::list_maps(sid).await {
+                Ok(maps) => map_list.set(maps),
+                Err(e) => log::error!("Failed to list maps: {e}"),
+            }
+        });
+    };
+
+    let on_map_image_select = {
+        Callback::new(move |media: crate::models::MediaInfo| {
+            let url = media.url.clone();
+            set_new_map_bg_url.set(Some(url.clone()));
+            show_map_image_picker.set(false);
+
+            // Load image to get dimensions and estimate grid size
+            #[cfg(feature = "hydrate")]
+            {
+                use wasm_bindgen::JsCast;
+                let img = web_sys::HtmlImageElement::new().unwrap();
+                let img_clone = img.clone();
+                let onload = wasm_bindgen::closure::Closure::<dyn Fn()>::new(move || {
+                    let w = img_clone.natural_width();
+                    let h = img_clone.natural_height();
+                    if w > 0 && h > 0 {
+                        // Estimate: assume ~72 DPI, 1 inch per grid square
+                        // so cell_size ~72px. Clamp grid dimensions to reasonable range.
+                        let dpi_estimate = 72;
+                        let grid_w = (w as i32 / dpi_estimate).max(5).min(200);
+                        let grid_h = (h as i32 / dpi_estimate).max(5).min(200);
+                        let cell = dpi_estimate.max(10).min(200);
+                        set_new_map_width.set(grid_w);
+                        set_new_map_height.set(grid_h);
+                        set_new_map_cell_size.set(cell);
+                    }
+                });
+                img.set_onload(Some(onload.as_ref().unchecked_ref()));
+                onload.forget();
+                img.set_src(&url);
+            }
+        })
+    };
 
     let do_create_map = move |_| {
         let name = new_map_name.get().trim().to_string();
@@ -1061,12 +1118,70 @@ pub fn MapCanvas() -> impl IntoView {
         }
         let w = new_map_width.get();
         let h = new_map_height.get();
+        let cell = new_map_cell_size.get();
+        let bg = new_map_bg_url.get();
+        let sid = session_id.get();
+        let map_signal = map;
+        show_create_map.set(false);
+        leptos::task::spawn_local(async move {
+            match crate::server::api::create_map(sid, name, w, h, Some(cell), bg).await {
+                Ok(new_map) => {
+                    let mid = new_map.id;
+                    map_signal.set(Some(new_map));
+                    // Tell server to switch to the new map
+                    send.with_value(|f| {
+                        if let Some(f) = f {
+                            f(ClientMessage::SetMap { map_id: mid });
+                        }
+                    });
+                }
+                Err(e) => log::error!("Failed to create map: {e}"),
+            }
+        });
+        // Reset form
+        set_new_map_name.set("Map".to_string());
+        set_new_map_width.set(20);
+        set_new_map_height.set(15);
+        set_new_map_cell_size.set(40);
+        set_new_map_bg_url.set(None);
+    };
+
+    let cancel_create_map = move |_| {
+        show_create_map.set(false);
+    };
+
+    let do_delete_map = move |_| {
+        let Some(m) = map.get() else { return };
+        let mid = m.id;
         let sid = session_id.get();
         let map_signal = map;
         leptos::task::spawn_local(async move {
-            match crate::server::api::create_map(sid, name, w, h).await {
-                Ok(new_map) => map_signal.set(Some(new_map)),
-                Err(e) => log::error!("Failed to create map: {e}"),
+            match crate::server::api::delete_map(mid).await {
+                Ok(()) => {
+                    // Try to load another map
+                    match crate::server::api::list_maps(sid).await {
+                        Ok(maps) => {
+                            if let Some(next) = maps.first() {
+                                map_signal.set(Some(next.clone()));
+                                send.with_value(|f| {
+                                    if let Some(f) = f {
+                                        f(ClientMessage::SetMap { map_id: next.id });
+                                    }
+                                });
+                            } else {
+                                map_signal.set(None);
+                                tokens.set(vec![]);
+                                fog.set(vec![]);
+                            }
+                        }
+                        Err(_) => {
+                            map_signal.set(None);
+                            tokens.set(vec![]);
+                            fog.set(vec![]);
+                        }
+                    }
+                }
+                Err(e) => log::error!("Failed to delete map: {e}"),
             }
         });
     };
@@ -1079,10 +1194,17 @@ pub fn MapCanvas() -> impl IntoView {
             on:keydown=on_keydown
             on:keyup=on_keyup
         >
-            // Show create-map form when no map exists and user is GM
-            <Show when=move || map.get().is_none() && ctx.is_gm.get()>
+            // Auto-show create form when no map exists
+            {move || {
+                if map.get().is_none() && ctx.is_gm.get() && !show_create_map.get() {
+                    show_create_map.set(true);
+                }
+            }}
+
+            // Create Map dialog
+            <Show when=move || show_create_map.get() && ctx.is_gm.get()>
                 <div class="create-map-form">
-                    <h4>"No map yet"</h4>
+                    <h4>{move || if map.get().is_none() { "Create Map" } else { "New Map" }}</h4>
                     <div class="field-row">
                         <label>"Name"</label>
                         <input
@@ -1092,33 +1214,68 @@ pub fn MapCanvas() -> impl IntoView {
                         />
                     </div>
                     <div class="field-row">
-                        <label>"Width"</label>
+                        <label>"Background"</label>
+                        <div class="create-map-bg-row">
+                            <button
+                                class="btn-small"
+                                on:click=move |_| show_map_image_picker.set(true)
+                            >{move || if new_map_bg_url.get().is_some() { "Change Image" } else { "Select Image" }}</button>
+                            {move || new_map_bg_url.get().map(|url| view! {
+                                <img src=url class="create-map-preview" />
+                            })}
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <label>"Grid Width"</label>
                         <input
                             type="number"
                             prop:value=move || new_map_width.get().to_string()
                             on:input=move |ev| {
-                                if let Ok(v) = event_target_value(&ev).parse() {
-                                    set_new_map_width.set(v);
+                                if let Ok(v) = event_target_value(&ev).parse::<i32>() {
+                                    set_new_map_width.set(v.max(1).min(200));
                                 }
                             }
-                            min="5" max="100"
+                            min="1" max="200"
                         />
                     </div>
                     <div class="field-row">
-                        <label>"Height"</label>
+                        <label>"Grid Height"</label>
                         <input
                             type="number"
                             prop:value=move || new_map_height.get().to_string()
                             on:input=move |ev| {
-                                if let Ok(v) = event_target_value(&ev).parse() {
-                                    set_new_map_height.set(v);
+                                if let Ok(v) = event_target_value(&ev).parse::<i32>() {
+                                    set_new_map_height.set(v.max(1).min(200));
                                 }
                             }
-                            min="5" max="100"
+                            min="1" max="200"
                         />
                     </div>
-                    <button on:click=do_create_map>"Create Map"</button>
+                    <div class="field-row">
+                        <label>"Cell Size (px)"</label>
+                        <input
+                            type="number"
+                            prop:value=move || new_map_cell_size.get().to_string()
+                            on:input=move |ev| {
+                                if let Ok(v) = event_target_value(&ev).parse::<i32>() {
+                                    set_new_map_cell_size.set(v.max(10).min(200));
+                                }
+                            }
+                            min="10" max="200"
+                        />
+                    </div>
+                    <div class="form-actions">
+                        <button on:click=do_create_map>"Create"</button>
+                        <Show when=move || map.get().is_some()>
+                            <button class="btn-cancel" on:click=cancel_create_map>"Cancel"</button>
+                        </Show>
+                    </div>
                 </div>
+                <crate::components::media_browser::MediaBrowser
+                    on_select=on_map_image_select
+                    filter_type="image".to_string()
+                    show=show_map_image_picker
+                />
             </Show>
 
             // Tool palette (HTML overlay)
@@ -1279,11 +1436,71 @@ pub fn MapCanvas() -> impl IntoView {
                 </Show>
             </div>
 
-            <Show when=move || ctx.is_gm.get() && map.get().is_some()>
-                <button
-                    class="map-bg-btn"
-                    on:click=move |_| show_media_browser.set(true)
-                >"Set Background"</button>
+            <Show when=move || ctx.is_gm.get()>
+                <div class="map-mgmt-bar">
+                    // Map switcher dropdown
+                    <Show when=move || map.get().is_some()>
+                        <div class="map-switcher">
+                            <button
+                                class="map-mgmt-btn"
+                                on:click=move |_| {
+                                    let opening = !show_map_list.get();
+                                    show_map_list.set(opening);
+                                    if opening {
+                                        #[cfg(feature = "hydrate")]
+                                        fetch_map_list();
+                                    }
+                                }
+                                data-tooltip="Switch Map"
+                            >
+                                {move || map.get().map(|m| m.name.clone()).unwrap_or_default()}
+                                " \u{25BC}"
+                            </button>
+                            <Show when=move || show_map_list.get()>
+                                <div class="map-list-dropdown">
+                                    {move || {
+                                        map_list.get().into_iter().map(|m| {
+                                            let mid = m.id;
+                                            let name = m.name.clone();
+                                            let is_active = map.get().map(|cm| cm.id == mid).unwrap_or(false);
+                                            view! {
+                                                <div
+                                                    class="map-list-item"
+                                                    class:active=is_active
+                                                    on:click=move |_| {
+                                                        show_map_list.set(false);
+                                                        send.with_value(|f| {
+                                                            if let Some(f) = f {
+                                                                f(ClientMessage::SetMap { map_id: mid });
+                                                            }
+                                                        });
+                                                    }
+                                                >{name}</div>
+                                            }
+                                        }).collect::<Vec<_>>()
+                                    }}
+                                </div>
+                            </Show>
+                        </div>
+                    </Show>
+                    <button
+                        class="map-mgmt-btn"
+                        data-tooltip="New Map"
+                        on:click=move |_| show_create_map.set(true)
+                    >"+"</button>
+                    <Show when=move || map.get().is_some()>
+                        <button
+                            class="map-mgmt-btn"
+                            on:click=move |_| show_media_browser.set(true)
+                            data-tooltip="Set Background"
+                        >"\u{1f5bc}"</button>
+                        <button
+                            class="map-mgmt-btn map-mgmt-btn-danger"
+                            data-tooltip="Delete Map"
+                            on:click=do_delete_map
+                        >"\u{1f5d1}"</button>
+                    </Show>
+                </div>
             </Show>
 
             <canvas

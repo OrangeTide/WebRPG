@@ -280,6 +280,8 @@ pub async fn create_map(
     name: String,
     width: i32,
     height: i32,
+    cell_size: Option<i32>,
+    background_url: Option<String>,
 ) -> Result<crate::models::MapInfo, ServerFnError> {
     use crate::db;
     use crate::schema::{maps, sessions};
@@ -300,6 +302,8 @@ pub async fn create_map(
         return Err(ServerFnError::new("Only the GM can create maps"));
     }
 
+    let cell = cell_size.unwrap_or(40).max(10).min(200);
+
     let new_map = crate::models::db_models::NewMap {
         session_id,
         name: &name,
@@ -312,9 +316,22 @@ pub async fn create_map(
         .execute(conn)
         .map_err(|e| ServerFnError::new(format!("Failed to create map: {e}")))?;
 
+    let map_id: i32 = diesel::select(diesel::dsl::sql::<diesel::sql_types::Integer>(
+        "last_insert_rowid()",
+    ))
+    .get_result(conn)
+    .map_err(|e| ServerFnError::new(format!("Failed to get map id: {e}")))?;
+
+    // Update cell_size and background if non-default
+    let _ = diesel::update(maps::table.find(map_id))
+        .set((
+            maps::cell_size.eq(cell),
+            maps::background_url.eq(&background_url),
+        ))
+        .execute(conn);
+
     let map = maps::table
-        .filter(maps::session_id.eq(session_id))
-        .order(maps::id.desc())
+        .find(map_id)
         .select(crate::models::db_models::Map::as_select())
         .first(conn)
         .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
@@ -327,6 +344,85 @@ pub async fn create_map(
         cell_size: map.cell_size,
         background_url: map.background_url,
     })
+}
+
+#[server]
+pub async fn list_maps(session_id: i32) -> Result<Vec<crate::models::MapInfo>, ServerFnError> {
+    use crate::db;
+    use crate::schema::maps;
+    use diesel::prelude::*;
+
+    let _user = get_current_user()
+        .await?
+        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
+    let conn = &mut db::get_conn();
+
+    let rows = maps::table
+        .filter(maps::session_id.eq(session_id))
+        .order(maps::id.asc())
+        .select(crate::models::db_models::Map::as_select())
+        .load::<crate::models::db_models::Map>(conn)
+        .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
+
+    Ok(rows
+        .into_iter()
+        .map(|m| crate::models::MapInfo {
+            id: m.id,
+            name: m.name,
+            width: m.width,
+            height: m.height,
+            cell_size: m.cell_size,
+            background_url: m.background_url,
+        })
+        .collect())
+}
+
+#[server]
+pub async fn delete_map(map_id: i32) -> Result<(), ServerFnError> {
+    use crate::db;
+    use crate::schema::{fog_of_war, maps, sessions, token_instances, tokens};
+    use diesel::prelude::*;
+
+    let user = get_current_user()
+        .await?
+        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
+    let conn = &mut db::get_conn();
+
+    // Verify GM
+    let session_id: i32 = maps::table
+        .find(map_id)
+        .select(maps::session_id)
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Map not found"))?;
+
+    let gm_id: i32 = sessions::table
+        .find(session_id)
+        .select(sessions::gm_user_id)
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Session not found"))?;
+
+    if gm_id != user.id {
+        return Err(ServerFnError::new("Only the GM can delete maps"));
+    }
+
+    // Delete token instances for tokens on this map
+    let token_ids: Vec<i32> = tokens::table
+        .filter(tokens::map_id.eq(map_id))
+        .select(tokens::id)
+        .load(conn)
+        .unwrap_or_default();
+
+    for tid in &token_ids {
+        let _ = diesel::delete(token_instances::table.filter(token_instances::token_id.eq(tid)))
+            .execute(conn);
+    }
+
+    // Delete tokens, fog, and the map
+    let _ = diesel::delete(tokens::table.filter(tokens::map_id.eq(map_id))).execute(conn);
+    let _ = diesel::delete(fog_of_war::table.filter(fog_of_war::map_id.eq(map_id))).execute(conn);
+    let _ = diesel::delete(maps::table.find(map_id)).execute(conn);
+
+    Ok(())
 }
 
 #[server]
