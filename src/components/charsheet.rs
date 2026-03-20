@@ -240,7 +240,12 @@ pub fn CharacterSelection() -> impl IntoView {
                                     class="btn-add"
                                     data-tooltip="Find on Map"
                                     on:click=move |_| ctx.center_on_character.set(Some(cid))
-                                >"\u{1f441}"</button>
+                                >
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </button>
                                 <button
                                     class="btn-add"
                                     data-tooltip="Place on Map"
@@ -449,7 +454,12 @@ fn CharacterEditor(character: CharacterInfo, template: Option<TemplateInfo>) -> 
                     class="btn-add"
                     data-tooltip="Find on Map"
                     on:click=move |_| ctx.center_on_character.set(Some(char_id))
-                >"\u{1f441}"</button>
+                >
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
             </div>
             <crate::components::media_browser::MediaBrowser
                 on_select=on_portrait_select
