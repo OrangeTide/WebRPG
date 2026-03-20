@@ -67,7 +67,7 @@ These buttons appear when browsing a directory (not the drive list):
 | 📤 Upload | Open a file picker to upload files to the current directory. |
 | ✏️ Rename | Rename the selected item. Prompts for a new name. Requires exactly one item selected. |
 | 📥 Download | Download the selected file(s). Disabled when only folders are selected. |
-| 🗑 Delete | Delete the selected item(s). Prompts for confirmation. When multiple items are selected, shows the count. |
+| 🗑️ Delete | Delete the selected item(s). Prompts for confirmation. When multiple items are selected, shows the count. |
 
 ## Context Menu
 
