@@ -1828,7 +1828,7 @@ pub fn TerminalPanel() -> impl IntoView {
             <div class="terminal-toolbar">
                 <button
                     class="terminal-theme-btn"
-                    title="Color Theme"
+                    data-tooltip="Color Theme"
                     on:click=move |ev: leptos::ev::MouseEvent| {
                         ev.stop_propagation();
                         theme_popup_pos.set(Some((ev.client_x(), ev.client_y() + 4)));

@@ -206,7 +206,7 @@ pub fn InitiativeTracker() -> impl IntoView {
                     </button>
                     <button
                         class="btn-add"
-                        title="Add entry manually"
+                        data-tooltip="Add entry manually"
                         on:click=move |_| show_add_form.set(!show_add_form.get())
                     >"+"</button>
                 </div>
@@ -301,7 +301,7 @@ pub fn InitiativeTracker() -> impl IntoView {
                                     drag_insert.set(None);
                                 }
                             >
-                                <span class="init-grab" title="Drag to reorder">"⠿"</span>
+                                <span class="init-grab" data-tooltip="Drag to reorder">"⠿"</span>
                                 <span class="init-value">{entry.initiative_value as i32}</span>
                                 <div class="init-portrait">
                                     {if let Some(url) = portrait.clone() {

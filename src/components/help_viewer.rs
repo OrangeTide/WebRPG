@@ -345,42 +345,42 @@ pub fn HelpViewerPanel() -> impl IntoView {
             <div class="help-toolbar">
                 <button
                     class="fb-btn"
-                    title="Back"
+                    data-tooltip="Back"
                     disabled=move || !can_back()
                     on:click=on_back
                 >{"\u{1f519}"}</button>
                 <button
                     class="fb-btn"
-                    title="Forward"
+                    data-tooltip="Forward"
                     disabled=move || !can_forward()
                     on:click=on_forward
                 >{"\u{27a1}\u{fe0f}"}</button>
                 <button
                     class="fb-btn"
-                    title="Up"
+                    data-tooltip="Up"
                     disabled=move || !can_go_up()
                     on:click=on_up
                 >{"\u{2934}\u{fe0f}"}</button>
                 <span class="help-toolbar-sep"></span>
                 <button
                     class="fb-btn"
-                    title="Home"
+                    data-tooltip="Home"
                     on:click=on_home
                 >{"\u{1f3e0}"}</button>
                 <button
                     class="fb-btn"
-                    title="Scroll to Top"
+                    data-tooltip="Scroll to Top"
                     disabled=is_at_index
                     on:click=on_top
                 >{"\u{23eb}"}</button>
                 <button
                     class="fb-btn"
-                    title="Index"
+                    data-tooltip="Index"
                     on:click=on_index
                 >{"\u{1f4d1}"}</button>
                 <button
                     class="fb-btn"
-                    title="Search (not implemented)"
+                    data-tooltip="Search (not implemented)"
                     disabled=true
                 >{"\u{1f50d}"}</button>
             </div>

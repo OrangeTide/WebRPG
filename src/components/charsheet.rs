@@ -108,7 +108,7 @@ pub fn CharacterSelection() -> impl IntoView {
                 <h3>"Characters"</h3>
                 <button
                     class="btn-add"
-                    title="New Character"
+                    data-tooltip="New Character"
                     on:click=move |_| {
                         set_show_create_form.set(true);
                     }
@@ -194,7 +194,7 @@ pub fn CharacterSelection() -> impl IntoView {
                                 </div>
                                 <button
                                     class="btn-delete"
-                                    title="Delete character"
+                                    data-tooltip="Delete character"
                                     on:click=move |_| delete_char(cid)
                                 >"x"</button>
                             </div>
@@ -622,7 +622,7 @@ fn ResourceBar(resource: ResourceInfo) -> impl IntoView {
                 <button
                     class="resource-btn resource-btn-minus"
                     on:click=move |_| apply_change(-1)
-                    title="Subtract"
+                    data-tooltip="Subtract"
                 >"-"</button>
                 <input
                     type="number"
@@ -638,7 +638,7 @@ fn ResourceBar(resource: ResourceInfo) -> impl IntoView {
                 <button
                     class="resource-btn resource-btn-plus"
                     on:click=move |_| apply_change(1)
-                    title="Add"
+                    data-tooltip="Add"
                 >"+"</button>
             </div>
             {move || prev_value.get().map(|old| view! {

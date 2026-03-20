@@ -497,26 +497,26 @@ pub fn FileBrowserPanel() -> impl IntoView {
                 <button
                     class="fb-btn"
                     on:click=on_back
-                    title="Back"
+                    data-tooltip="Back"
                     disabled=move || !has_history()
                 >{"\u{1f519}"}</button>
                 <button
                     class="fb-btn"
                     on:click=on_forward
-                    title="Forward"
+                    data-tooltip="Forward"
                     disabled=move || !has_forward()
                 >{"\u{27a1}\u{fe0f}"}</button>
                 <button
                     class="fb-btn"
                     on:click=on_up
-                    title="Up"
+                    data-tooltip="Up"
                     disabled=move || !in_directory()
                 >{"\u{2934}\u{fe0f}"}</button>
 
                 <button
                     class=move || if dual_pane.get() { "fb-btn fb-toggle-active" } else { "fb-btn" }
                     on:click=on_toggle_dual
-                    title="Toggle dual pane"
+                    data-tooltip="Toggle dual pane"
                 >{"\u{29c9}"}</button>
 
                 {move || {
@@ -525,7 +525,7 @@ pub fn FileBrowserPanel() -> impl IntoView {
                             <button
                                 class="fb-btn"
                                 on:click=on_copy_to_other
-                                title="Copy to other pane"
+                                data-tooltip="Copy to other pane"
                                 disabled=move || !copy_enabled()
                             >{copy_direction}</button>
                         })
@@ -537,12 +537,12 @@ pub fn FileBrowserPanel() -> impl IntoView {
                 {move || {
                     if in_directory() {
                         view! {
-                            <button class="fb-btn" on:click=on_new_folder title="New Folder">{"\u{1f4c1}+"}</button>
-                            <button class="fb-btn" on:click=on_upload title="Upload">{"\u{1f4e4}"}</button>
+                            <button class="fb-btn" on:click=on_new_folder data-tooltip="New Folder">{"\u{1f4c1}+"}</button>
+                            <button class="fb-btn" on:click=on_upload data-tooltip="Upload">{"\u{1f4e4}"}</button>
                             <button
                                 class="fb-btn"
                                 on:click=on_rename
-                                title="Rename"
+                                data-tooltip="Rename"
                                 disabled=move || !has_single_selection()
                             >{"\u{270f}\u{fe0f}"}</button>
                             <button
@@ -577,7 +577,7 @@ pub fn FileBrowserPanel() -> impl IntoView {
                                         }
                                     }
                                 }
-                                title="Download"
+                                data-tooltip="Download"
                                 disabled=move || {
                                     let sel = active().selected_items.get();
                                     sel.is_empty() || sel.iter().all(|i| i.is_directory)
@@ -586,7 +586,7 @@ pub fn FileBrowserPanel() -> impl IntoView {
                             <button
                                 class="fb-btn fb-btn-danger"
                                 on:click=on_delete
-                                title="Delete"
+                                data-tooltip="Delete"
                                 disabled=move || !has_selection()
                             >{"\u{1f5d1}"}</button>
                         }.into_any()

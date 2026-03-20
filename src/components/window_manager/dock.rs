@@ -423,7 +423,7 @@ pub(super) fn Dock() -> impl IntoView {
             // System icon (anchor tile at 0,0)
             <div
                 class="dock-tile dock-tile-system"
-                title="Settings"
+                data-tooltip="Settings"
                 on:click=move |_| show_settings.set(true)
                 on:contextmenu=move |ev: leptos::ev::MouseEvent| {
                     ev.prevent_default();
