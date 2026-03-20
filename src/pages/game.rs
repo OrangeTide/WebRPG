@@ -286,6 +286,15 @@ impl GameContext {
                     }
                 });
             }
+            ServerMessage::MapDefaultColorChanged {
+                default_token_color,
+            } => {
+                self.map.update(|m_opt| {
+                    if let Some(m) = m_opt {
+                        m.default_token_color = default_token_color;
+                    }
+                });
+            }
             ServerMessage::TokensMoved { moves } => {
                 self.tokens.update(|tokens| {
                     for (token_id, x, y) in &moves {

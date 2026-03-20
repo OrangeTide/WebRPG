@@ -118,6 +118,10 @@ pub enum ClientMessage {
     SetSuppressTooltips {
         suppress: bool,
     },
+    /// GM sets the map's default token color (used for facing arrows on generic tokens).
+    SetMapDefaultColor {
+        color: String,
+    },
 }
 
 // ===== Server -> Client messages =====
@@ -221,6 +225,10 @@ pub enum ServerMessage {
         x: f64,
         y: f64,
         zoom: f64,
+    },
+    /// Map default token color was changed by the GM.
+    MapDefaultColorChanged {
+        default_token_color: String,
     },
     /// Notifies clients that a file on C: drive has changed.
     VfsChanged {
