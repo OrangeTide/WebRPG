@@ -155,7 +155,7 @@ pub fn MapCanvas() -> impl IntoView {
                         },
                         std::time::Duration::from_millis(150),
                     );
-                    std::mem::forget(handle);
+                    let _ = handle;
                 }
             }
             return None;
@@ -224,7 +224,7 @@ pub fn MapCanvas() -> impl IntoView {
                     },
                     std::time::Duration::from_millis(100),
                 );
-                std::mem::forget(handle);
+                let _ = handle;
             }
         });
     }
