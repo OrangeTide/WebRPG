@@ -757,7 +757,55 @@ pub fn MapCanvas() -> impl IntoView {
                             }
                         });
                     }
-                    MapTool::Rotate => {}
+                    MapTool::Rotate => {
+                        let cell = m.cell_size as f64;
+                        let tokens_data = tokens.get();
+
+                        // Hit-test for token under cursor
+                        let clicked = tokens_data.iter().rev().find(|t| {
+                            if !t.visible {
+                                return false;
+                            }
+                            let cx = (t.x as f64 + 0.5) * cell;
+                            let cy = (t.y as f64 + 0.5) * cell;
+                            let radius = cell * t.size as f64 * 0.5;
+                            let dx = wx - cx;
+                            let dy = wy - cy;
+                            (dx * dx + dy * dy).sqrt() <= radius
+                        });
+
+                        if let Some(t) = clicked {
+                            // Select if not already selected
+                            if !selected_ids.get().contains(&t.id) {
+                                let mut ids = std::collections::HashSet::new();
+                                ids.insert(t.id);
+                                selected_ids.set(ids);
+                            }
+
+                            // Compute center of selected group
+                            let sel = selected_ids.get();
+                            let selected_tokens: Vec<_> =
+                                tokens_data.iter().filter(|t| sel.contains(&t.id)).collect();
+                            let count = selected_tokens.len() as f64;
+                            let center_x = selected_tokens
+                                .iter()
+                                .map(|t| (t.x as f64 + 0.5) * cell)
+                                .sum::<f64>()
+                                / count;
+                            let center_y = selected_tokens
+                                .iter()
+                                .map(|t| (t.y as f64 + 0.5) * cell)
+                                .sum::<f64>()
+                                / count;
+
+                            let anchor = (wy - center_y).atan2(wx - center_x);
+                            rotate_anchor_angle.set(Some(anchor));
+                            rotate_center.set((center_x, center_y));
+                            rotate_initial_rotations
+                                .set(selected_tokens.iter().map(|t| (t.id, t.rotation)).collect());
+                            set_dragging.set(true);
+                        }
+                    }
                 }
             }
         }
@@ -856,7 +904,25 @@ pub fn MapCanvas() -> impl IntoView {
                         }
                     }
                     MapTool::Ping => {}
-                    MapTool::Rotate => {}
+                    MapTool::Rotate => {
+                        if dragging.get() {
+                            if let Some(anchor) = rotate_anchor_angle.get() {
+                                let (cx, cy) = rotate_center.get();
+                                let current_angle = (wy - cy).atan2(wx - cx);
+                                let delta = current_angle - anchor;
+                                let initials = rotate_initial_rotations.get();
+                                tokens.update(|ts| {
+                                    for t in ts.iter_mut() {
+                                        if let Some(&(_, init_rot)) =
+                                            initials.iter().find(|(id, _)| *id == t.id)
+                                        {
+                                            t.rotation = init_rot + delta as f32;
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -938,6 +1004,29 @@ pub fn MapCanvas() -> impl IntoView {
                     }
 
                     drag_start_world.set(None);
+                    set_dragging.set(false);
+                }
+
+                // Finish rotate drag
+                if tool == MapTool::Rotate && dragging.get() {
+                    if rotate_anchor_angle.get().is_some() {
+                        let sel = selected_ids.get();
+                        let tokens_data = tokens.get();
+                        let rotations: Vec<(i32, f32)> = tokens_data
+                            .iter()
+                            .filter(|t| sel.contains(&t.id))
+                            .map(|t| (t.id, t.rotation))
+                            .collect();
+                        if !rotations.is_empty() {
+                            send.with_value(|f| {
+                                if let Some(f) = f {
+                                    f(ClientMessage::RotateTokens { rotations });
+                                }
+                            });
+                        }
+                    }
+                    rotate_anchor_angle.set(None);
+                    rotate_initial_rotations.set(Vec::new());
                     set_dragging.set(false);
                 }
             }
