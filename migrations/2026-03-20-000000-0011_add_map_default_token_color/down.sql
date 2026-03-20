@@ -1,0 +1,2 @@
+-- SQLite doesn't support DROP COLUMN; recreate table without default_token_color
+-- For development, just ignore this migration on rollback.

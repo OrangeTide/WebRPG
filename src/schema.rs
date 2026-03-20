@@ -88,6 +88,7 @@ diesel::table! {
         height -> Integer,
         cell_size -> Integer,
         background_url -> Nullable<Text>,
+        default_token_color -> Text,
     }
 }
 

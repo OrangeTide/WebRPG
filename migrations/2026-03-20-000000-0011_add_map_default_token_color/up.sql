@@ -1,0 +1,1 @@
+ALTER TABLE maps ADD COLUMN default_token_color TEXT NOT NULL DEFAULT '#888888';

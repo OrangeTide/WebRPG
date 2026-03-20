@@ -343,6 +343,7 @@ pub async fn create_map(
         height: map.height,
         cell_size: map.cell_size,
         background_url: map.background_url,
+        default_token_color: map.default_token_color,
     })
 }
 
@@ -373,6 +374,7 @@ pub async fn list_maps(session_id: i32) -> Result<Vec<crate::models::MapInfo>, S
             height: m.height,
             cell_size: m.cell_size,
             background_url: m.background_url,
+            default_token_color: m.default_token_color,
         })
         .collect())
 }

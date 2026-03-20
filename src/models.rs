@@ -49,6 +49,12 @@ pub struct MapInfo {
     pub height: i32,
     pub cell_size: i32,
     pub background_url: Option<String>,
+    #[serde(default = "default_token_color")]
+    pub default_token_color: String,
+}
+
+fn default_token_color() -> String {
+    "#888888".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -71,6 +77,8 @@ pub struct TokenInfo {
     pub character_id: Option<i32>,
     #[serde(default)]
     pub creature_id: Option<i32>,
+    #[serde(default)]
+    pub facing_color: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -339,6 +347,7 @@ pub mod db_models {
         pub height: i32,
         pub cell_size: i32,
         pub background_url: Option<String>,
+        pub default_token_color: String,
     }
 
     #[derive(Debug, Insertable)]
