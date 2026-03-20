@@ -34,20 +34,30 @@ src/
 │   ├── sessions.rs       # Session list, create/join
 │   └── game.rs           # Main game view, GameContext, WebSocket setup
 ├── components/
-│   ├── mod.rs            # Module declarations
-│   ├── window_manager.rs # Draggable/resizable window system + dock
-│   ├── map.rs            # HTML5 Canvas map with grid, tokens, fog of war
-│   ├── chat.rs           # Chat panel with dice rolling
-│   ├── charsheet.rs      # Template-driven character sheet editor
-│   ├── creatures.rs      # GM creature stat block CRUD
-│   ├── inventory.rs      # Party inventory management
-│   ├── initiative.rs     # Initiative tracker with turn order
-│   └── media_browser.rs  # Media upload/browse/search modal
+│   ├── mod.rs              # Module declarations
+│   ├── window_manager/     # Draggable/resizable window system + dock
+│   │   ├── mod.rs          #   WindowManager component + GameWindow
+│   │   ├── dock.rs         #   NeXTSTEP-style dock (minimize tiles)
+│   │   ├── persistence.rs  #   localStorage save/restore of layout
+│   │   └── settings.rs     #   Settings dialog (hotkeys, preferences)
+│   ├── map.rs              # HTML5 Canvas map with viewport, tools, tokens
+│   ├── chat.rs             # Chat panel with dice rolling
+│   ├── charsheet.rs        # Template-driven character sheet editor
+│   ├── creatures.rs        # GM creature stat block CRUD
+│   ├── inventory.rs        # Party inventory management
+│   ├── initiative.rs       # Initiative tracker with turn order
+│   ├── media_browser.rs    # Media upload/browse/search modal
+│   ├── file_browser.rs     # NeXTSTEP-style graphical file browser (Finder)
+│   ├── terminal.rs         # DOS-style COMMAND.COM terminal emulator
+│   ├── help_viewer.rs      # Online help viewer (Markdown-based)
+│   └── browser_helpers.rs  # Browser utility functions
 ├── server/
 │   ├── mod.rs            # Module declarations
 │   ├── api.rs            # Leptos server functions (sessions, characters, templates)
 │   ├── media_handler.rs  # Media upload/serve endpoints (CAS)
 │   └── ws_handler.rs     # WebSocket upgrade + authentication
+├── vfs.rs            # Virtual file system abstraction (drive dispatch)
+├── scratch_drive.rs  # Client-side IndexedDB scratch drives (A:/B:)
 └── ws/
     ├── mod.rs            # Module declarations
     ├── messages.rs       # WebSocket message type definitions
@@ -169,13 +179,27 @@ All message types are fully implemented:
 
 - **Chat:** messages and dice rolls (`NdN+M` notation, rolled server-side)
 - **Tokens:** place, move, remove, HP updates (creature-linked tokens auto-init HP)
+- **Bulk token move:** `MoveTokens`/`TokensMoved` — move multiple selected tokens
+  in a single message
+- **Token rotation:** `RotateTokens`/`TokensRotated` — rotate selected tokens
+- **Token conditions:** `UpdateTokenConditions`/`TokenConditionsUpdated` — set
+  status condition icons on tokens
+- **Character placement:** `PlaceToken` with optional `character_id`/`creature_id`;
+  `PlaceAllPlayerTokens` for GM bulk placement of all player characters
 - **Fog of war:** reveal/hide cells (GM only)
-- **Map:** switch active map (GM only)
+- **Map:** switch active map (`SetMap`), set background (`SetMapBackground`).
+  Map create/delete/list via server functions (not WebSocket).
+- **Ping:** `Ping`/`PingBroadcast` — collaborative map pings with per-user
+  color (`SetPingColor`)
+- **GM viewport sync:** `SyncViewport`/`ViewportSynced` — GM broadcasts viewport
+  to all players
 - **Initiative:** add/remove entries, advance turn (GM only), roll initiative
   from character sheet or creature panel, lock/unlock initiative rolls
 - **Character sheets:** update fields via dot-path (e.g. `stats.strength`),
   real-time resource updates via `CharacterResourceUpdated`
 - **Inventory:** add, remove, update items
+- **VFS notifications:** `VfsChanged` — server broadcasts file changes on C: drive
+- **Preferences:** `SetSuppressTooltips` — persist tooltip suppression preference
 
 GM role is enforced server-side for token placement/removal, fog, map,
 initiative list updates, and initiative lock/unlock.
@@ -191,6 +215,10 @@ of game state (map, tokens, fog, chat, initiative, inventory) plus:
   refetches.
 - `initiative_locked: RwSignal<bool>` — whether character sheet initiative
   rolls are locked (GM toggle).
+- `pings: RwSignal<Vec<(f64, f64, String, f64)>>` — active map pings
+  (x, y, color, timestamp_ms). Auto-expired after 3 seconds.
+- `viewport_override: RwSignal<Option<(f64, f64, f64)>>` — when set by a
+  GM viewport sync, the map canvas jumps to the given (x, y, zoom).
 - `loading_status` / `loading_error: RwSignal<Option<String>>` — startup
   modal state.
 - `send: StoredValue<Option<SendFn>, LocalStorage>` — WebSocket send
@@ -198,10 +226,32 @@ of game state (map, tokens, fog, chat, initiative, inventory) plus:
 
 Components read state reactively and send messages through the context:
 
-- **MapCanvas** — HTML5 Canvas rendering with grid, tokens (colored circles or
-  images clipped to circles), HP bars, fog of war overlay. Supports background
-  images and token images loaded from the media system. Drag-and-drop token
-  movement. GM can set map background via the media browser.
+- **MapCanvas** — HTML5 Canvas rendering with a full viewport pan/zoom system
+  (`screen_to_world`/`world_to_screen` transforms). Features include:
+  - **Tool palette:** floating toolbar with Select (V), Pan (H), Measure (M),
+    and Ping (P) tools, plus Grid Snap toggle (G) and Token List toggle (T).
+    Space held for temporary pan.
+  - **Tokens:** colored circles or images clipped to circles, HP bars, fog of
+    war overlay. Background images and token images loaded from the media system.
+  - **Multi-select:** Shift+click to extend selection; rubber-band selection
+    rectangle on empty canvas.
+  - **Multi-drag:** drag multiple selected tokens with snap-to-grid.
+  - **Token rotation:** right-click to rotate selected tokens.
+  - **Token conditions:** emoji status icons displayed above tokens.
+  - **Token list dropdown:** lists all tokens with click-to-center-on-token.
+  - **Measurement tool:** click-and-drag line showing distance in grid squares
+    and feet.
+  - **Ping tool:** click to ping a map location, broadcast to all players with
+    per-user color. Pings auto-expire after 3 seconds.
+  - **Map management:** create maps (with image picker and DPI-based auto-sizing
+    of grid dimensions), switch active map, delete maps. GM can set map
+    background via the media browser.
+  - **Character placement:** place individual characters from character sheet,
+    or GM bulk-place all player characters.
+  - **ResizeObserver** for proper canvas resize handling on window resize.
+  - **Firefox ESR compatibility:** image decode retry logic for async-decode
+    race conditions.
+  - **Escape** clears measurement and selection.
 - **ChatPanel** — message list with auto-scroll, input field that auto-detects
   dice notation (`NdN+M`). Last 100 messages loaded from DB on connect. Dice
   results persisted with structured JSON data. Messages styled with username in
