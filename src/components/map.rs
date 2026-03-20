@@ -31,6 +31,7 @@ enum MapTool {
     Pan,
     Measure,
     Ping,
+    Rotate,
 }
 
 // ===== Coordinate transforms =====
@@ -76,6 +77,11 @@ pub fn MapCanvas() -> impl IntoView {
     let selection_rect = RwSignal::new(Option::<(f64, f64, f64, f64)>::None);
     let drag_token_start = RwSignal::new(Option::<(f64, f64)>::None);
     let drag_token_origins = RwSignal::new(Vec::<(i32, f32, f32)>::new());
+
+    // --- Rotate tool state ---
+    let rotate_anchor_angle = RwSignal::new(Option::<f64>::None);
+    let rotate_initial_rotations = RwSignal::new(Vec::<(i32, f32)>::new());
+    let rotate_center = RwSignal::new((0.0_f64, 0.0_f64));
 
     // --- Viewport state ---
     let view_offset = RwSignal::new((0.0_f64, 0.0_f64));
@@ -751,6 +757,7 @@ pub fn MapCanvas() -> impl IntoView {
                             }
                         });
                     }
+                    MapTool::Rotate => {}
                 }
             }
         }
@@ -849,6 +856,7 @@ pub fn MapCanvas() -> impl IntoView {
                         }
                     }
                     MapTool::Ping => {}
+                    MapTool::Rotate => {}
                 }
             }
         }
