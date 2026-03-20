@@ -40,6 +40,9 @@ cp -r migrations "$RELEASE_DIR/${RELEASE_NAME}/migrations"
 # Help pages
 cp -r help "$RELEASE_DIR/${RELEASE_NAME}/help"
 
+# Scripts
+cp -r scripts "$RELEASE_DIR/${RELEASE_NAME}/scripts"
+
 # Include a minimal env template
 cat > "$RELEASE_DIR/${RELEASE_NAME}/env.example" <<'EOF'
 LEPTOS_OUTPUT_NAME=webrpg
