@@ -1100,6 +1100,7 @@ pub fn MapCanvas() -> impl IntoView {
                     }
                     "g" | "G" => snap_to_grid.update(|v| *v = !*v),
                     "p" | "P" => active_tool.set(MapTool::Ping),
+                    "r" | "R" => active_tool.set(MapTool::Rotate),
                     "t" | "T" => show_token_list.update(|v| *v = !*v),
                     "Escape" => {
                         measure_start.set(None);
@@ -1496,6 +1497,17 @@ pub fn MapCanvas() -> impl IntoView {
                     </svg>
                 </button>
                 <button
+                    class=move || if active_tool.get() == MapTool::Rotate { "map-tool-btn active" } else { "map-tool-btn" }
+                    on:click=move |_| active_tool.set(MapTool::Rotate)
+                    data-tooltip="Rotate (R)"
+                >
+                    // circular arrow icon
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12a9 9 0 1 1-3-6.7"/>
+                        <path d="M21 3v6h-6"/>
+                    </svg>
+                </button>
+                <button
                     class=move || if snap_to_grid.get() { "map-tool-btn active" } else { "map-tool-btn" }
                     on:click=move |_| snap_to_grid.update(|v| *v = !*v)
                     data-tooltip="Grid Snap (G)"
@@ -1677,6 +1689,8 @@ pub fn MapCanvas() -> impl IntoView {
                         "grabbing"
                     } else if active_tool.get() == MapTool::Pan {
                         "grab"
+                    } else if active_tool.get() == MapTool::Rotate {
+                        "crosshair"
                     } else {
                         "default"
                     };
