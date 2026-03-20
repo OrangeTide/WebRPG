@@ -167,6 +167,10 @@ pub struct InitiativeEntryInfo {
     pub is_current_turn: bool,
     /// Portrait/icon URL for display (not persisted in DB).
     pub portrait_url: Option<String>,
+    #[serde(default)]
+    pub token_id: Option<i32>,
+    #[serde(default)]
+    pub character_id: Option<i32>,
 }
 
 // ===== VFS DTOs =====
@@ -392,7 +396,8 @@ pub mod db_models {
     pub struct TokenInstance {
         pub id: i32,
         pub token_id: i32,
-        pub creature_id: i32,
+        pub creature_id: Option<i32>,
+        pub character_id: Option<i32>,
         pub current_hp: i32,
         pub max_hp: i32,
         pub conditions_json: String,
@@ -439,7 +444,8 @@ pub mod db_models {
     #[diesel(table_name = crate::schema::token_instances)]
     pub struct NewTokenInstance {
         pub token_id: i32,
-        pub creature_id: i32,
+        pub creature_id: Option<i32>,
+        pub character_id: Option<i32>,
         pub current_hp: i32,
         pub max_hp: i32,
         pub conditions_json: String,
@@ -463,6 +469,8 @@ pub mod db_models {
         pub initiative_value: f32,
         pub is_current_turn: bool,
         pub sort_order: i32,
+        pub token_id: Option<i32>,
+        pub character_id: Option<i32>,
     }
 
     #[derive(Debug, Queryable, Selectable)]

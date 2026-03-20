@@ -145,7 +145,8 @@ diesel::table! {
     token_instances (id) {
         id -> Integer,
         token_id -> Integer,
-        creature_id -> Integer,
+        creature_id -> Nullable<Integer>,
+        character_id -> Nullable<Integer>,
         current_hp -> Integer,
         max_hp -> Integer,
         conditions_json -> Text,
@@ -222,6 +223,7 @@ diesel::joinable!(session_players -> sessions (session_id));
 diesel::joinable!(session_players -> users (user_id));
 diesel::joinable!(sessions -> rpg_templates (template_id));
 diesel::joinable!(sessions -> users (gm_user_id));
+diesel::joinable!(token_instances -> characters (character_id));
 diesel::joinable!(token_instances -> creatures (creature_id));
 diesel::joinable!(token_instances -> tokens (token_id));
 diesel::joinable!(tokens -> characters (character_id));
