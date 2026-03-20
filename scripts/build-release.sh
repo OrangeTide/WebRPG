@@ -37,6 +37,9 @@ cp -r target/site "$RELEASE_DIR/${RELEASE_NAME}/site"
 # Diesel migrations for database setup
 cp -r migrations "$RELEASE_DIR/${RELEASE_NAME}/migrations"
 
+# Help pages
+cp -r help "$RELEASE_DIR/${RELEASE_NAME}/help"
+
 # Include a minimal env template
 cat > "$RELEASE_DIR/${RELEASE_NAME}/env.example" <<'EOF'
 LEPTOS_OUTPUT_NAME=webrpg
