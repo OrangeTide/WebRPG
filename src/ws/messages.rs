@@ -83,6 +83,16 @@ pub enum ClientMessage {
     SetMapBackground {
         background_url: Option<String>,
     },
+    MoveTokens {
+        moves: Vec<(i32, f32, f32)>,
+    },
+    RotateTokens {
+        rotations: Vec<(i32, f32)>,
+    },
+    UpdateTokenConditions {
+        token_id: i32,
+        conditions: Vec<String>,
+    },
 }
 
 // ===== Server -> Client messages =====
@@ -158,6 +168,16 @@ pub enum ServerMessage {
     },
     MapBackgroundChanged {
         background_url: Option<String>,
+    },
+    TokensMoved {
+        moves: Vec<(i32, f32, f32)>,
+    },
+    TokensRotated {
+        rotations: Vec<(i32, f32)>,
+    },
+    TokenConditionsUpdated {
+        token_id: i32,
+        conditions: Vec<String>,
     },
     /// Notifies clients that a file on C: drive has changed.
     VfsChanged {

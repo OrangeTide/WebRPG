@@ -548,6 +548,74 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                     );
                 }
             }
+
+            ClientMessage::MoveTokens { moves } => {
+                if let Some(session_id) = current_session {
+                    for &(token_id, x, y) in &moves {
+                        if let Some(mut session) = SESSION_MANAGER.sessions.get_mut(&session_id) {
+                            session.token_positions.insert(token_id, (x, y));
+                        }
+                        persist_token_position(token_id, x, y);
+                    }
+                    SESSION_MANAGER.broadcast(
+                        session_id,
+                        &ServerMessage::TokensMoved {
+                            moves: moves.clone(),
+                        },
+                        Some(&username),
+                    );
+                }
+            }
+
+            ClientMessage::RotateTokens { rotations } => {
+                if let Some(session_id) = current_session {
+                    {
+                        use crate::schema::tokens;
+                        use diesel::prelude::*;
+                        let conn = &mut crate::db::get_conn();
+                        for &(token_id, rotation) in &rotations {
+                            let _ = diesel::update(tokens::table.find(token_id))
+                                .set(tokens::rotation.eq(rotation))
+                                .execute(conn);
+                        }
+                    }
+                    SESSION_MANAGER.broadcast(
+                        session_id,
+                        &ServerMessage::TokensRotated {
+                            rotations: rotations.clone(),
+                        },
+                        None,
+                    );
+                }
+            }
+
+            ClientMessage::UpdateTokenConditions {
+                token_id,
+                conditions,
+            } => {
+                if let Some(session_id) = current_session {
+                    {
+                        use crate::schema::token_instances;
+                        use diesel::prelude::*;
+                        let conn = &mut crate::db::get_conn();
+                        let json =
+                            serde_json::to_string(&conditions).unwrap_or_else(|_| "[]".into());
+                        let _ = diesel::update(
+                            token_instances::table.filter(token_instances::token_id.eq(token_id)),
+                        )
+                        .set(token_instances::conditions_json.eq(&json))
+                        .execute(conn);
+                    }
+                    SESSION_MANAGER.broadcast(
+                        session_id,
+                        &ServerMessage::TokenConditionsUpdated {
+                            token_id,
+                            conditions,
+                        },
+                        None,
+                    );
+                }
+            }
         }
     }
 
@@ -644,6 +712,11 @@ fn build_snapshot(session_id: i32) -> crate::ws::messages::GameStateSnapshot {
                     .optional()
                     .unwrap_or(None);
 
+                let conditions: Vec<String> = instance
+                    .as_ref()
+                    .and_then(|i| serde_json::from_str(&i.conditions_json).ok())
+                    .unwrap_or_default();
+
                 crate::models::TokenInfo {
                     id: t.id,
                     label: t.label,
@@ -655,6 +728,8 @@ fn build_snapshot(session_id: i32) -> crate::ws::messages::GameStateSnapshot {
                     current_hp: instance.as_ref().map(|i| i.current_hp),
                     max_hp: instance.as_ref().map(|i| i.max_hp),
                     image_url: t.image_url,
+                    rotation: t.rotation,
+                    conditions,
                 }
             })
             .collect();
@@ -881,6 +956,8 @@ fn place_token(
         current_hp,
         max_hp,
         image_url: image_url.map(|s| s.to_string()),
+        rotation: 0.0,
+        conditions: vec![],
     })
 }
 
@@ -969,6 +1046,11 @@ fn load_map_with_tokens(
                 .optional()
                 .unwrap_or(None);
 
+            let conditions: Vec<String> = instance
+                .as_ref()
+                .and_then(|i| serde_json::from_str(&i.conditions_json).ok())
+                .unwrap_or_default();
+
             crate::models::TokenInfo {
                 id: t.id,
                 label: t.label,
@@ -980,6 +1062,8 @@ fn load_map_with_tokens(
                 current_hp: instance.as_ref().map(|i| i.current_hp),
                 max_hp: instance.as_ref().map(|i| i.max_hp),
                 image_url: t.image_url,
+                rotation: t.rotation,
+                conditions,
             }
         })
         .collect();

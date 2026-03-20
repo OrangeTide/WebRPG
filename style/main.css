@@ -676,6 +676,7 @@ h1, h2, h3, h4 {
     position: relative;
     overflow: hidden;
     background: #111;
+    outline: none;
 }
 
 .map-container canvas {
@@ -697,21 +698,119 @@ h1, h2, h3, h4 {
     opacity: 1;
 }
 
-.token-hp-popup {
+/* === Map Tool Palette === */
+.map-tool-palette {
     position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: rgba(22, 33, 62, 0.92);
+    border: 1px solid #334;
+    border-radius: 6px;
+    padding: 4px;
+}
+
+.map-tool-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-btn-bg);
+    border: 1px solid var(--color-btn-border);
+    border-radius: 4px;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+.map-tool-btn:hover {
+    background: #1a4a7a;
+    color: var(--color-text);
+}
+
+.map-tool-btn.active {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent-hover);
+}
+
+.map-tool-separator {
+    height: 1px;
+    background: #334;
+    margin: 2px 0;
+}
+
+.map-token-list {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    margin-left: 4px;
+    background: rgba(22, 33, 62, 0.95);
+    border: 1px solid #334;
+    border-radius: 6px;
+    padding: 4px;
+    min-width: 140px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.map-token-list-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    color: var(--color-text);
+}
+
+.map-token-list-item:hover {
+    background: rgba(233, 69, 96, 0.3);
+}
+
+.map-token-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.token-popup {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 20;
     background: var(--color-bg-panel);
     border: 1px solid var(--color-accent);
     border-radius: 6px;
     padding: 0.5rem 0.7rem;
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 0.4rem;
     font-size: 0.85rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    max-width: 320px;
 }
 
-.token-hp-popup button {
+.token-popup-header {
+    text-align: center;
+}
+
+.token-popup-hp {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.token-popup-hp button {
     width: 24px;
     height: 24px;
     padding: 0;
@@ -720,6 +819,38 @@ h1, h2, h3, h4 {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.token-popup-conditions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+}
+
+.condition-btn {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    font-size: 0.9rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    background: var(--color-btn-bg);
+    border: 1px solid var(--color-btn-border);
+    cursor: pointer;
+    opacity: 0.5;
+}
+
+.condition-btn:hover {
+    opacity: 0.8;
+}
+
+.condition-btn.active {
+    opacity: 1;
+    background: var(--color-accent);
+    border-color: var(--color-accent-hover);
 }
 
 /* === Chat === */

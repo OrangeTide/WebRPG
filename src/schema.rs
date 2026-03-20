@@ -164,6 +164,7 @@ diesel::table! {
         character_id -> Nullable<Integer>,
         creature_id -> Nullable<Integer>,
         image_url -> Nullable<Text>,
+        rotation -> Float,
     }
 }
 

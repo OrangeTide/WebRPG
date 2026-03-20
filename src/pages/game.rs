@@ -256,6 +256,35 @@ impl GameContext {
                     }
                 });
             }
+            ServerMessage::TokensMoved { moves } => {
+                self.tokens.update(|tokens| {
+                    for (token_id, x, y) in &moves {
+                        if let Some(t) = tokens.iter_mut().find(|t| t.id == *token_id) {
+                            t.x = *x;
+                            t.y = *y;
+                        }
+                    }
+                });
+            }
+            ServerMessage::TokensRotated { rotations } => {
+                self.tokens.update(|tokens| {
+                    for (token_id, rotation) in &rotations {
+                        if let Some(t) = tokens.iter_mut().find(|t| t.id == *token_id) {
+                            t.rotation = *rotation;
+                        }
+                    }
+                });
+            }
+            ServerMessage::TokenConditionsUpdated {
+                token_id,
+                conditions,
+            } => {
+                self.tokens.update(|tokens| {
+                    if let Some(t) = tokens.iter_mut().find(|t| t.id == token_id) {
+                        t.conditions = conditions;
+                    }
+                });
+            }
             ServerMessage::Error { message } => {
                 log::warn!("Server error: {message}");
             }

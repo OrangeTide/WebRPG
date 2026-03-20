@@ -63,6 +63,10 @@ pub struct TokenInfo {
     pub current_hp: Option<i32>,
     pub max_hp: Option<i32>,
     pub image_url: Option<String>,
+    #[serde(default)]
+    pub rotation: f32,
+    #[serde(default)]
+    pub conditions: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -365,6 +369,7 @@ pub mod db_models {
         pub character_id: Option<i32>,
         pub creature_id: Option<i32>,
         pub image_url: Option<String>,
+        pub rotation: f32,
     }
 
     #[derive(Debug, Queryable, Selectable)]
