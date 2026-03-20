@@ -84,6 +84,7 @@ pub fn MapCanvas() -> impl IntoView {
     let pan_start_screen = RwSignal::new((0.0_f64, 0.0_f64));
     let pan_start_offset = RwSignal::new((0.0_f64, 0.0_f64));
     let space_held = RwSignal::new(false);
+    let canvas_size_tick = RwSignal::new(0u32); // bumped on resize to trigger redraw
 
     // --- Tool state ---
     let active_tool = RwSignal::new(MapTool::Select);
@@ -230,6 +231,32 @@ pub fn MapCanvas() -> impl IntoView {
         });
     }
 
+    // Watch for canvas container resize → bump canvas_size_tick to trigger redraw
+    #[cfg(feature = "hydrate")]
+    {
+        let canvas_ref_resize = canvas_ref.clone();
+        Effect::new(move |_| {
+            use wasm_bindgen::JsCast;
+            let Some(canvas) = canvas_ref_resize.get() else {
+                return;
+            };
+            let canvas_el: &web_sys::HtmlCanvasElement = canvas.as_ref();
+            let cb = wasm_bindgen::closure::Closure::<
+                dyn Fn(wasm_bindgen::JsValue, wasm_bindgen::JsValue),
+            >::new(
+                move |_entries: wasm_bindgen::JsValue, _observer: wasm_bindgen::JsValue| {
+                    canvas_size_tick.update(|n| *n += 1);
+                },
+            );
+            if let Ok(obs) = web_sys::ResizeObserver::new(cb.as_ref().unchecked_ref()) {
+                obs.observe(canvas_el);
+                // Leak both so they live for the component lifetime
+                std::mem::forget(obs);
+            }
+            cb.forget();
+        });
+    }
+
     // Redraw canvas when state changes
     #[cfg(feature = "hydrate")]
     {
@@ -251,6 +278,7 @@ pub fn MapCanvas() -> impl IntoView {
             let _measure_c = measure_cursor.get();
             let _tool = active_tool.get();
             let _pings = ctx.pings.get();
+            let _canvas_size = canvas_size_tick.get();
 
             let Some(canvas) = canvas_ref.get() else {
                 return;

@@ -88,6 +88,8 @@ web-sys = { version = "0.3", optional = true, features = [
     "IdbCursorDirection",
     "DomException",
     "DomStringList",
+    "ResizeObserver",
+    "ResizeObserverEntry",
 ] }
 
 [features]
