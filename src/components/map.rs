@@ -1886,6 +1886,87 @@ pub fn MapCanvas() -> impl IntoView {
                     format!("cursor: {cursor}; display: block; width: 100%; height: 100%;")
                 }
             />
+            // Zoom toolbar (bottom-right)
+            <div class="map-zoom-bar">
+                <button
+                    class="map-zoom-btn"
+                    data-tooltip="Zoom In"
+                    on:click=move |_| {
+                        #[cfg(feature = "hydrate")]
+                        {
+                            let old_zoom = view_zoom.get();
+                            let new_zoom = (old_zoom * 1.25).clamp(0.25, 4.0);
+                            // Zoom toward canvas center
+                            if let Some(canvas) = canvas_ref.get() {
+                                let el: &web_sys::HtmlCanvasElement = canvas.as_ref();
+                                let cx = el.client_width() as f64 / 2.0;
+                                let cy = el.client_height() as f64 / 2.0;
+                                let offset = view_offset.get();
+                                let wx = cx / old_zoom + offset.0;
+                                let wy = cy / old_zoom + offset.1;
+                                view_offset.set((wx - cx / new_zoom, wy - cy / new_zoom));
+                            }
+                            view_zoom.set(new_zoom);
+                        }
+                    }
+                >"+"</button>
+                <button
+                    class="map-zoom-btn"
+                    data-tooltip="Zoom Out"
+                    on:click=move |_| {
+                        #[cfg(feature = "hydrate")]
+                        {
+                            let old_zoom = view_zoom.get();
+                            let new_zoom = (old_zoom / 1.25).clamp(0.25, 4.0);
+                            if let Some(canvas) = canvas_ref.get() {
+                                let el: &web_sys::HtmlCanvasElement = canvas.as_ref();
+                                let cx = el.client_width() as f64 / 2.0;
+                                let cy = el.client_height() as f64 / 2.0;
+                                let offset = view_offset.get();
+                                let wx = cx / old_zoom + offset.0;
+                                let wy = cy / old_zoom + offset.1;
+                                view_offset.set((wx - cx / new_zoom, wy - cy / new_zoom));
+                            }
+                            view_zoom.set(new_zoom);
+                        }
+                    }
+                >"\u{2212}"</button>
+                <button
+                    class="map-zoom-btn"
+                    data-tooltip="Fit Map"
+                    on:click=move |_| {
+                        #[cfg(feature = "hydrate")]
+                        {
+                            if let (Some(m), Some(canvas)) = (map.get(), canvas_ref.get()) {
+                                let el: &web_sys::HtmlCanvasElement = canvas.as_ref();
+                                let cw = el.client_width() as f64;
+                                let ch = el.client_height() as f64;
+                                let mw = m.width as f64 * m.cell_size as f64;
+                                let mh = m.height as f64 * m.cell_size as f64;
+                                if mw > 0.0 && mh > 0.0 && cw > 0.0 && ch > 0.0 {
+                                    let fit_zoom = (cw / mw).min(ch / mh).clamp(0.25, 4.0);
+                                    // Center the map
+                                    let ox = -(cw / fit_zoom - mw) / 2.0;
+                                    let oy = -(ch / fit_zoom - mh) / 2.0;
+                                    view_zoom.set(fit_zoom);
+                                    view_offset.set((ox, oy));
+                                }
+                            }
+                        }
+                    }
+                >"Fit"</button>
+                <button
+                    class="map-zoom-btn"
+                    data-tooltip="Reset Zoom"
+                    on:click=move |_| {
+                        view_zoom.set(1.0);
+                        view_offset.set((0.0, 0.0));
+                    }
+                >"1:1"</button>
+                <span class="map-zoom-level">
+                    {move || format!("{}%", (view_zoom.get() * 100.0).round() as i32)}
+                </span>
+            </div>
             <TokenHpPopup selected_ids=selected_ids tokens=tokens />
             <crate::components::media_browser::MediaBrowser
                 on_select=on_bg_select

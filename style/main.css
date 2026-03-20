@@ -715,6 +715,39 @@ h1, h2, h3, h4 {
     height: 100%;
 }
 
+.map-zoom-bar {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: rgba(30, 42, 58, 0.85);
+    border: 1px solid #3a4a5a;
+    border-radius: 4px;
+    padding: 2px 4px;
+    z-index: 10;
+    pointer-events: auto;
+}
+.map-zoom-btn {
+    font-size: 11px;
+    padding: 2px 6px;
+    background: none;
+    border: 1px solid transparent;
+    color: #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+    line-height: 1;
+}
+.map-zoom-btn:hover { background: #2a3a4a; color: #fff; border-color: #4a5a6a; }
+.map-zoom-level {
+    font-size: 10px;
+    color: #999;
+    min-width: 36px;
+    text-align: center;
+    user-select: none;
+}
+
 .create-map-form {
     position: absolute;
     top: 50%;
