@@ -3,6 +3,8 @@ use leptos::prelude::*;
 
 use super::persistence::STATIC_WINDOWS;
 use super::{WindowId, default_window_layout};
+use crate::pages::game::GameContext;
+use crate::ws::messages::ClientMessage;
 
 #[cfg(feature = "hydrate")]
 use super::persistence::{load_startup_prefs, save_startup_prefs};
@@ -11,12 +13,14 @@ use super::persistence::{load_startup_prefs, save_startup_prefs};
 #[derive(Clone, Copy, PartialEq)]
 enum SettingsTab {
     Startup,
+    Options,
 }
 
-/// Settings dialog with tabbed interface. Currently has one tab: Startup Windows.
+/// Settings dialog with tabbed interface.
 #[component]
 pub(super) fn SettingsDialog(#[prop(into)] on_close: Callback<()>) -> impl IntoView {
     let active_tab = RwSignal::new(SettingsTab::Startup);
+    let ctx = expect_context::<GameContext>();
 
     // Load current startup prefs into checkbox state.
     // Default: use the layout tier defaults (Map and Chat open for most screens).
@@ -45,6 +49,9 @@ pub(super) fn SettingsDialog(#[prop(into)] on_close: Callback<()>) -> impl IntoV
             .collect()
     });
 
+    // Local signal for tooltip checkbox (show tooltips = !suppress)
+    let show_tooltips = RwSignal::new(!ctx.suppress_tooltips.get());
+
     let on_save = move |_: leptos::ev::MouseEvent| {
         #[cfg(feature = "hydrate")]
         {
@@ -56,6 +63,12 @@ pub(super) fn SettingsDialog(#[prop(into)] on_close: Callback<()>) -> impl IntoV
                 .collect();
             save_startup_prefs(&open_ids);
         }
+
+        // Save tooltip preference
+        let suppress = !show_tooltips.get();
+        ctx.suppress_tooltips.set(suppress);
+        ctx.send_message(ClientMessage::SetSuppressTooltips { suppress });
+
         on_close.run(());
     };
 
@@ -84,6 +97,10 @@ pub(super) fn SettingsDialog(#[prop(into)] on_close: Callback<()>) -> impl IntoV
                         class=move || if active_tab.get() == SettingsTab::Startup { "settings-tab settings-tab-active" } else { "settings-tab" }
                         on:click=move |_| active_tab.set(SettingsTab::Startup)
                     >"Startup"</button>
+                    <button
+                        class=move || if active_tab.get() == SettingsTab::Options { "settings-tab settings-tab-active" } else { "settings-tab" }
+                        on:click=move |_| active_tab.set(SettingsTab::Options)
+                    >"Options"</button>
                 </div>
 
                 // Tab content
@@ -116,6 +133,26 @@ pub(super) fn SettingsDialog(#[prop(into)] on_close: Callback<()>) -> impl IntoV
                                                 </label>
                                             }
                                         }).collect_view()}
+                                    </div>
+                                </div>
+                            }.into_any()
+                        }
+                        SettingsTab::Options => {
+                            view! {
+                                <div class="settings-startup">
+                                    <p class="settings-hint">"Interface preferences."</p>
+                                    <div class="settings-checklist">
+                                        <label class="settings-check-row">
+                                            <input
+                                                type="checkbox"
+                                                prop:checked=move || show_tooltips.get()
+                                                on:change=move |ev| {
+                                                    let val = event_target_checked(&ev);
+                                                    show_tooltips.set(val);
+                                                }
+                                            />
+                                            <span>"Show tooltips"</span>
+                                        </label>
                                     </div>
                                 </div>
                             }.into_any()

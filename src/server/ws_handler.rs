@@ -83,7 +83,7 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 SESSION_MANAGER.add_client(session_id, username.clone(), tx.clone());
                 current_session = Some(session_id);
 
-                let snapshot = build_snapshot(session_id);
+                let snapshot = build_snapshot(session_id, user_id);
                 let _ = tx.send(ServerMessage::SessionJoined { snapshot });
 
                 SESSION_MANAGER.broadcast(
@@ -616,6 +616,68 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                     );
                 }
             }
+
+            ClientMessage::Ping { x, y } => {
+                if let Some(session_id) = current_session {
+                    // Look up user's ping color
+                    let color = {
+                        use crate::schema::users;
+                        use diesel::prelude::*;
+                        let conn = &mut crate::db::get_conn();
+                        users::table
+                            .find(user_id)
+                            .select(users::ping_color)
+                            .first::<String>(conn)
+                            .unwrap_or_else(|_| "#ffcc00".to_string())
+                    };
+                    SESSION_MANAGER.broadcast(
+                        session_id,
+                        &ServerMessage::PingBroadcast {
+                            username: username.clone(),
+                            x,
+                            y,
+                            color,
+                        },
+                        None,
+                    );
+                }
+            }
+
+            ClientMessage::SyncViewport { x, y, zoom } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can sync viewport".into(),
+                        });
+                        continue;
+                    }
+                    SESSION_MANAGER.broadcast(
+                        session_id,
+                        &ServerMessage::ViewportSynced { x, y, zoom },
+                        Some(&username),
+                    );
+                }
+            }
+
+            ClientMessage::SetPingColor { color } => {
+                // Validate color is a hex string
+                if color.starts_with('#') && color.len() <= 9 {
+                    use crate::schema::users;
+                    use diesel::prelude::*;
+                    let conn = &mut crate::db::get_conn();
+                    let _ = diesel::update(users::table.find(user_id))
+                        .set(users::ping_color.eq(&color))
+                        .execute(conn);
+                }
+            }
+            ClientMessage::SetSuppressTooltips { suppress } => {
+                use crate::schema::users;
+                use diesel::prelude::*;
+                let conn = &mut crate::db::get_conn();
+                let _ = diesel::update(users::table.find(user_id))
+                    .set(users::suppress_tooltips.eq(if suppress { 1 } else { 0 }))
+                    .execute(conn);
+            }
         }
     }
 
@@ -650,7 +712,7 @@ fn is_gm(session_id: i32, user_id: i32) -> bool {
         .unwrap_or(false)
 }
 
-fn build_snapshot(session_id: i32) -> crate::ws::messages::GameStateSnapshot {
+fn build_snapshot(session_id: i32, user_id: i32) -> crate::ws::messages::GameStateSnapshot {
     use crate::db;
     use crate::models::db_models::*;
     use crate::schema::*;
@@ -807,6 +869,22 @@ fn build_snapshot(session_id: i32) -> crate::ws::messages::GameStateSnapshot {
         recent_chat,
         inventory,
         initiative_locked,
+        is_gm: is_gm(session_id, user_id),
+        ping_color: {
+            users::table
+                .find(user_id)
+                .select(users::ping_color)
+                .first::<String>(conn)
+                .unwrap_or_else(|_| "#ffcc00".to_string())
+        },
+        suppress_tooltips: {
+            users::table
+                .find(user_id)
+                .select(users::suppress_tooltips)
+                .first::<i32>(conn)
+                .unwrap_or(0)
+                != 0
+        },
     }
 }
 

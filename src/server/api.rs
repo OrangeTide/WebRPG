@@ -275,6 +275,61 @@ pub async fn create_session(name: String) -> Result<SessionInfo, ServerFnError> 
 }
 
 #[server]
+pub async fn create_map(
+    session_id: i32,
+    name: String,
+    width: i32,
+    height: i32,
+) -> Result<crate::models::MapInfo, ServerFnError> {
+    use crate::db;
+    use crate::schema::{maps, sessions};
+    use diesel::prelude::*;
+
+    let user = get_current_user()
+        .await?
+        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
+    let conn = &mut db::get_conn();
+
+    let gm_id: i32 = sessions::table
+        .find(session_id)
+        .select(sessions::gm_user_id)
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Session not found"))?;
+
+    if gm_id != user.id {
+        return Err(ServerFnError::new("Only the GM can create maps"));
+    }
+
+    let new_map = crate::models::db_models::NewMap {
+        session_id,
+        name: &name,
+        width,
+        height,
+    };
+
+    diesel::insert_into(maps::table)
+        .values(&new_map)
+        .execute(conn)
+        .map_err(|e| ServerFnError::new(format!("Failed to create map: {e}")))?;
+
+    let map = maps::table
+        .filter(maps::session_id.eq(session_id))
+        .order(maps::id.desc())
+        .select(crate::models::db_models::Map::as_select())
+        .first(conn)
+        .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
+
+    Ok(crate::models::MapInfo {
+        id: map.id,
+        name: map.name,
+        width: map.width,
+        height: map.height,
+        cell_size: map.cell_size,
+        background_url: map.background_url,
+    })
+}
+
+#[server]
 pub async fn get_ws_token() -> Result<String, ServerFnError> {
     let req_parts: axum::http::request::Parts = leptos_axum::extract().await?;
 

@@ -29,6 +29,7 @@ fn condition_icon(name: &str) -> &str {
 enum MapTool {
     Select,
     Measure,
+    Ping,
 }
 
 // ===== Coordinate transforms =====
@@ -73,6 +74,7 @@ pub fn MapCanvas() -> impl IntoView {
     let drag_start_world = RwSignal::new(Option::<(f64, f64)>::None);
     let selection_rect = RwSignal::new(Option::<(f64, f64, f64, f64)>::None);
     let drag_token_start = RwSignal::new(Option::<(f64, f64)>::None);
+    let drag_token_origins = RwSignal::new(Vec::<(i32, f32, f32)>::new());
 
     // --- Viewport state ---
     let view_offset = RwSignal::new((0.0_f64, 0.0_f64));
@@ -144,6 +146,44 @@ pub fn MapCanvas() -> impl IntoView {
         None
     };
 
+    // Watch for GM viewport sync
+    #[cfg(feature = "hydrate")]
+    {
+        Effect::new(move |_| {
+            if let Some((x, y, zoom)) = ctx.viewport_override.get() {
+                view_offset.set((x, y));
+                view_zoom.set(zoom);
+                ctx.viewport_override.set(None);
+            }
+        });
+    }
+
+    // Auto-expire old pings (older than 3 seconds)
+    #[cfg(feature = "hydrate")]
+    {
+        Effect::new(move |_| {
+            let pings = ctx.pings.get();
+            if pings.is_empty() {
+                return;
+            }
+            let now = web_sys::js_sys::Date::now();
+            let had_active = pings.iter().any(|(_, _, _, t)| now - t < 3000.0);
+            if had_active {
+                // Schedule cleanup
+                let handle = leptos::prelude::set_timeout(
+                    move || {
+                        let now = web_sys::js_sys::Date::now();
+                        ctx.pings.update(|pings| {
+                            pings.retain(|(_, _, _, t)| now - t < 3000.0);
+                        });
+                    },
+                    std::time::Duration::from_millis(100),
+                );
+                std::mem::forget(handle);
+            }
+        });
+    }
+
     // Redraw canvas when state changes
     #[cfg(feature = "hydrate")]
     {
@@ -164,6 +204,7 @@ pub fn MapCanvas() -> impl IntoView {
             let _measure_e = measure_end.get();
             let _measure_c = measure_cursor.get();
             let _tool = active_tool.get();
+            let _pings = ctx.pings.get();
 
             let Some(canvas) = canvas_ref.get() else {
                 return;
@@ -382,6 +423,34 @@ pub fn MapCanvas() -> impl IntoView {
                     }
                 }
 
+                // Draw pings (in world space, so they move with the map)
+                let now = web_sys::js_sys::Date::now();
+                let pings = ctx.pings.get();
+                for (px, py, color, timestamp) in &pings {
+                    let age = now - timestamp;
+                    if age > 3000.0 {
+                        continue;
+                    }
+                    let alpha = 1.0 - (age / 3000.0);
+                    // Pulsing ring
+                    let pulse = 1.0 + (age / 300.0).sin().abs() * 0.3;
+                    let radius = cell * 0.6 * pulse;
+                    ctx2d.save();
+                    ctx2d.set_global_alpha(alpha);
+                    ctx2d.begin_path();
+                    let _ = ctx2d.arc(*px, *py, radius, 0.0, std::f64::consts::TAU);
+                    ctx2d.set_stroke_style_str(color);
+                    ctx2d.set_line_width(3.0 / zoom);
+                    ctx2d.stroke();
+                    // Inner glow
+                    ctx2d.begin_path();
+                    let _ = ctx2d.arc(*px, *py, radius * 0.5, 0.0, std::f64::consts::TAU);
+                    ctx2d.set_stroke_style_str(color);
+                    ctx2d.set_line_width(1.5 / zoom);
+                    ctx2d.stroke();
+                    ctx2d.restore();
+                }
+
                 // --- Overlays in screen space ---
                 ctx2d.reset_transform().ok();
 
@@ -513,6 +582,15 @@ pub fn MapCanvas() -> impl IntoView {
                                 // Start dragging selected tokens
                                 set_dragging.set(true);
                                 drag_token_start.set(Some((wx, wy)));
+                                // Capture initial positions for all selected tokens
+                                let sel = selected_ids.get();
+                                let origins: Vec<(i32, f32, f32)> = tokens
+                                    .get()
+                                    .iter()
+                                    .filter(|t| sel.contains(&t.id))
+                                    .map(|t| (t.id, t.x, t.y))
+                                    .collect();
+                                drag_token_origins.set(origins);
                             }
                         } else {
                             // Click on empty space — start selection rectangle
@@ -546,6 +624,14 @@ pub fn MapCanvas() -> impl IntoView {
                             measure_end.set(None);
                             measure_cursor.set(None);
                         }
+                    }
+                    MapTool::Ping => {
+                        // Send ping at world position
+                        send.with_value(|f| {
+                            if let Some(f) = f {
+                                f(ClientMessage::Ping { x: wx, y: wy });
+                            }
+                        });
                     }
                 }
             }
@@ -595,26 +681,28 @@ pub fn MapCanvas() -> impl IntoView {
                             let cell = m.cell_size as f64;
                             let snap = snap_to_grid.get();
 
+                            // Total delta from the fixed drag start position
                             let dx = wx - start_wx;
                             let dy = wy - start_wy;
 
-                            let sel = selected_ids.get();
+                            let origins = drag_token_origins.get();
                             tokens.update(|ts| {
                                 for t in ts.iter_mut() {
-                                    if sel.contains(&t.id) {
-                                        let new_wx = (t.x as f64 * cell + dx) / cell;
-                                        let new_wy = (t.y as f64 * cell + dy) / cell;
+                                    if let Some(&(_, orig_x, orig_y)) =
+                                        origins.iter().find(|(id, _, _)| *id == t.id)
+                                    {
+                                        let new_grid_x = orig_x as f64 + dx / cell;
+                                        let new_grid_y = orig_y as f64 + dy / cell;
                                         if snap {
-                                            t.x = new_wx.floor() as f32;
-                                            t.y = new_wy.floor() as f32;
+                                            t.x = new_grid_x.floor() as f32;
+                                            t.y = new_grid_y.floor() as f32;
                                         } else {
-                                            t.x = new_wx as f32;
-                                            t.y = new_wy as f32;
+                                            t.x = new_grid_x as f32;
+                                            t.y = new_grid_y as f32;
                                         }
                                     }
                                 }
                             });
-                            drag_token_start.set(Some((wx, wy)));
                         }
                         // If drag started on empty space, update selection rect
                         else if let Some((start_wx, start_wy)) = drag_start_world.get() {
@@ -642,6 +730,7 @@ pub fn MapCanvas() -> impl IntoView {
                             }
                         }
                     }
+                    MapTool::Ping => {}
                 }
             }
         }
@@ -702,24 +791,24 @@ pub fn MapCanvas() -> impl IntoView {
                         selection_rect.set(None);
                     }
 
-                    // Finish token drag — send MoveToken for each selected token
+                    // Finish token drag — send batch MoveTokens
                     if drag_token_start.get().is_some() {
                         let sel = selected_ids.get();
                         let tokens_data = tokens.get();
-                        for t in &tokens_data {
-                            if sel.contains(&t.id) {
-                                send.with_value(|f| {
-                                    if let Some(f) = f {
-                                        f(ClientMessage::MoveToken {
-                                            token_id: t.id,
-                                            x: t.x,
-                                            y: t.y,
-                                        });
-                                    }
-                                });
-                            }
+                        let moves: Vec<(i32, f32, f32)> = tokens_data
+                            .iter()
+                            .filter(|t| sel.contains(&t.id))
+                            .map(|t| (t.id, t.x, t.y))
+                            .collect();
+                        if !moves.is_empty() {
+                            send.with_value(|f| {
+                                if let Some(f) = f {
+                                    f(ClientMessage::MoveTokens { moves });
+                                }
+                            });
                         }
                         drag_token_start.set(None);
+                        drag_token_origins.set(Vec::new());
                     }
 
                     drag_start_world.set(None);
@@ -794,6 +883,7 @@ pub fn MapCanvas() -> impl IntoView {
                         measure_cursor.set(None);
                     }
                     "g" | "G" => snap_to_grid.update(|v| *v = !*v),
+                    "p" | "P" => active_tool.set(MapTool::Ping),
                     "t" | "T" => show_token_list.update(|v| *v = !*v),
                     "Escape" => {
                         measure_start.set(None);
@@ -904,6 +994,29 @@ pub fn MapCanvas() -> impl IntoView {
         show_token_list.set(false);
     };
 
+    // --- Create Map form state ---
+    let (new_map_name, set_new_map_name) = signal("Map".to_string());
+    let (new_map_width, set_new_map_width) = signal(20i32);
+    let (new_map_height, set_new_map_height) = signal(15i32);
+    let session_id = ctx.session_id;
+
+    let do_create_map = move |_| {
+        let name = new_map_name.get().trim().to_string();
+        if name.is_empty() {
+            return;
+        }
+        let w = new_map_width.get();
+        let h = new_map_height.get();
+        let sid = session_id.get();
+        let map_signal = map;
+        leptos::task::spawn_local(async move {
+            match crate::server::api::create_map(sid, name, w, h).await {
+                Ok(new_map) => map_signal.set(Some(new_map)),
+                Err(e) => log::error!("Failed to create map: {e}"),
+            }
+        });
+    };
+
     view! {
         <div
             class="map-container"
@@ -912,12 +1025,54 @@ pub fn MapCanvas() -> impl IntoView {
             on:keydown=on_keydown
             on:keyup=on_keyup
         >
+            // Show create-map form when no map exists and user is GM
+            <Show when=move || map.get().is_none() && ctx.is_gm.get()>
+                <div class="create-map-form">
+                    <h4>"No map yet"</h4>
+                    <div class="field-row">
+                        <label>"Name"</label>
+                        <input
+                            type="text"
+                            prop:value=new_map_name
+                            on:input=move |ev| set_new_map_name.set(event_target_value(&ev))
+                        />
+                    </div>
+                    <div class="field-row">
+                        <label>"Width"</label>
+                        <input
+                            type="number"
+                            prop:value=move || new_map_width.get().to_string()
+                            on:input=move |ev| {
+                                if let Ok(v) = event_target_value(&ev).parse() {
+                                    set_new_map_width.set(v);
+                                }
+                            }
+                            min="5" max="100"
+                        />
+                    </div>
+                    <div class="field-row">
+                        <label>"Height"</label>
+                        <input
+                            type="number"
+                            prop:value=move || new_map_height.get().to_string()
+                            on:input=move |ev| {
+                                if let Ok(v) = event_target_value(&ev).parse() {
+                                    set_new_map_height.set(v);
+                                }
+                            }
+                            min="5" max="100"
+                        />
+                    </div>
+                    <button on:click=do_create_map>"Create Map"</button>
+                </div>
+            </Show>
+
             // Tool palette (HTML overlay)
             <div class="map-tool-palette">
                 <button
                     class=move || if active_tool.get() == MapTool::Select { "map-tool-btn active" } else { "map-tool-btn" }
                     on:click=move |_| active_tool.set(MapTool::Select)
-                    title="Select (V)"
+                    data-tooltip="Select (V)"
                 >
                     // pointer arrow icon
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
@@ -932,7 +1087,7 @@ pub fn MapCanvas() -> impl IntoView {
                         measure_end.set(None);
                         measure_cursor.set(None);
                     }
-                    title="Measure (M)"
+                    data-tooltip="Measure (M)"
                 >
                     // ruler icon
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -943,9 +1098,21 @@ pub fn MapCanvas() -> impl IntoView {
                     </svg>
                 </button>
                 <button
+                    class=move || if active_tool.get() == MapTool::Ping { "map-tool-btn active" } else { "map-tool-btn" }
+                    on:click=move |_| active_tool.set(MapTool::Ping)
+                    data-tooltip="Ping (P)"
+                >
+                    // ping/target icon
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="9"/>
+                        <circle cx="12" cy="12" r="5"/>
+                        <circle cx="12" cy="12" r="1" fill="currentColor"/>
+                    </svg>
+                </button>
+                <button
                     class=move || if snap_to_grid.get() { "map-tool-btn active" } else { "map-tool-btn" }
                     on:click=move |_| snap_to_grid.update(|v| *v = !*v)
-                    title="Grid Snap (G)"
+                    data-tooltip="Grid Snap (G)"
                 >
                     // grid icon
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -958,7 +1125,7 @@ pub fn MapCanvas() -> impl IntoView {
                 <button
                     class="map-tool-btn"
                     on:click=move |_| show_token_list.update(|v| *v = !*v)
-                    title="Token List (T)"
+                    data-tooltip="Token List (T)"
                 >
                     // list icon
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
@@ -997,12 +1164,60 @@ pub fn MapCanvas() -> impl IntoView {
                         </div>
                     })
                 }}
+
+                <div class="map-tool-separator"/>
+
+                // Ping color picker
+                <input
+                    type="color"
+                    class="map-ping-color"
+                    data-tooltip="Ping Color"
+                    prop:value=move || ctx.ping_color.get()
+                    on:change=move |ev| {
+                        let color: String = leptos::prelude::event_target_value(&ev);
+                        ctx.ping_color.set(color.clone());
+                        send.with_value(|f| {
+                            if let Some(f) = f {
+                                f(ClientMessage::SetPingColor { color });
+                            }
+                        });
+                    }
+                />
+
+                // GM: Sync viewport to all players
+                <Show when=move || ctx.is_gm.get()>
+                    <button
+                        class="map-tool-btn"
+                        on:click=move |_| {
+                            let offset = view_offset.get();
+                            let zoom = view_zoom.get();
+                            send.with_value(|f| {
+                                if let Some(f) = f {
+                                    f(ClientMessage::SyncViewport {
+                                        x: offset.0,
+                                        y: offset.1,
+                                        zoom,
+                                    });
+                                }
+                            });
+                        }
+                        data-tooltip="Sync Viewport to Players"
+                    >
+                        // broadcast/eye icon
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </Show>
             </div>
 
-            <button
-                class="map-bg-btn"
-                on:click=move |_| show_media_browser.set(true)
-            >"Set Background"</button>
+            <Show when=move || ctx.is_gm.get() && map.get().is_some()>
+                <button
+                    class="map-bg-btn"
+                    on:click=move |_| show_media_browser.set(true)
+                >"Set Background"</button>
+            </Show>
 
             <canvas
                 node_ref=canvas_ref

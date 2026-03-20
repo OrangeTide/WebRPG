@@ -93,6 +93,25 @@ pub enum ClientMessage {
         token_id: i32,
         conditions: Vec<String>,
     },
+    /// Ping the map at a world-space position.
+    Ping {
+        x: f64,
+        y: f64,
+    },
+    /// GM broadcasts their viewport to all players.
+    SyncViewport {
+        x: f64,
+        y: f64,
+        zoom: f64,
+    },
+    /// Update the user's ping color preference.
+    SetPingColor {
+        color: String,
+    },
+    /// Update the user's suppress_tooltips preference.
+    SetSuppressTooltips {
+        suppress: bool,
+    },
 }
 
 // ===== Server -> Client messages =====
@@ -179,6 +198,19 @@ pub enum ServerMessage {
         token_id: i32,
         conditions: Vec<String>,
     },
+    /// A player pinged a location on the map.
+    PingBroadcast {
+        username: String,
+        x: f64,
+        y: f64,
+        color: String,
+    },
+    /// GM synced their viewport to all players.
+    ViewportSynced {
+        x: f64,
+        y: f64,
+        zoom: f64,
+    },
     /// Notifies clients that a file on C: drive has changed.
     VfsChanged {
         /// The path that was affected (e.g. "/maps/dungeon.png").
@@ -200,4 +232,7 @@ pub struct GameStateSnapshot {
     pub recent_chat: Vec<ChatMessageInfo>,
     pub inventory: Vec<InventoryItemInfo>,
     pub initiative_locked: bool,
+    pub is_gm: bool,
+    pub ping_color: String,
+    pub suppress_tooltips: bool,
 }

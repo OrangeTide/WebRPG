@@ -88,7 +88,7 @@ pub fn CreaturePanel() -> impl IntoView {
                 <h3>"Creatures"</h3>
                 <button
                     class="btn-add"
-                    title="New Creature"
+                    data-tooltip="New Creature"
                     on:click=move |_| {
                         set_show_create_form.set(true);
                         set_editing.set(None);
@@ -184,6 +184,8 @@ pub fn CreaturePanel() -> impl IntoView {
                             parts.join(" | ")
                         };
                         let roll_name = creature.name.clone();
+                        let place_name = creature.name.clone();
+                        let place_image = creature.image_url.clone();
                         let send = ctx.send;
                         let roll_init = move |_| {
                             let label = roll_name.clone();
@@ -195,6 +197,27 @@ pub fn CreaturePanel() -> impl IntoView {
                                     });
                                 }
                             });
+                        };
+                        let place_on_map = {
+                            let label = place_name;
+                            let img = place_image;
+                            move |_| {
+                                let label = label.clone();
+                                let img = img.clone();
+                                send.with_value(|f| {
+                                    if let Some(f) = f {
+                                        f(ClientMessage::PlaceToken {
+                                            label,
+                                            x: 0.0,
+                                            y: 0.0,
+                                            color: "#aa4444".to_string(),
+                                            size: 1,
+                                            creature_id: Some(cid),
+                                            image_url: img,
+                                        });
+                                    }
+                                });
+                            }
                         };
                         view! {
                             <div class="item-card creature-card-item">
@@ -216,15 +239,22 @@ pub fn CreaturePanel() -> impl IntoView {
                                     </div>
                                     <button
                                         class="btn-delete"
-                                        title="Delete creature"
+                                        data-tooltip="Delete creature"
                                         on:click:stopPropagation=move |_: leptos::ev::MouseEvent| delete_creature(cid)
                                     >"x"</button>
                                 </div>
-                                <button
-                                    class="btn-roll-initiative"
-                                    title="Roll Initiative"
-                                    on:click=roll_init
-                                >"Roll Initiative"</button>
+                                <div class="creature-card-actions">
+                                    <button
+                                        class="btn-roll-initiative"
+                                        title="Roll Initiative"
+                                        on:click=roll_init
+                                    >"Roll Init"</button>
+                                    <button
+                                        class="btn-place-map"
+                                        title="Place on Map"
+                                        on:click=place_on_map
+                                    >"Place on Map"</button>
+                                </div>
                             </div>
                         }
                     }

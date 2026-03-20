@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN ping_color TEXT NOT NULL DEFAULT '#ffcc00';

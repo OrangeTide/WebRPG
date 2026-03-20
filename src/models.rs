@@ -210,6 +210,8 @@ pub mod db_models {
         pub access_level: i32,
         pub locked: bool,
         pub passcrypt: Option<String>,
+        pub ping_color: String,
+        pub suppress_tooltips: i32,
     }
 
     #[derive(Debug, Insertable)]

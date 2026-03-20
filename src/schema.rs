@@ -177,6 +177,8 @@ diesel::table! {
         access_level -> Integer,
         locked -> Bool,
         passcrypt -> Nullable<Text>,
+        ping_color -> Text,
+        suppress_tooltips -> Integer,
     }
 }
 

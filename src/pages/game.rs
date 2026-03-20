@@ -108,6 +108,16 @@ pub struct GameContext {
     pub send: StoredValue<Option<SendFn>, LocalStorage>,
     /// Bumped when any character data/resource changes (triggers refetch in listeners).
     pub character_revision: RwSignal<u32>,
+    /// Whether the current user is the GM of this session.
+    pub is_gm: RwSignal<bool>,
+    /// User's ping color preference.
+    pub ping_color: RwSignal<String>,
+    /// Whether to suppress icon tooltips.
+    pub suppress_tooltips: RwSignal<bool>,
+    /// Active pings on the map: (x, y, color, timestamp_ms).
+    pub pings: RwSignal<Vec<(f64, f64, String, f64)>>,
+    /// When set, the map component should update its viewport.
+    pub viewport_override: RwSignal<Option<(f64, f64, f64)>>,
     /// Whether initiative rolls from character sheets are locked.
     pub initiative_locked: RwSignal<bool>,
     /// Loading modal state. `Some(…)` shows the modal; `None` hides it.
@@ -140,6 +150,9 @@ impl GameContext {
         self.chat_messages.set(snapshot.recent_chat);
         self.inventory.set(snapshot.inventory);
         self.initiative_locked.set(snapshot.initiative_locked);
+        self.is_gm.set(snapshot.is_gm);
+        self.ping_color.set(snapshot.ping_color);
+        self.suppress_tooltips.set(snapshot.suppress_tooltips);
         self.connected.set(true);
         // Clear loading modal — game is ready
         self.loading.set(None);
@@ -285,6 +298,29 @@ impl GameContext {
                     }
                 });
             }
+            ServerMessage::PingBroadcast {
+                username: _,
+                x,
+                y,
+                color,
+            } => {
+                let now = {
+                    #[cfg(feature = "hydrate")]
+                    {
+                        web_sys::js_sys::Date::now()
+                    }
+                    #[cfg(not(feature = "hydrate"))]
+                    {
+                        0.0
+                    }
+                };
+                self.pings.update(|pings| {
+                    pings.push((x, y, color, now));
+                });
+            }
+            ServerMessage::ViewportSynced { x, y, zoom } => {
+                self.viewport_override.set(Some((x, y, zoom)));
+            }
             ServerMessage::Error { message } => {
                 log::warn!("Server error: {message}");
             }
@@ -322,6 +358,11 @@ pub fn GamePage() -> impl IntoView {
         connected: RwSignal::new(false),
         send: StoredValue::new_local(None),
         character_revision: RwSignal::new(0),
+        is_gm: RwSignal::new(false),
+        ping_color: RwSignal::new("#ffcc00".to_string()),
+        suppress_tooltips: RwSignal::new(false),
+        pings: RwSignal::new(vec![]),
+        viewport_override: RwSignal::new(None),
         initiative_locked: RwSignal::new(false),
         loading: RwSignal::new(Some(LoadingState::INITIALIZING)),
         next_local_id: std::sync::Arc::new(std::sync::atomic::AtomicI32::new(-1)),
@@ -488,7 +529,7 @@ pub fn GamePage() -> impl IntoView {
     }
 
     view! {
-        <div class="game-page">
+        <div class=move || if ctx.suppress_tooltips.get() { "game-page suppress-tooltips" } else { "game-page" }>
             // Loading overlay — blocks interaction until session snapshot arrives
             {move || {
                 let state = loading.get();

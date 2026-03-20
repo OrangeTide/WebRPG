@@ -98,6 +98,7 @@ impl WindowId {
     /// Used to show the ? help button in the title bar.
     pub fn help_topic(&self) -> Option<&'static str> {
         match self {
+            WindowId::Map => Some("map-viewer"),
             WindowId::FileBrowser => Some("file-viewer"),
             _ => None,
         }
