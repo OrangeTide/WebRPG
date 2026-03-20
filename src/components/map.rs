@@ -481,18 +481,21 @@ pub fn MapCanvas() -> impl IntoView {
                     ctx2d.set_line_dash(&js_sys::Array::new()).ok();
                 }
 
-                // Fog of war
-                ctx2d.set_fill_style_str("rgba(0, 0, 0, 0.85)");
-                let revealed = &fog_data;
-                for gx in 0..m.width {
-                    for gy in 0..m.height {
-                        if !revealed.contains(&(gx, gy)) {
-                            ctx2d.fill_rect(
-                                (gx * m.cell_size) as f64,
-                                (gy * m.cell_size) as f64,
-                                cell,
-                                cell,
-                            );
+                // Fog of war — only draw if GM has revealed at least one cell
+                // (empty fog = no fog system active, so show full map)
+                if !fog_data.is_empty() {
+                    ctx2d.set_fill_style_str("rgba(0, 0, 0, 0.85)");
+                    let revealed = &fog_data;
+                    for gx in 0..m.width {
+                        for gy in 0..m.height {
+                            if !revealed.contains(&(gx, gy)) {
+                                ctx2d.fill_rect(
+                                    (gx * m.cell_size) as f64,
+                                    (gy * m.cell_size) as f64,
+                                    cell,
+                                    cell,
+                                );
+                            }
                         }
                     }
                 }
