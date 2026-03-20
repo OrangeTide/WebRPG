@@ -7,7 +7,7 @@ use leptos_router::{
 
 use crate::pages::game::GamePage;
 use crate::pages::landing::LandingPage;
-use crate::pages::login::LoginPage;
+use crate::pages::login::{LoginPage, SignupPage};
 use crate::pages::sessions::SessionsPage;
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
@@ -41,6 +41,7 @@ pub fn App() -> impl IntoView {
                 <Routes fallback=|| "Page not found.".into_view()>
                     <Route path=StaticSegment("") view=LandingPage />
                     <Route path=StaticSegment("login") view=LoginPage />
+                    <Route path=StaticSegment("signup") view=SignupPage />
                     <Route path=StaticSegment("sessions") view=SessionsPage />
                     <Route path=(StaticSegment("game"), ParamSegment("id")) view=GamePage />
                 </Routes>

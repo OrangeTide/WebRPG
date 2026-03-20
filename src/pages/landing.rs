@@ -10,7 +10,7 @@ pub fn LandingPage() -> impl IntoView {
             <div class="landing-actions">
                 <a href="/login">"Log In"</a>
                 <span>" or "</span>
-                <a href="/login?signup=true">"Sign Up"</a>
+                <a href="/signup">"Sign Up"</a>
                 <span>" to get started."</span>
             </div>
         </div>
