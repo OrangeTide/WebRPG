@@ -1626,17 +1626,6 @@ fn TokenHpPopup(
         tokens.get().into_iter().find(|t| t.id == sel_id)
     };
 
-    let do_hp_change = move |token_id: i32, change: i32| {
-        send.with_value(|f| {
-            if let Some(f) = f {
-                f(ClientMessage::UpdateTokenHp {
-                    token_id,
-                    hp_change: change,
-                });
-            }
-        });
-    };
-
     let toggle_condition = move |token_id: i32, condition: &str| {
         let condition = condition.to_string();
         let mut new_conditions = tokens
@@ -1678,10 +1667,6 @@ fn TokenHpPopup(
                         Some(view! {
                             <div class="token-popup-hp">
                                 <span>"HP: " {hp} "/" {max}</span>
-                                <button on:click=move |_| do_hp_change(tid, -1)>"-1"</button>
-                                <button on:click=move |_| do_hp_change(tid, 1)>"+1"</button>
-                                <button on:click=move |_| do_hp_change(tid, -5)>"-5"</button>
-                                <button on:click=move |_| do_hp_change(tid, 5)>"+5"</button>
                             </div>
                         })
                     } else {
