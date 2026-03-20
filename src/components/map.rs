@@ -28,6 +28,7 @@ fn condition_icon(name: &str) -> &str {
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum MapTool {
     Select,
+    Pan,
     Measure,
     Ping,
 }
@@ -575,8 +576,12 @@ pub fn MapCanvas() -> impl IntoView {
                 let offset = view_offset.get();
                 let (wx, wy) = screen_to_world(sx, sy, offset, zoom);
 
-                // Middle-click or space+click = pan
-                if ev.button() == 1 || space_held.get() {
+                let tool = active_tool.get();
+
+                // Pan: middle-click (any tool), space+click, or left-click in Pan mode
+                let pan_button = if tool == MapTool::Pan { 0 } else { 1 };
+                let select_button = if tool == MapTool::Pan { 1 } else { 0 };
+                if ev.button() == pan_button || space_held.get() {
                     ev.prevent_default();
                     panning.set(true);
                     pan_start_screen.set((sx, sy));
@@ -589,10 +594,13 @@ pub fn MapCanvas() -> impl IntoView {
                     return;
                 }
 
-                let tool = active_tool.get();
+                // In Pan mode, middle-click acts as select; in other modes, only left-click
+                if ev.button() != select_button {
+                    return;
+                }
 
                 match tool {
-                    MapTool::Select => {
+                    MapTool::Select | MapTool::Pan => {
                         let cell = m.cell_size as f64;
                         let tokens_data = tokens.get();
 
@@ -714,7 +722,7 @@ pub fn MapCanvas() -> impl IntoView {
                 let tool = active_tool.get();
 
                 match tool {
-                    MapTool::Select => {
+                    MapTool::Select | MapTool::Pan => {
                         if !dragging.get() {
                             return;
                         }
@@ -800,7 +808,7 @@ pub fn MapCanvas() -> impl IntoView {
                 let zoom = view_zoom.get();
                 let offset = view_offset.get();
 
-                if tool == MapTool::Select && dragging.get() {
+                if (tool == MapTool::Select || tool == MapTool::Pan) && dragging.get() {
                     // Finish selection rectangle
                     if let Some((x1, y1, x2, y2)) = selection_rect.get() {
                         let rx = x1.min(x2);
@@ -921,6 +929,7 @@ pub fn MapCanvas() -> impl IntoView {
                         space_held.set(true);
                     }
                     "v" | "V" => active_tool.set(MapTool::Select),
+                    "h" | "H" => active_tool.set(MapTool::Pan),
                     "m" | "M" => {
                         active_tool.set(MapTool::Measure);
                         measure_start.set(None);
@@ -1125,6 +1134,19 @@ pub fn MapCanvas() -> impl IntoView {
                     </svg>
                 </button>
                 <button
+                    class=move || if active_tool.get() == MapTool::Pan { "map-tool-btn active" } else { "map-tool-btn" }
+                    on:click=move |_| active_tool.set(MapTool::Pan)
+                    data-tooltip="Pan (H)"
+                >
+                    // hand/grab icon
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 11V6a2 2 0 0 0-4 0v1"/>
+                        <path d="M14 10V4a2 2 0 0 0-4 0v6"/>
+                        <path d="M10 10.5V6a2 2 0 0 0-4 0v8"/>
+                        <path d="M18 8a2 2 0 0 1 4 0v6a8 8 0 0 1-8 8H12a8 8 0 0 1-6-2.7"/>
+                    </svg>
+                </button>
+                <button
                     class=move || if active_tool.get() == MapTool::Measure { "map-tool-btn active" } else { "map-tool-btn" }
                     on:click=move |_| {
                         active_tool.set(MapTool::Measure);
@@ -1271,7 +1293,16 @@ pub fn MapCanvas() -> impl IntoView {
                 on:mouseup=on_mouseup
                 on:wheel=on_wheel
                 on:contextmenu=on_contextmenu
-                style="cursor: pointer; display: block; width: 100%; height: 100%;"
+                style=move || {
+                    let cursor = if panning.get() {
+                        "grabbing"
+                    } else if active_tool.get() == MapTool::Pan {
+                        "grab"
+                    } else {
+                        "default"
+                    };
+                    format!("cursor: {cursor}; display: block; width: 100%; height: 100%;")
+                }
             />
             <TokenHpPopup selected_ids=selected_ids tokens=tokens />
             <crate::components::media_browser::MediaBrowser
