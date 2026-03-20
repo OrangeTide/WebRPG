@@ -761,6 +761,53 @@ h1, h2, h3, h4 {
 }
 .map-mgmt-btn:hover { background: #2a3a4a; color: #fff; }
 .map-mgmt-btn-danger:hover { background: #5a2020; color: #f88; }
+.map-settings-wrapper { position: relative; }
+.map-settings-panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 2px;
+    background: rgba(30, 42, 58, 0.95);
+    border: 1px solid #3a4a5a;
+    border-radius: 4px;
+    z-index: 100;
+    min-width: 180px;
+    padding: 2px 0;
+}
+.map-settings-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 6px 10px;
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+.map-settings-item:hover { background: #2a3a4a; color: #fff; }
+.map-settings-danger { color: #f88; }
+.map-settings-danger:hover { background: #5a2020; color: #faa; }
+.map-settings-color-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #ccc;
+}
+.map-settings-color-input {
+    width: 24px;
+    height: 20px;
+    padding: 0;
+    border: 1px solid #3a4a5a;
+    background: none;
+    cursor: pointer;
+}
 .map-switcher { position: relative; }
 .map-list-dropdown {
     position: absolute;

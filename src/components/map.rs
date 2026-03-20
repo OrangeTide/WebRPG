@@ -109,6 +109,7 @@ pub fn MapCanvas() -> impl IntoView {
     let show_token_list = RwSignal::new(false);
 
     let show_media_browser = RwSignal::new(false);
+    let show_map_settings = RwSignal::new(false);
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
     let container_ref = NodeRef::<leptos::html::Div>::new();
 
@@ -1787,16 +1788,80 @@ pub fn MapCanvas() -> impl IntoView {
                         on:click=move |_| show_create_map.set(true)
                     >"+"</button>
                     <Show when=move || map.get().is_some()>
-                        <button
-                            class="map-mgmt-btn"
-                            on:click=move |_| show_media_browser.set(true)
-                            data-tooltip="Set Background"
-                        >"\u{1f5bc}"</button>
-                        <button
-                            class="map-mgmt-btn map-mgmt-btn-danger"
-                            data-tooltip="Delete Map"
-                            on:click=do_delete_map
-                        >"\u{1f5d1}"</button>
+                        <div class="map-settings-wrapper">
+                            <button
+                                class="map-mgmt-btn"
+                                on:click=move |_| show_map_settings.update(|v| *v = !*v)
+                                data-tooltip="Map Settings"
+                            >
+                                // gear icon
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"/>
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                                </svg>
+                            </button>
+                            <Show when=move || show_map_settings.get()>
+                                <div class="map-settings-panel">
+                                    <button
+                                        class="map-settings-item"
+                                        on:click=move |_| {
+                                            show_media_browser.set(true);
+                                            show_map_settings.set(false);
+                                        }
+                                    >
+                                        // image icon
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                                            <path d="M21 15l-5-5L5 21"/>
+                                        </svg>
+                                        " Set Background"
+                                    </button>
+                                    <div class="map-settings-item">
+                                        <label class="map-settings-color-label">
+                                            // palette icon
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="12" cy="12" r="10"/>
+                                                <circle cx="12" cy="8" r="1" fill="currentColor"/>
+                                                <circle cx="8" cy="12" r="1" fill="currentColor"/>
+                                                <circle cx="16" cy="12" r="1" fill="currentColor"/>
+                                                <circle cx="12" cy="16" r="1" fill="currentColor"/>
+                                            </svg>
+                                            " Default Token Color "
+                                            <input
+                                                type="color"
+                                                class="map-settings-color-input"
+                                                prop:value=move || map.get().map(|m| m.default_token_color).unwrap_or_else(|| "#888888".to_string())
+                                                on:change=move |ev| {
+                                                    let color: String = leptos::prelude::event_target_value(&ev);
+                                                    send.with_value(|f| {
+                                                        if let Some(f) = f {
+                                                            f(ClientMessage::SetMapDefaultColor { color });
+                                                        }
+                                                    });
+                                                }
+                                            />
+                                        </label>
+                                    </div>
+                                    <button
+                                        class="map-settings-item map-settings-danger"
+                                        on:click=move |ev| {
+                                            show_map_settings.set(false);
+                                            do_delete_map(ev);
+                                        }
+                                    >
+                                        // trash icon
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="3 6 5 6 21 6"/>
+                                            <path d="M19 6l-1 14H6L5 6"/>
+                                            <path d="M10 11v6"/><path d="M14 11v6"/>
+                                            <path d="M9 6V4h6v2"/>
+                                        </svg>
+                                        " Delete Map"
+                                    </button>
+                                </div>
+                            </Show>
+                        </div>
                     </Show>
                 </div>
             </Show>
