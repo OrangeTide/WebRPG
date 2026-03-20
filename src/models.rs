@@ -67,6 +67,8 @@ pub struct TokenInfo {
     pub rotation: f32,
     #[serde(default)]
     pub conditions: Vec<String>,
+    #[serde(default)]
+    pub character_id: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -417,6 +419,7 @@ pub mod db_models {
         pub color: &'a str,
         pub size: i32,
         pub visible: bool,
+        pub character_id: Option<i32>,
         pub creature_id: Option<i32>,
         pub image_url: Option<&'a str>,
     }

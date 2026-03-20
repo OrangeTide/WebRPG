@@ -212,6 +212,7 @@ pub fn CreaturePanel() -> impl IntoView {
                                             y: 0.0,
                                             color: "#aa4444".to_string(),
                                             size: 1,
+                                            character_id: None,
                                             creature_id: Some(cid),
                                             image_url: img,
                                         });

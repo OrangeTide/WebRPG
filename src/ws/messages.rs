@@ -28,9 +28,12 @@ pub enum ClientMessage {
         y: f32,
         color: String,
         size: i32,
+        character_id: Option<i32>,
         creature_id: Option<i32>,
         image_url: Option<String>,
     },
+    /// GM places all player characters on the map at once.
+    PlaceAllPlayerTokens,
     RemoveToken {
         token_id: i32,
     },

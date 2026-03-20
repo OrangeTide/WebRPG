@@ -179,6 +179,7 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 y,
                 color,
                 size,
+                character_id,
                 creature_id,
                 image_url,
             } => {
@@ -196,6 +197,7 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                         y,
                         &color,
                         size,
+                        character_id,
                         creature_id,
                         image_url.as_deref(),
                     ) {
@@ -212,6 +214,90 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                         }
                         Err(e) => {
                             let _ = tx.send(ServerMessage::Error { message: e });
+                        }
+                    }
+                }
+            }
+
+            ClientMessage::PlaceAllPlayerTokens => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can place all player tokens".into(),
+                        });
+                        continue;
+                    }
+                    // Get all characters in this session
+                    let chars = {
+                        use crate::schema::characters;
+                        use diesel::prelude::*;
+                        let conn = &mut crate::db::get_conn();
+                        characters::table
+                            .filter(characters::session_id.eq(session_id))
+                            .select(crate::models::db_models::Character::as_select())
+                            .load::<crate::models::db_models::Character>(conn)
+                            .unwrap_or_default()
+                    };
+                    // Check which characters already have tokens on the active map
+                    let existing_char_ids: std::collections::HashSet<i32> = {
+                        use crate::schema::{maps, tokens};
+                        use diesel::prelude::*;
+                        let conn = &mut crate::db::get_conn();
+                        let map_id: Option<i32> = maps::table
+                            .filter(maps::session_id.eq(session_id))
+                            .order(maps::id.desc())
+                            .select(maps::id)
+                            .first(conn)
+                            .optional()
+                            .unwrap_or(None);
+                        if let Some(mid) = map_id {
+                            tokens::table
+                                .filter(tokens::map_id.eq(mid))
+                                .filter(tokens::character_id.is_not_null())
+                                .select(tokens::character_id)
+                                .load::<Option<i32>>(conn)
+                                .unwrap_or_default()
+                                .into_iter()
+                                .flatten()
+                                .collect()
+                        } else {
+                            std::collections::HashSet::new()
+                        }
+                    };
+                    let mut col = 0i32;
+                    for ch in &chars {
+                        if existing_char_ids.contains(&ch.id) {
+                            continue;
+                        }
+                        match place_token(
+                            session_id,
+                            &ch.name,
+                            col as f32,
+                            0.0,
+                            "#4488cc",
+                            1,
+                            Some(ch.id),
+                            None,
+                            ch.portrait_url.as_deref(),
+                        ) {
+                            Ok(token_info) => {
+                                if let Some(mut session) =
+                                    SESSION_MANAGER.sessions.get_mut(&session_id)
+                                {
+                                    session
+                                        .token_positions
+                                        .insert(token_info.id, (col as f32, 0.0));
+                                }
+                                SESSION_MANAGER.broadcast(
+                                    session_id,
+                                    &ServerMessage::TokenPlaced { token: token_info },
+                                    None,
+                                );
+                                col += 1;
+                            }
+                            Err(e) => {
+                                let _ = tx.send(ServerMessage::Error { message: e });
+                            }
                         }
                     }
                 }
@@ -792,6 +878,7 @@ fn build_snapshot(session_id: i32, user_id: i32) -> crate::ws::messages::GameSta
                     image_url: t.image_url,
                     rotation: t.rotation,
                     conditions,
+                    character_id: t.character_id,
                 }
             })
             .collect();
@@ -949,6 +1036,7 @@ fn place_token(
     y: f32,
     color: &str,
     size: i32,
+    character_id: Option<i32>,
     creature_id: Option<i32>,
     image_url: Option<&str>,
 ) -> Result<crate::models::TokenInfo, String> {
@@ -975,6 +1063,7 @@ fn place_token(
         color,
         size,
         visible: true,
+        character_id,
         creature_id,
         image_url,
     };
@@ -1036,6 +1125,7 @@ fn place_token(
         image_url: image_url.map(|s| s.to_string()),
         rotation: 0.0,
         conditions: vec![],
+        character_id,
     })
 }
 
@@ -1142,6 +1232,7 @@ fn load_map_with_tokens(
                 image_url: t.image_url,
                 rotation: t.rotation,
                 conditions,
+                character_id: t.character_id,
             }
         })
         .collect();
