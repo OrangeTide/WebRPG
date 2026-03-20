@@ -165,7 +165,7 @@ pub fn CreaturePanel() -> impl IntoView {
             <div class="item-list">
                 <For
                     each=move || creatures.get()
-                    key=|c| c.id
+                    key=|c| (c.id, c.name.clone(), c.image_url.clone(), c.stat_data.to_string())
                     let:creature
                 >
                     {
