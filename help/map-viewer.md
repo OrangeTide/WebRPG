@@ -80,8 +80,13 @@ Press **Escape** to cancel the current measurement and return to the Select tool
 ## Token Rotation
 
 - **Rotate tool (R)**: Click and drag on a selected token to rotate it freely. When multiple tokens are selected, they orbit around the group centroid.
-- **Right-click** on selected tokens to rotate them 15 degrees clockwise. Hold **Shift** and right-click to rotate counterclockwise.
 - Single-token rotation works with grid snap enabled. Multi-token group rotation is disabled when grid snap is on, since orbiting positions cannot snap cleanly to the grid.
+
+## Token Context Menu
+
+**Right-click** on a token to open a context menu. If the token is not already selected, it is selected first. The menu shows the token's name (or a count for multi-select) and provides:
+
+- **Delete** (GM only) -- removes the selected token(s) from the map
 
 ## Facing Arrows
 
@@ -123,9 +128,19 @@ The management bar in the top-right corner provides:
 
 ### Token Management
 
-- **Place tokens** -- use the "Place on Map" button in the Characters or Creatures panel
-- **Place All Player Tokens** -- places all player characters at once
+- **Place tokens** -- use the "Place on Map" button in the Characters or Creatures panel. The button is grayed out if the character already has a token on the current map.
+- **Place All Player Tokens** -- places all player characters that don't already have tokens on the map
+- **Delete tokens** -- right-click a token and choose Delete from the context menu
 - **Sync Viewport** -- broadcasts the GM's current viewport to all players
+
+## Zoom Toolbar
+
+The bottom-right corner shows a zoom toolbar with:
+
+- **+** / **−** -- zoom in or out (centered on the viewport)
+- **Fit** -- zoom and pan to fit the entire map in the viewport
+- **1:1** -- reset zoom to 100% and scroll to the top-left corner
+- **Percentage** -- displays the current zoom level
 
 ## Tips
 
@@ -133,4 +148,3 @@ The management bar in the top-right corner provides:
 - Use the Token List dropdown (**T**) to quickly find and center on a specific token.
 - Middle-click drag is the fastest way to pan around the map.
 - The grid snap toggle affects both token dragging and measurement endpoints.
-- Right-click rotation is quick for 15-degree increments; use the Rotate tool for fine control.
