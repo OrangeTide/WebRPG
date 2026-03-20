@@ -40,10 +40,6 @@ pub enum ClientMessage {
     RemoveToken {
         token_id: i32,
     },
-    UpdateTokenHp {
-        token_id: i32,
-        hp_change: i32,
-    },
     RevealFog {
         cells: Vec<(i32, i32)>,
     },

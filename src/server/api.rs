@@ -1093,7 +1093,32 @@ pub async fn delete_character(character_id: i32) -> Result<(), ServerFnError> {
         }
     }
 
-    // Delete associated resources first
+    // Delete cascade: token_instances, tokens, initiative entries, resources
+    // First get all token IDs for this character
+    let token_ids: Vec<i32> = tokens::table
+        .filter(tokens::character_id.eq(character_id))
+        .select(tokens::id)
+        .load(conn)
+        .unwrap_or_default();
+
+    // Delete token instances for these tokens
+    if !token_ids.is_empty() {
+        diesel::delete(token_instances::table.filter(token_instances::token_id.eq_any(&token_ids)))
+            .execute(conn)
+            .ok();
+    }
+
+    // Delete initiative entries referencing this character
+    diesel::delete(initiative::table.filter(initiative::character_id.eq(character_id)))
+        .execute(conn)
+        .ok();
+
+    // Delete tokens
+    diesel::delete(tokens::table.filter(tokens::character_id.eq(character_id)))
+        .execute(conn)
+        .ok();
+
+    // Delete associated resources
     diesel::delete(
         character_resources::table.filter(character_resources::character_id.eq(character_id)),
     )
@@ -1264,6 +1289,31 @@ pub async fn delete_creature(creature_id: i32) -> Result<(), ServerFnError> {
     if session.gm_user_id != user.id {
         return Err(ServerFnError::new("Only the GM can delete creatures"));
     }
+
+    // Delete cascade: token_instances, tokens for this creature
+    let token_ids: Vec<i32> = tokens::table
+        .filter(tokens::creature_id.eq(creature_id))
+        .select(tokens::id)
+        .load(conn)
+        .unwrap_or_default();
+
+    if !token_ids.is_empty() {
+        diesel::delete(token_instances::table.filter(token_instances::token_id.eq_any(&token_ids)))
+            .execute(conn)
+            .ok();
+    }
+
+    // Delete initiative entries referencing these tokens
+    if !token_ids.is_empty() {
+        diesel::delete(initiative::table.filter(initiative::token_id.eq_any(&token_ids)))
+            .execute(conn)
+            .ok();
+    }
+
+    // Delete tokens
+    diesel::delete(tokens::table.filter(tokens::creature_id.eq(creature_id)))
+        .execute(conn)
+        .ok();
 
     diesel::delete(creatures::table.find(creature_id))
         .execute(conn)

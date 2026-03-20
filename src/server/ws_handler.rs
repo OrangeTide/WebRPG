@@ -232,7 +232,9 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                         Ok(token_info) => {
                             if let Some(mut session) = SESSION_MANAGER.sessions.get_mut(&session_id)
                             {
-                                session.token_positions.insert(token_info.id, (x, y));
+                                session
+                                    .token_positions
+                                    .insert(token_info.id, (token_info.x, token_info.y));
                             }
                             SESSION_MANAGER.broadcast(
                                 session_id,
@@ -364,36 +366,6 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                         &ServerMessage::TokenRemoved { token_id },
                         None,
                     );
-                }
-            }
-
-            ClientMessage::UpdateTokenHp {
-                token_id,
-                hp_change,
-            } => {
-                if let Some(session_id) = current_session {
-                    if !is_gm(session_id, user_id) {
-                        let _ = tx.send(ServerMessage::Error {
-                            message: "Only the GM can update token HP".into(),
-                        });
-                        continue;
-                    }
-                    match update_token_hp(token_id, hp_change) {
-                        Ok((current_hp, max_hp)) => {
-                            SESSION_MANAGER.broadcast(
-                                session_id,
-                                &ServerMessage::TokenHpUpdated {
-                                    token_id,
-                                    current_hp,
-                                    max_hp,
-                                },
-                                None,
-                            );
-                        }
-                        Err(e) => {
-                            let _ = tx.send(ServerMessage::Error { message: e });
-                        }
-                    }
                 }
             }
 
@@ -1058,6 +1030,8 @@ fn build_snapshot(session_id: i32, user_id: i32) -> crate::ws::messages::GameSta
             initiative_value: e.initiative_value,
             is_current_turn: e.is_current_turn,
             portrait_url: None,
+            token_id: e.token_id,
+            character_id: e.character_id,
         })
         .collect();
 
@@ -1203,11 +1177,21 @@ fn place_token(
         .first(conn)
         .map_err(|_| "No active map for this session".to_string())?;
 
+    // For creature tokens, generate a unique label ("Wolf", "Wolf 2", ...)
+    let unique_label = if creature_id.is_some() {
+        make_unique_creature_label(conn, map_id, label)
+    } else {
+        label.to_string()
+    };
+
+    // Find a non-overlapping position for the token
+    let (final_x, final_y) = find_open_position(conn, map_id, x, y, size);
+
     let new_token = NewToken {
         map_id,
-        label,
-        x,
-        y,
+        label: &unique_label,
+        x: final_x,
+        y: final_y,
         color,
         size,
         visible: true,
@@ -1227,8 +1211,9 @@ fn place_token(
     .get_result(conn)
     .map_err(|e| format!("Failed to get token id: {e}"))?;
 
-    // If linked to a creature, create a token instance with HP from the stat block
+    // Create a token instance for creature or character tokens
     let (current_hp, max_hp) = if let Some(cid) = creature_id {
+        // Creature token: seed HP from stat block
         let creature: Creature = creatures::table
             .find(cid)
             .select(Creature::as_select())
@@ -1244,7 +1229,8 @@ fn place_token(
 
         let new_instance = NewTokenInstance {
             token_id,
-            creature_id: cid,
+            creature_id: Some(cid),
+            character_id: None,
             current_hp: hp,
             max_hp: hp,
             conditions_json: "[]".to_string(),
@@ -1256,6 +1242,37 @@ fn place_token(
             .map_err(|e| format!("Failed to create token instance: {e}"))?;
 
         (Some(hp), Some(hp))
+    } else if let Some(char_id) = character_id {
+        // Character token: seed HP from character_resources named "HP"
+        let hp_resource: Option<CharacterResource> = character_resources::table
+            .filter(character_resources::character_id.eq(char_id))
+            .filter(diesel::dsl::sql::<diesel::sql_types::Bool>(
+                "LOWER(name) = 'hp'",
+            ))
+            .select(CharacterResource::as_select())
+            .first(conn)
+            .optional()
+            .unwrap_or(None);
+
+        let (cur, max) = hp_resource
+            .map(|r| (r.current_value, r.max_value))
+            .unwrap_or((0, 0));
+
+        let new_instance = NewTokenInstance {
+            token_id,
+            creature_id: None,
+            character_id: Some(char_id),
+            current_hp: cur,
+            max_hp: max,
+            conditions_json: "[]".to_string(),
+        };
+
+        diesel::insert_into(token_instances::table)
+            .values(&new_instance)
+            .execute(conn)
+            .map_err(|e| format!("Failed to create token instance: {e}"))?;
+
+        (Some(cur), Some(max))
     } else {
         (None, None)
     };
@@ -1271,9 +1288,9 @@ fn place_token(
 
     Ok(crate::models::TokenInfo {
         id: token_id,
-        label: label.to_string(),
-        x,
-        y,
+        label: unique_label,
+        x: final_x,
+        y: final_y,
         color: color.to_string(),
         size,
         visible: true,
@@ -1290,39 +1307,133 @@ fn place_token(
 
 fn remove_token(token_id: i32) {
     use crate::db;
-    use crate::schema::{token_instances, tokens};
+    use crate::schema::{initiative, token_instances, tokens};
     use diesel::prelude::*;
 
     let conn = &mut db::get_conn();
-    let _ = diesel::delete(token_instances::table.filter(token_instances::token_id.eq(token_id)))
-        .execute(conn);
-    let _ = diesel::delete(tokens::table.find(token_id)).execute(conn);
+    // Delete token instance, initiative entries, then the token itself
+    if let Err(e) =
+        diesel::delete(token_instances::table.filter(token_instances::token_id.eq(token_id)))
+            .execute(conn)
+    {
+        log::warn!("Failed to delete token instance for token {token_id}: {e}");
+    }
+    if let Err(e) =
+        diesel::delete(initiative::table.filter(initiative::token_id.eq(token_id))).execute(conn)
+    {
+        log::warn!("Failed to delete initiative entries for token {token_id}: {e}");
+    }
+    if let Err(e) = diesel::delete(tokens::table.find(token_id)).execute(conn) {
+        log::warn!("Failed to delete token {token_id}: {e}");
+    }
 }
 
-fn update_token_hp(token_id: i32, hp_change: i32) -> Result<(i32, i32), String> {
-    use crate::db;
-    use crate::models::db_models::TokenInstance;
-    use crate::schema::token_instances;
+/// Generate a unique label for a creature token on the given map.
+/// First instance keeps the base name ("Wolf"), subsequent ones get "Wolf 2", "Wolf 3", etc.
+fn make_unique_creature_label(
+    conn: &mut diesel::SqliteConnection,
+    map_id: i32,
+    base_name: &str,
+) -> String {
+    use crate::schema::tokens as tokens_table;
     use diesel::prelude::*;
 
-    let conn = &mut db::get_conn();
+    let existing_labels: Vec<String> = tokens_table::table
+        .filter(tokens_table::map_id.eq(map_id))
+        .select(tokens_table::label)
+        .load(conn)
+        .unwrap_or_default();
 
-    let instance: TokenInstance = token_instances::table
-        .filter(token_instances::token_id.eq(token_id))
-        .select(TokenInstance::as_select())
-        .first(conn)
-        .map_err(|_| "Token has no HP instance".to_string())?;
+    // Check if base name is free
+    if !existing_labels.iter().any(|l| l == base_name) {
+        return base_name.to_string();
+    }
 
-    let new_hp = (instance.current_hp + hp_change)
-        .max(0)
-        .min(instance.max_hp);
+    // Find the next available number
+    for n in 2.. {
+        let candidate = format!("{base_name} {n}");
+        if !existing_labels.iter().any(|l| l == &candidate) {
+            return candidate;
+        }
+    }
+    unreachable!()
+}
 
-    diesel::update(token_instances::table.find(instance.id))
-        .set(token_instances::current_hp.eq(new_hp))
-        .execute(conn)
-        .map_err(|e| format!("Failed to update HP: {e}"))?;
+/// Find an open grid position for a token, avoiding overlap with existing tokens.
+/// Starts at the requested position, then scans adjacent cells clockwise from 12:00,
+/// expanding outward in concentric rings. Falls back to the original position if
+/// no open spot is found within 3 rings.
+fn find_open_position(
+    conn: &mut diesel::SqliteConnection,
+    map_id: i32,
+    x: f32,
+    y: f32,
+    size: i32,
+) -> (f32, f32) {
+    use crate::schema::tokens as tokens_table;
+    use diesel::prelude::*;
 
-    Ok((new_hp, instance.max_hp))
+    let existing: Vec<(f32, f32, i32)> = tokens_table::table
+        .filter(tokens_table::map_id.eq(map_id))
+        .select((tokens_table::x, tokens_table::y, tokens_table::size))
+        .load(conn)
+        .unwrap_or_default();
+
+    let overlaps = |px: f32, py: f32, ps: i32| -> bool {
+        existing.iter().any(|&(ex, ey, es)| {
+            // Two tokens overlap if their bounding boxes intersect
+            let ps_f = ps as f32;
+            let es_f = es as f32;
+            px < ex + es_f && px + ps_f > ex && py < ey + es_f && py + ps_f > ey
+        })
+    };
+
+    // Try the requested position first
+    if !overlaps(x, y, size) {
+        return (x, y);
+    }
+
+    let sf = size as f32;
+
+    // Scan clockwise in concentric rings (ring 1 = adjacent, ring 2, ring 3)
+    // Clockwise from 12:00: N, NE, E, SE, S, SW, W, NW
+    for ring in 1..=3 {
+        let r = ring as f32;
+        // Generate positions around the ring, starting from 12:00 going clockwise
+        // For ring r, we check all positions at distance r in each direction
+        let offsets: Vec<(f32, f32)> = {
+            let mut pts = Vec::new();
+            let ri = ring as i32;
+            // Top edge: from (−r+1, −r) to (r, −r) — starts at 12:00
+            for dx in (-ri + 1)..=ri {
+                pts.push((dx as f32 * sf, -r * sf));
+            }
+            // Right edge: from (r, −r+1) to (r, r)
+            for dy in (-ri + 1)..=ri {
+                pts.push((r * sf, dy as f32 * sf));
+            }
+            // Bottom edge: from (r−1, r) to (−r, r)
+            for dx in ((-ri)..ri).rev() {
+                pts.push((dx as f32 * sf, r * sf));
+            }
+            // Left edge: from (−r, r−1) to (−r, −r)
+            for dy in ((-ri)..ri).rev() {
+                pts.push((-r * sf, dy as f32 * sf));
+            }
+            pts
+        };
+
+        for (dx, dy) in offsets {
+            let nx = x + dx;
+            let ny = y + dy;
+            if nx >= 0.0 && ny >= 0.0 && !overlaps(nx, ny, size) {
+                return (nx, ny);
+            }
+        }
+    }
+
+    // Give up — place at the original position
+    (x, y)
 }
 
 fn load_map_with_tokens(
@@ -1438,6 +1549,8 @@ fn save_initiative(session_id: i32, entries: &[crate::models::InitiativeEntryInf
             initiative_value: entry.initiative_value,
             is_current_turn: entry.is_current_turn,
             sort_order: i as i32,
+            token_id: entry.token_id,
+            character_id: entry.character_id,
         };
         let _ = diesel::insert_into(initiative::table)
             .values(&new_entry)
@@ -1738,8 +1851,29 @@ fn roll_character_initiative(
         .map(|s| s.initiative_order.clone())
         .unwrap_or_default();
 
-    // Remove existing entry for this character (by label match)
-    entries.retain(|e| e.label != char_name);
+    // Look up token_id for this character on the active map
+    let token_id: Option<i32> = {
+        use crate::schema::{maps, tokens as tokens_table};
+        let map_id: Option<i32> = maps::table
+            .filter(maps::session_id.eq(session_id))
+            .order(maps::id.desc())
+            .select(maps::id)
+            .first(conn)
+            .optional()
+            .unwrap_or(None);
+        map_id.and_then(|mid| {
+            tokens_table::table
+                .filter(tokens_table::map_id.eq(mid))
+                .filter(tokens_table::character_id.eq(character_id))
+                .select(tokens_table::id)
+                .first(conn)
+                .optional()
+                .unwrap_or(None)
+        })
+    };
+
+    // Remove existing entry for this character (by character_id or label match)
+    entries.retain(|e| e.character_id != Some(character_id) && e.label != char_name);
 
     let is_first = entries.is_empty();
     entries.push(crate::models::InitiativeEntryInfo {
@@ -1748,6 +1882,8 @@ fn roll_character_initiative(
         initiative_value: total as f32,
         is_current_turn: is_first,
         portrait_url,
+        token_id,
+        character_id: Some(character_id),
     });
 
     entries.sort_by(|a, b| b.initiative_value.partial_cmp(&a.initiative_value).unwrap());
@@ -1791,20 +1927,60 @@ fn roll_creature_initiative(
         .map(|s| s.initiative_order.clone())
         .unwrap_or_default();
 
+    // Generate unique initiative label: "Wolf", "Wolf 2", "Wolf 3", ...
+    // based on existing initiative entries
+    let unique_label = {
+        let base = label;
+        if !entries.iter().any(|e| e.label == base) {
+            base.to_string()
+        } else {
+            let mut n = 2;
+            loop {
+                let candidate = format!("{base} {n}");
+                if !entries.iter().any(|e| e.label == candidate) {
+                    break candidate;
+                }
+                n += 1;
+            }
+        }
+    };
+
+    // Look up token_id by matching label on the active map
+    let token_id: Option<i32> = {
+        use crate::schema::{maps, tokens as tokens_table};
+        let map_id: Option<i32> = maps::table
+            .filter(maps::session_id.eq(session_id))
+            .order(maps::id.desc())
+            .select(maps::id)
+            .first(conn)
+            .optional()
+            .unwrap_or(None);
+        map_id.and_then(|mid| {
+            tokens_table::table
+                .filter(tokens_table::map_id.eq(mid))
+                .filter(tokens_table::label.eq(&unique_label))
+                .select(tokens_table::id)
+                .first(conn)
+                .optional()
+                .unwrap_or(None)
+        })
+    };
+
     let is_first = entries.is_empty();
-    // Don't remove existing — creatures can have multiple entries (e.g. 5 goblins)
     entries.push(crate::models::InitiativeEntryInfo {
         id: 0,
-        label: label.to_string(),
+        label: unique_label.clone(),
         initiative_value: total as f32,
         is_current_turn: is_first,
         portrait_url: image_url,
+        token_id,
+        character_id: None,
     });
 
     entries.sort_by(|a, b| b.initiative_value.partial_cmp(&a.initiative_value).unwrap());
 
     Ok(InitiativeRollResult {
-        label: label.to_string(),
+        label: unique_label,
         d20,
         modifier,
         total,
