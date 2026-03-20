@@ -104,13 +104,15 @@ pub fn CharacterSelection() -> impl IntoView {
 
     let place_character = {
         let send = ctx.send;
+        let view_center = ctx.map_view_center;
         move |char_id: i32, char_name: String, portrait: Option<String>| {
+            let (cx, cy) = view_center.get();
             send.with_value(|f| {
                 if let Some(f) = f {
                     f(ClientMessage::PlaceToken {
                         label: char_name,
-                        x: 0.0,
-                        y: 0.0,
+                        x: cx,
+                        y: cy,
                         color: "#4488cc".to_string(),
                         size: 1,
                         character_id: Some(char_id),
@@ -124,10 +126,12 @@ pub fn CharacterSelection() -> impl IntoView {
 
     let place_all = {
         let send = ctx.send;
+        let view_center = ctx.map_view_center;
         move |_| {
+            let (cx, cy) = view_center.get();
             send.with_value(|f| {
                 if let Some(f) = f {
-                    f(ClientMessage::PlaceAllPlayerTokens);
+                    f(ClientMessage::PlaceAllPlayerTokens { x: cx, y: cy });
                 }
             });
         }
@@ -232,6 +236,11 @@ pub fn CharacterSelection() -> impl IntoView {
                                         })}
                                     </div>
                                 </div>
+                                <button
+                                    class="btn-add"
+                                    data-tooltip="Find on Map"
+                                    on:click=move |_| ctx.center_on_character.set(Some(cid))
+                                >"\u{1f441}"</button>
                                 <button
                                     class="btn-add"
                                     data-tooltip="Place on Map"
@@ -436,6 +445,11 @@ fn CharacterEditor(character: CharacterInfo, template: Option<TemplateInfo>) -> 
                         <span class="char-subtitle">{subtitle}</span>
                     })}
                 </div>
+                <button
+                    class="btn-add"
+                    data-tooltip="Find on Map"
+                    on:click=move |_| ctx.center_on_character.set(Some(char_id))
+                >"\u{1f441}"</button>
             </div>
             <crate::components::media_browser::MediaBrowser
                 on_select=on_portrait_select

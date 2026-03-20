@@ -205,6 +205,34 @@ pub fn MapCanvas() -> impl IntoView {
         });
     }
 
+    // Watch for center-on-character requests from other components
+    #[cfg(feature = "hydrate")]
+    {
+        let canvas_ref_center = canvas_ref.clone();
+        Effect::new(move |_| {
+            let Some(char_id) = ctx.center_on_character.get() else {
+                return;
+            };
+            ctx.center_on_character.set(None);
+            let tokens_data = tokens.get();
+            let map_data = map.get();
+            if let Some(t) = tokens_data.iter().find(|t| t.character_id == Some(char_id)) {
+                if let Some(ref m) = map_data {
+                    let cell = m.cell_size as f64;
+                    let world_x = (t.x as f64 + 0.5) * cell;
+                    let world_y = (t.y as f64 + 0.5) * cell;
+                    if let Some(canvas) = canvas_ref_center.get() {
+                        let canvas_el: &web_sys::HtmlCanvasElement = canvas.as_ref();
+                        let cw = canvas_el.client_width() as f64;
+                        let ch = canvas_el.client_height() as f64;
+                        let zoom = view_zoom.get();
+                        view_offset.set((world_x - cw / zoom / 2.0, world_y - ch / zoom / 2.0));
+                    }
+                }
+            }
+        });
+    }
+
     // Auto-expire old pings (older than 3 seconds)
     #[cfg(feature = "hydrate")]
     {
@@ -323,6 +351,12 @@ pub fn MapCanvas() -> impl IntoView {
                 let w = (m.width * m.cell_size) as f64;
                 let h = (m.height * m.cell_size) as f64;
                 let cell = m.cell_size as f64;
+
+                // Update viewport center in grid coords for other components
+                let center_wx = offset.0 + css_w as f64 / zoom / 2.0;
+                let center_wy = offset.1 + css_h as f64 / zoom / 2.0;
+                ctx.map_view_center
+                    .set(((center_wx / cell) as f32, (center_wy / cell) as f32));
 
                 // Apply viewport transform for world-space drawing
                 ctx2d

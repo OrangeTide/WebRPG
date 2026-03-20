@@ -201,15 +201,17 @@ pub fn CreaturePanel() -> impl IntoView {
                         let place_on_map = {
                             let label = place_name;
                             let img = place_image;
+                            let view_center = ctx.map_view_center;
                             move |_| {
                                 let label = label.clone();
                                 let img = img.clone();
+                                let (cx, cy) = view_center.get();
                                 send.with_value(|f| {
                                     if let Some(f) = f {
                                         f(ClientMessage::PlaceToken {
                                             label,
-                                            x: 0.0,
-                                            y: 0.0,
+                                            x: cx,
+                                            y: cy,
                                             color: "#aa4444".to_string(),
                                             size: 1,
                                             character_id: None,
