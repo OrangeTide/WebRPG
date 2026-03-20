@@ -895,6 +895,7 @@ fn build_snapshot(session_id: i32, user_id: i32) -> crate::ws::messages::GameSta
                     rotation: t.rotation,
                     conditions,
                     character_id: t.character_id,
+                    creature_id: t.creature_id,
                 }
             })
             .collect();
@@ -1142,6 +1143,7 @@ fn place_token(
         rotation: 0.0,
         conditions: vec![],
         character_id,
+        creature_id,
     })
 }
 
@@ -1249,6 +1251,7 @@ fn load_map_with_tokens(
                 rotation: t.rotation,
                 conditions,
                 character_id: t.character_id,
+                creature_id: t.creature_id,
             }
         })
         .collect();

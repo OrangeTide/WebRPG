@@ -911,7 +911,10 @@ h1, h2, h3, h4 {
 }
 
 .token-popup-header {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
 }
 
 .token-popup-hp {

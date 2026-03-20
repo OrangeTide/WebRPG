@@ -1863,10 +1863,42 @@ fn TokenHpPopup(
             let max = t.max_hp.unwrap_or(0);
             let current_conditions = t.conditions.clone();
 
+            let char_id = t.character_id;
+            let creature_id = t.creature_id;
+            let label_for_open = t.label.clone();
+
             Some(view! {
                 <div class="token-popup">
                     <div class="token-popup-header">
                         <strong>{t.label.clone()}</strong>
+                        {if char_id.is_some() || creature_id.is_some() {
+                            Some(view! {
+                                <button
+                                    class="btn-add"
+                                    data-tooltip=if char_id.is_some() { "Open Character Sheet" } else { "Open Creature" }
+                                    on:click=move |_| {
+                                        if let Some(cid) = char_id {
+                                            if let Some(wm) = use_context::<crate::components::window_manager::WindowManagerContext>() {
+                                                wm.open_character_editor(cid, &label_for_open);
+                                            }
+                                        } else if let Some(crid) = creature_id {
+                                            if let Some(wm) = use_context::<crate::components::window_manager::WindowManagerContext>() {
+                                                wm.restore_window(crate::components::window_manager::WindowId::Creatures);
+                                            }
+                                            ctx.focus_creature.set(Some(crid));
+                                        }
+                                    }
+                                >
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M15 3h6v6"/>
+                                        <path d="M10 14L21 3"/>
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                    </svg>
+                                </button>
+                            })
+                        } else {
+                            None
+                        }}
                     </div>
                     {if has_hp {
                         Some(view! {

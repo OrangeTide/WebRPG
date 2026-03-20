@@ -43,6 +43,18 @@ pub fn CreaturePanel() -> impl IntoView {
     let trigger_refetch = move || refetch.update(|n| *n += 1);
 
     let (editing, set_editing) = signal(Option::<i32>::None);
+
+    // When focus_creature is set, open the editor for that creature
+    #[cfg(feature = "hydrate")]
+    {
+        Effect::new(move |_| {
+            let Some(creature_id) = ctx.focus_creature.get() else {
+                return;
+            };
+            ctx.focus_creature.set(None);
+            set_editing.set(Some(creature_id));
+        });
+    }
     let (show_create_form, set_show_create_form) = signal(false);
     let (new_name, set_new_name) = signal(String::new());
 

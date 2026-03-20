@@ -69,6 +69,8 @@ pub struct TokenInfo {
     pub conditions: Vec<String>,
     #[serde(default)]
     pub character_id: Option<i32>,
+    #[serde(default)]
+    pub creature_id: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
