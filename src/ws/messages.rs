@@ -162,6 +162,11 @@ pub enum ServerMessage {
         current_hp: i32,
         max_hp: i32,
     },
+    /// Token image changed (e.g. character portrait or creature icon updated).
+    TokenImageUpdated {
+        token_id: i32,
+        image_url: Option<String>,
+    },
     FogUpdated {
         revealed: Vec<(i32, i32)>,
         hidden: Vec<(i32, i32)>,

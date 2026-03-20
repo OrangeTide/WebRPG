@@ -235,6 +235,16 @@ impl GameContext {
                     }
                 });
             }
+            ServerMessage::TokenImageUpdated {
+                token_id,
+                image_url,
+            } => {
+                self.tokens.update(|tokens| {
+                    if let Some(t) = tokens.iter_mut().find(|t| t.id == token_id) {
+                        t.image_url = image_url;
+                    }
+                });
+            }
             ServerMessage::FogUpdated { revealed, hidden } => {
                 self.fog.update(|fog| {
                     for cell in revealed {

@@ -1307,6 +1307,34 @@ pub async fn update_creature_image(
         .execute(conn)
         .map_err(|e| ServerFnError::new(format!("Failed to update creature image: {e}")))?;
 
+    // Update image on any tokens linked to this creature
+    use crate::schema::tokens;
+    let updated_token_ids: Vec<i32> = tokens::table
+        .filter(tokens::creature_id.eq(creature_id))
+        .select(tokens::id)
+        .load(conn)
+        .unwrap_or_default();
+    if !updated_token_ids.is_empty() {
+        diesel::update(tokens::table.filter(tokens::creature_id.eq(creature_id)))
+            .set(tokens::image_url.eq(&image_url))
+            .execute(conn)
+            .ok();
+    }
+
+    // Broadcast token image updates
+    use crate::ws::messages::ServerMessage;
+    use crate::ws::session::SESSION_MANAGER;
+    for tid in updated_token_ids {
+        SESSION_MANAGER.broadcast(
+            creature.session_id,
+            &ServerMessage::TokenImageUpdated {
+                token_id: tid,
+                image_url: image_url.clone(),
+            },
+            None,
+        );
+    }
+
     Ok(())
 }
 
@@ -1554,6 +1582,20 @@ pub async fn update_character_portrait(
         .execute(conn)
         .map_err(|e| ServerFnError::new(format!("Failed to update portrait: {e}")))?;
 
+    // Update image on any tokens linked to this character
+    use crate::schema::tokens;
+    let updated_token_ids: Vec<i32> = tokens::table
+        .filter(tokens::character_id.eq(character_id))
+        .select(tokens::id)
+        .load(conn)
+        .unwrap_or_default();
+    if !updated_token_ids.is_empty() {
+        diesel::update(tokens::table.filter(tokens::character_id.eq(character_id)))
+            .set(tokens::image_url.eq(&portrait_url))
+            .execute(conn)
+            .ok();
+    }
+
     // Broadcast character change to all clients in the session
     use crate::ws::messages::ServerMessage;
     use crate::ws::session::SESSION_MANAGER;
@@ -1566,6 +1608,18 @@ pub async fn update_character_portrait(
         },
         None,
     );
+
+    // Broadcast token image updates
+    for tid in updated_token_ids {
+        SESSION_MANAGER.broadcast(
+            character.session_id,
+            &ServerMessage::TokenImageUpdated {
+                token_id: tid,
+                image_url: portrait_url.clone(),
+            },
+            None,
+        );
+    }
 
     Ok(())
 }
