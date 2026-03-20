@@ -219,7 +219,7 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 }
             }
 
-            ClientMessage::PlaceAllPlayerTokens => {
+            ClientMessage::PlaceAllPlayerTokens { x, y } => {
                 if let Some(session_id) = current_session {
                     if !is_gm(session_id, user_id) {
                         let _ = tx.send(ServerMessage::Error {
@@ -264,16 +264,33 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                             std::collections::HashSet::new()
                         }
                     };
-                    let mut col = 0i32;
-                    for ch in &chars {
-                        if existing_char_ids.contains(&ch.id) {
-                            continue;
-                        }
+                    // Place tokens in a rectangular grid centered at (x, y)
+                    let to_place: Vec<_> = chars
+                        .iter()
+                        .filter(|ch| !existing_char_ids.contains(&ch.id))
+                        .collect();
+                    if to_place.is_empty() {
+                        continue;
+                    }
+                    let n = to_place.len() as i32;
+                    let cols = (n as f32).sqrt().ceil() as i32;
+                    let rows = if cols > 0 { (n + cols - 1) / cols } else { 0 };
+                    // Token size = 1 for all player characters (standard)
+                    let cell = 1.0_f32;
+                    let grid_w = cols as f32 * cell;
+                    let grid_h = rows as f32 * cell;
+                    let origin_x = (x - grid_w / 2.0).floor();
+                    let origin_y = (y - grid_h / 2.0).floor();
+                    for (i, ch) in to_place.iter().enumerate() {
+                        let col = i as i32 % cols;
+                        let row = i as i32 / cols;
+                        let tok_x = origin_x + col as f32 * cell;
+                        let tok_y = origin_y + row as f32 * cell;
                         match place_token(
                             session_id,
                             &ch.name,
-                            col as f32,
-                            0.0,
+                            tok_x,
+                            tok_y,
                             "#4488cc",
                             1,
                             Some(ch.id),
@@ -286,14 +303,13 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                                 {
                                     session
                                         .token_positions
-                                        .insert(token_info.id, (col as f32, 0.0));
+                                        .insert(token_info.id, (tok_x, tok_y));
                                 }
                                 SESSION_MANAGER.broadcast(
                                     session_id,
                                     &ServerMessage::TokenPlaced { token: token_info },
                                     None,
                                 );
-                                col += 1;
                             }
                             Err(e) => {
                                 let _ = tx.send(ServerMessage::Error { message: e });
