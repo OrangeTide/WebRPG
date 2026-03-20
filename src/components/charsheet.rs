@@ -102,10 +102,48 @@ pub fn CharacterSelection() -> impl IntoView {
         }
     };
 
+    let place_character = {
+        let send = ctx.send;
+        move |char_id: i32, char_name: String, portrait: Option<String>| {
+            send.with_value(|f| {
+                if let Some(f) = f {
+                    f(ClientMessage::PlaceToken {
+                        label: char_name,
+                        x: 0.0,
+                        y: 0.0,
+                        color: "#4488cc".to_string(),
+                        size: 1,
+                        character_id: Some(char_id),
+                        creature_id: None,
+                        image_url: portrait,
+                    });
+                }
+            });
+        }
+    };
+
+    let place_all = {
+        let send = ctx.send;
+        move |_| {
+            send.with_value(|f| {
+                if let Some(f) = f {
+                    f(ClientMessage::PlaceAllPlayerTokens);
+                }
+            });
+        }
+    };
+
     view! {
         <div class="character-sheet-panel">
             <div class="panel-header">
                 <h3>"Characters"</h3>
+                <Show when=move || ctx.is_gm.get()>
+                    <button
+                        class="btn-add"
+                        data-tooltip="Place All on Map"
+                        on:click=place_all
+                    >"\u{1f30d}"</button>
+                </Show>
                 <button
                     class="btn-add"
                     data-tooltip="New Character"
@@ -154,6 +192,8 @@ pub fn CharacterSelection() -> impl IntoView {
                         let name = c.name.clone();
                         let name_for_click = c.name.clone();
                         let portrait = c.portrait_url.clone();
+                        let portrait_for_place = c.portrait_url.clone();
+                        let name_for_place = c.name.clone();
                         let resources = c.resources.clone();
                         let stats_summary = {
                             let d = &c.data;
@@ -192,6 +232,16 @@ pub fn CharacterSelection() -> impl IntoView {
                                         })}
                                     </div>
                                 </div>
+                                <button
+                                    class="btn-add"
+                                    data-tooltip="Place on Map"
+                                    on:click={
+                                        let place = place_character.clone();
+                                        let name = name_for_place.clone();
+                                        let portrait = portrait_for_place.clone();
+                                        move |_| place(cid, name.clone(), portrait.clone())
+                                    }
+                                >"\u{1f4cd}"</button>
                                 <button
                                     class="btn-delete"
                                     data-tooltip="Delete character"
