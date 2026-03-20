@@ -102,6 +102,9 @@ pub fn MapCanvas() -> impl IntoView {
     let measure_end = RwSignal::new(Option::<(f64, f64)>::None);
     let measure_cursor = RwSignal::new(Option::<(f64, f64)>::None);
 
+    // --- Facing arrows ---
+    let show_facing_arrows = RwSignal::new(false);
+
     // --- Token list dropdown ---
     let show_token_list = RwSignal::new(false);
 
@@ -439,6 +442,21 @@ pub fn MapCanvas() -> impl IntoView {
                         ctx2d.begin_path();
                         let _ = ctx2d.arc(cx, cy, radius, 0.0, std::f64::consts::TAU);
                         ctx2d.set_fill_style_str(&t.color);
+                        ctx2d.fill();
+                    }
+
+                    // Draw facing arrow (small triangle outside token, base tangent to circle)
+                    if show_facing_arrows.get() {
+                        let arrow_color = t.facing_color.as_deref().unwrap_or(&t.color);
+                        ctx2d.set_fill_style_str(arrow_color);
+                        let hw = radius * 0.3; // half-width of triangle base
+                        let h = radius * 0.25; // height of triangle
+                        // base sits tangent on the border, tip points outward
+                        ctx2d.begin_path();
+                        ctx2d.move_to(cx - hw, cy - radius); // base left
+                        ctx2d.line_to(cx + hw, cy - radius); // base right
+                        ctx2d.line_to(cx, cy - radius - h); // tip outward
+                        ctx2d.close_path();
                         ctx2d.fill();
                     }
 
@@ -1147,6 +1165,7 @@ pub fn MapCanvas() -> impl IntoView {
                             active_tool.set(MapTool::Rotate);
                         }
                     }
+                    "f" | "F" => show_facing_arrows.update(|v| *v = !*v),
                     "t" | "T" => show_token_list.update(|v| *v = !*v),
                     "Escape" => {
                         measure_start.set(None);
@@ -1611,6 +1630,17 @@ pub fn MapCanvas() -> impl IntoView {
                         <rect x="3" y="3" width="18" height="18"/>
                         <line x1="3" y1="12" x2="21" y2="12"/>
                         <line x1="12" y1="3" x2="12" y2="21"/>
+                    </svg>
+                </button>
+                <button
+                    class=move || if show_facing_arrows.get() { "map-tool-btn active" } else { "map-tool-btn" }
+                    on:click=move |_| show_facing_arrows.update(|v| *v = !*v)
+                    data-tooltip="Facing Arrows (F)"
+                >
+                    // arrow-up icon
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 19V5"/>
+                        <path d="M5 12l7-7 7 7"/>
                     </svg>
                 </button>
                 <div class="map-tool-separator"/>
