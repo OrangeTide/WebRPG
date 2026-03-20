@@ -110,6 +110,9 @@ pub fn MapCanvas() -> impl IntoView {
         String,
         web_sys::HtmlImageElement,
     >::new());
+    // Track URLs with pending decode-retry timeouts to avoid scheduling duplicates
+    #[cfg(feature = "hydrate")]
+    let image_retry_pending = StoredValue::new_local(std::collections::HashSet::<String>::new());
 
     // Helper to get or load an image
     #[cfg(feature = "hydrate")]
@@ -122,7 +125,38 @@ pub fn MapCanvas() -> impl IntoView {
 
         if let Some(img) = existing {
             if img.complete() && img.natural_width() > 0 {
+                // Clear any pending retry flag now that image is confirmed good
+                image_retry_pending.update_value(|s| {
+                    s.remove(&url_owned);
+                });
                 return Some(img);
+            }
+            if img.complete() {
+                // Image reports complete but has no dimensions — either a
+                // load error or Firefox ESR async-decode race. Schedule a
+                // single deferred redraw; if still broken on retry, evict
+                // so the element gets re-created on the next render.
+                let already_pending = image_retry_pending.with_value(|s| s.contains(&url_owned));
+                if already_pending {
+                    // Retry already fired but image is still broken — evict
+                    image_cache.update_value(|cache| {
+                        cache.remove(&url_owned);
+                    });
+                    image_retry_pending.update_value(|s| {
+                        s.remove(&url_owned);
+                    });
+                } else {
+                    image_retry_pending.update_value(|s| {
+                        s.insert(url_owned.clone());
+                    });
+                    let handle = leptos::prelude::set_timeout(
+                        move || {
+                            set_image_load_counter.update(|c| *c += 1);
+                        },
+                        std::time::Duration::from_millis(150),
+                    );
+                    std::mem::forget(handle);
+                }
             }
             return None;
         }
@@ -136,6 +170,17 @@ pub fn MapCanvas() -> impl IntoView {
         });
         img.set_onload(Some(onload.as_ref().unchecked_ref()));
         onload.forget();
+
+        // On error, evict from cache and trigger redraw to retry
+        let url_for_error = url_owned.clone();
+        let onerror = wasm_bindgen::closure::Closure::<dyn Fn()>::new(move || {
+            image_cache.update_value(|cache| {
+                cache.remove(&url_for_error);
+            });
+            set_image_load_counter.update(|c| *c += 1);
+        });
+        img.set_onerror(Some(onerror.as_ref().unchecked_ref()));
+        onerror.forget();
 
         img.set_src(&url_owned);
 
