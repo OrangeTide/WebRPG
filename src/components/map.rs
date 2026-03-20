@@ -276,6 +276,34 @@ pub fn MapCanvas() -> impl IntoView {
         });
     }
 
+    // Center on token by ID (from initiative "Find on Map")
+    #[cfg(feature = "hydrate")]
+    {
+        let canvas_ref_id = canvas_ref.clone();
+        Effect::new(move |_| {
+            let Some(tid) = ctx.center_on_token_id.get() else {
+                return;
+            };
+            ctx.center_on_token_id.set(None);
+            let tokens_data = tokens.get();
+            let map_data = map.get();
+            if let Some(t) = tokens_data.iter().find(|t| t.id == tid) {
+                if let Some(ref m) = map_data {
+                    let cell = m.cell_size as f64;
+                    let world_x = (t.x as f64 + 0.5) * cell;
+                    let world_y = (t.y as f64 + 0.5) * cell;
+                    if let Some(canvas) = canvas_ref_id.get() {
+                        let canvas_el: &web_sys::HtmlCanvasElement = canvas.as_ref();
+                        let cw = canvas_el.client_width() as f64;
+                        let ch = canvas_el.client_height() as f64;
+                        let zoom = view_zoom.get();
+                        view_offset.set((world_x - cw / zoom / 2.0, world_y - ch / zoom / 2.0));
+                    }
+                }
+            }
+        });
+    }
+
     // Auto-expire old pings (older than 3 seconds)
     #[cfg(feature = "hydrate")]
     {

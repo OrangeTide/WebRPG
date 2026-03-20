@@ -70,6 +70,8 @@ pub fn InitiativeTracker() -> impl IntoView {
             initiative_value: value,
             is_current_turn: entries.is_empty(),
             portrait_url: None,
+            token_id: None,
+            character_id: None,
         });
 
         // Stable sort descending by initiative value
@@ -319,8 +321,15 @@ pub fn InitiativeTracker() -> impl IntoView {
                                     class="init-find"
                                     data-tooltip="Find on Map"
                                     on:click={
+                                        let token_id = entry.token_id;
                                         let label = entry.label.clone();
-                                        move |_| ctx.center_on_token_label.set(Some(label.clone()))
+                                        move |_| {
+                                            if let Some(tid) = token_id {
+                                                ctx.center_on_token_id.set(Some(tid));
+                                            } else {
+                                                ctx.center_on_token_label.set(Some(label.clone()));
+                                            }
+                                        }
                                     }
                                 >
                                     <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
