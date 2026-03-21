@@ -30,8 +30,8 @@ WebSockets.
 ![Landing page](doc/screenshots/landing.png)
 *Landing page*
 
-![Game session with map, chat, character sheet, and initiative windows](doc/screenshots/game.png)
-*Game session — GM view with map, chat, character sheet, and initiative tracker*
+![Game session with map, chat, character sheet, and initiative windows](doc/screenshots/game-v0.2.0.png)
+*Game session — GM view with map, character sheets, creatures, and initiative tracker*
 
 ## Prerequisites
 
