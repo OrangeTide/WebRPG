@@ -13,6 +13,7 @@ pub fn LandingPage() -> impl IntoView {
                 <a href="/signup">"Sign Up"</a>
                 <span>" to get started."</span>
             </div>
+            <div class="landing-version">{format!("v{}", env!("CARGO_PKG_VERSION"))}</div>
         </div>
     }
 }

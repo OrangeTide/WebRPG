@@ -274,8 +274,8 @@ async fn execute_command(
 fn cmd_ver() -> Vec<String> {
     vec![
         String::new(),
-        "WebRPG COMMAND.COM v1.0".to_string(),
-        "Virtual File System Shell".to_string(),
+        format!("WebRPG v{}", env!("CARGO_PKG_VERSION")),
+        "COMMAND.COM v1.0 — Virtual File System Shell".to_string(),
         String::new(),
     ]
 }

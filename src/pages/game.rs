@@ -140,6 +140,8 @@ pub struct GameContext {
     pub turn_star: RwSignal<Option<(f64, f64, f64)>>,
     /// Token ID of the creature/character whose initiative turn it is (for map highlight).
     pub active_initiative_token_id: RwSignal<Option<i32>>,
+    /// Initiative round number (increments each time the turn wraps to the top).
+    pub initiative_round: RwSignal<u32>,
     /// Decremented for each locally-created message to avoid ID collisions with DB rows.
     next_local_id: std::sync::Arc<std::sync::atomic::AtomicI32>,
 }
@@ -300,6 +302,11 @@ impl GameContext {
                     _ => false,
                 };
 
+                // Reset round when initiative is cleared
+                if entries.is_empty() {
+                    self.initiative_round.set(1);
+                }
+
                 self.initiative.set(entries);
 
                 // Always track the active initiative token for map highlight
@@ -308,6 +315,14 @@ impl GameContext {
 
                 if changed {
                     if let Some(ref entry) = new_current {
+                        // Increment round when turn wraps to the first entry
+                        let entries_ref = self.initiative.get_untracked();
+                        if let Some(new_idx) = entries_ref.iter().position(|e| e.is_current_turn) {
+                            if new_idx == 0 && old_current.is_some() {
+                                self.initiative_round.update(|r| *r += 1);
+                            }
+                        }
+
                         self.turn_notify.set(Some(entry.clone()));
 
                         // Compute star position and auto-center on active token
@@ -478,6 +493,7 @@ pub fn GamePage() -> impl IntoView {
         turn_notify: RwSignal::new(None),
         turn_star: RwSignal::new(None),
         active_initiative_token_id: RwSignal::new(None),
+        initiative_round: RwSignal::new(1),
         next_local_id: std::sync::Arc::new(std::sync::atomic::AtomicI32::new(-1)),
     };
 

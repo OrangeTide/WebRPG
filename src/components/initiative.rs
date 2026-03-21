@@ -193,10 +193,19 @@ pub fn InitiativeTracker() -> impl IntoView {
         }
     };
 
+    let round = ctx.initiative_round;
+
     view! {
         <div class="initiative-tracker">
             <div class="panel-header">
-                <h3>"Initiative"</h3>
+                <h3>{move || {
+                    let entries = initiative.get();
+                    if entries.is_empty() {
+                        "Initiative".to_string()
+                    } else {
+                        format!("Initiative — Round {}", round.get())
+                    }
+                }}</h3>
                 <div class="initiative-header-btns">
                     <button
                         class="init-lock-btn"

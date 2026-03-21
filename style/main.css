@@ -131,6 +131,12 @@ h1, h2, h3, h4 {
     text-decoration: none;
 }
 
+.landing-version {
+    margin-top: 2rem;
+    font-size: 0.75rem;
+    color: var(--color-text-disabled);
+}
+
 /* === Login Page === */
 .login-page {
     display: flex;
@@ -928,7 +934,8 @@ h1, h2, h3, h4 {
     color: #ccc;
 }
 .map-list-item:hover { background: #2a3a4a; color: #fff; }
-.map-list-item.active { background: #334; color: #8bf; }
+.map-list-item.active { background: #1a2030; color: #667; cursor: default; }
+.map-list-item.active:hover { background: #1a2030; color: #667; }
 
 .map-bg-btn:hover {
     opacity: 1;
@@ -2241,7 +2248,7 @@ h1, h2, h3, h4 {
 .media-thumb {
     width: 100%;
     aspect-ratio: 1;
-    object-fit: cover;
+    object-fit: contain;
     display: block;
     background: #111;
 }

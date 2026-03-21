@@ -1878,6 +1878,7 @@ pub fn MapCanvas() -> impl IntoView {
                                                     class="map-list-item"
                                                     class:active=is_active
                                                     on:click=move |_| {
+                                                        if is_active { return; }
                                                         show_map_list.set(false);
                                                         send.with_value(|f| {
                                                             if let Some(f) = f {
