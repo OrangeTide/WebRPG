@@ -2,21 +2,15 @@
 
 GM role check: Creatures window only visible to GM (needs `is_gm` in GameContext)
 
-## Status: In Progress
+## Status: Done
 
-`is_gm()` exists server-side in `ws_handler.rs` and is used for permission
-checks. However, `is_gm` is not exposed in `GameContext`, and the Creatures
-window is not visibility-gated on the client side — any user can toggle it
-visible.
+## Implementation
 
-## Plan
+- `is_gm` was already present in `GameContext` and populated from `GameStateSnapshot`
+- Wrapped the Creatures `<GameWindow>` in `<Show when=is_gm>` so it only renders for GMs
+- Filtered Creatures from the Settings startup checklist for non-GM users
+- Non-GMs cannot see the Creatures window or its dock tile
 
-TBD
+## Related
 
-## Findings
-
-- `is_gm()` function exists in `src/server/ws_handler.rs` and is used for 10+
-  server-side permission checks (SetMapBackground, PlaceToken, etc.)
-- `GameContext` in `pages/game.rs` does not include an `is_gm` field
-- Creatures window is rendered unconditionally in `game.rs` — default layout
-  sets `visible: false` but any user can toggle it visible
+- FR73: Multiple GMs per session (future)

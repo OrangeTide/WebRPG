@@ -30,8 +30,10 @@ pub(super) fn SettingsDialog(#[prop(into)] on_close: Callback<()>) -> impl IntoV
         #[cfg(not(feature = "hydrate"))]
         let saved: Option<Vec<WindowId>> = None;
 
+        let is_gm = ctx.is_gm.get_untracked();
         STATIC_WINDOWS
             .iter()
+            .filter(|(id, _)| *id != WindowId::Creatures || is_gm)
             .map(|(id, _title)| {
                 let checked = match &saved {
                     Some(open_ids) => open_ids.contains(id),

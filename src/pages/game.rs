@@ -762,9 +762,11 @@ pub fn GamePage() -> impl IntoView {
                 <GameWindow id=WindowId::Inventory>
                     <InventoryPanel />
                 </GameWindow>
-                <GameWindow id=WindowId::Creatures>
-                    <CreaturePanel />
-                </GameWindow>
+                <Show when=move || ctx.is_gm.get()>
+                    <GameWindow id=WindowId::Creatures>
+                        <CreaturePanel />
+                    </GameWindow>
+                </Show>
                 <GameWindow id=WindowId::Terminal>
                     <TerminalPanel />
                 </GameWindow>
