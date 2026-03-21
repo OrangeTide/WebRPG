@@ -843,6 +843,54 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                     .set(users::suppress_tooltips.eq(if suppress { 1 } else { 0 }))
                     .execute(conn);
             }
+
+            ClientMessage::UpdateTokenLabel { token_id, label } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can rename tokens".into(),
+                        });
+                        continue;
+                    }
+                    {
+                        use crate::schema::tokens;
+                        use diesel::prelude::*;
+                        let conn = &mut crate::db::get_conn();
+                        let _ = diesel::update(tokens::table.find(token_id))
+                            .set(tokens::label.eq(&label))
+                            .execute(conn);
+                    }
+                    SESSION_MANAGER.broadcast(
+                        session_id,
+                        &ServerMessage::TokenLabelUpdated { token_id, label },
+                        None,
+                    );
+                }
+            }
+
+            ClientMessage::UpdateTokenVisibility { token_id, visible } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can toggle token visibility".into(),
+                        });
+                        continue;
+                    }
+                    {
+                        use crate::schema::tokens;
+                        use diesel::prelude::*;
+                        let conn = &mut crate::db::get_conn();
+                        let _ = diesel::update(tokens::table.find(token_id))
+                            .set(tokens::visible.eq(visible))
+                            .execute(conn);
+                    }
+                    SESSION_MANAGER.broadcast(
+                        session_id,
+                        &ServerMessage::TokenVisibilityUpdated { token_id, visible },
+                        None,
+                    );
+                }
+            }
         }
     }
 

@@ -118,6 +118,16 @@ pub enum ClientMessage {
     SetMapDefaultColor {
         color: String,
     },
+    /// GM renames a token.
+    UpdateTokenLabel {
+        token_id: i32,
+        label: String,
+    },
+    /// GM toggles token visibility (hidden tokens are invisible to players).
+    UpdateTokenVisibility {
+        token_id: i32,
+        visible: bool,
+    },
 }
 
 // ===== Server -> Client messages =====
@@ -225,6 +235,16 @@ pub enum ServerMessage {
     /// Map default token color was changed by the GM.
     MapDefaultColorChanged {
         default_token_color: String,
+    },
+    /// Token label was changed.
+    TokenLabelUpdated {
+        token_id: i32,
+        label: String,
+    },
+    /// Token visibility was changed.
+    TokenVisibilityUpdated {
+        token_id: i32,
+        visible: bool,
     },
     /// Notifies clients that a file on C: drive has changed.
     VfsChanged {

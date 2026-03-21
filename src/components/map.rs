@@ -464,9 +464,14 @@ pub fn MapCanvas() -> impl IntoView {
                 }
 
                 // Draw tokens
+                let is_gm = ctx.is_gm.get();
                 for t in &tokens_data {
-                    if !t.visible {
+                    if !t.visible && !is_gm {
                         continue;
+                    }
+                    // Dim hidden tokens for GM
+                    if !t.visible {
+                        ctx2d.set_global_alpha(0.35);
                     }
                     let cx = (t.x as f64 + 0.5) * cell;
                     let cy = (t.y as f64 + 0.5) * cell;
@@ -578,6 +583,10 @@ pub fn MapCanvas() -> impl IntoView {
                             ctx2d.set_fill_style_str(color);
                             ctx2d.fill_rect(bar_x, bar_y, bar_w * ratio, bar_h);
                         }
+                    }
+                    // Reset alpha after drawing hidden tokens
+                    if !t.visible {
+                        ctx2d.set_global_alpha(1.0);
                     }
                 }
 
@@ -759,7 +768,7 @@ pub fn MapCanvas() -> impl IntoView {
                         let tokens_data = tokens.get();
 
                         let clicked = tokens_data.iter().rev().find(|t| {
-                            if !t.visible {
+                            if !t.visible && !ctx.is_gm.get() {
                                 return false;
                             }
                             let cx = (t.x as f64 + 0.5) * cell;
@@ -846,7 +855,7 @@ pub fn MapCanvas() -> impl IntoView {
 
                         // Hit-test for token under cursor
                         let clicked = tokens_data.iter().rev().find(|t| {
-                            if !t.visible {
+                            if !t.visible && !ctx.is_gm.get() {
                                 return false;
                             }
                             let cx = (t.x as f64 + 0.5) * cell;
@@ -1077,7 +1086,7 @@ pub fn MapCanvas() -> impl IntoView {
 
                                 selected_ids.update(|ids| {
                                     for t in &tokens_data {
-                                        if !t.visible {
+                                        if !t.visible && !ctx.is_gm.get() {
                                             continue;
                                         }
                                         let cx = (t.x as f64 + 0.5) * cell;
@@ -1286,7 +1295,7 @@ pub fn MapCanvas() -> impl IntoView {
                 // Hit-test: find token under cursor
                 let tokens_data = tokens.get();
                 let clicked = tokens_data.iter().rev().find(|t| {
-                    if !t.visible {
+                    if !t.visible && !ctx.is_gm.get() {
                         return false;
                     }
                     let cx = (t.x as f64 + 0.5) * cell;
@@ -1692,7 +1701,8 @@ pub fn MapCanvas() -> impl IntoView {
                         return None;
                     }
                     let tokens_data = tokens.get();
-                    let visible: Vec<_> = tokens_data.iter().filter(|t| t.visible).cloned().collect();
+                    let gm = ctx.is_gm.get();
+                    let visible: Vec<_> = tokens_data.iter().filter(|t| t.visible || gm).cloned().collect();
                     Some(view! {
                         <div class="map-token-list">
                             {visible.into_iter().map(|t| {
@@ -1993,61 +2003,11 @@ pub fn MapCanvas() -> impl IntoView {
                 </span>
             </div>
             // Token context menu
-            {move || {
-                let menu = token_context_menu.get()?;
-                let (mx, my, ids) = menu;
-                let count = ids.len();
-                let label = if count == 1 {
-                    tokens.get().iter().find(|t| t.id == ids[0]).map(|t| t.label.clone())
-                } else {
-                    Some(format!("{count} tokens"))
-                };
-                Some(view! {
-                    <div
-                        class="map-ctx-backdrop"
-                        on:click=move |_: leptos::ev::MouseEvent| token_context_menu.set(None)
-                        on:contextmenu=move |ev: leptos::ev::MouseEvent| {
-                            ev.prevent_default();
-                            token_context_menu.set(None);
-                        }
-                    />
-                    <div
-                        class="map-ctx-menu"
-                        style=format!("left:{}px;top:{}px", mx, my)
-                    >
-                        {label.map(|l| view! {
-                            <div class="map-ctx-header">{l}</div>
-                        })}
-                        <Show when=move || ctx.is_gm.get()>
-                            <button
-                                class="map-ctx-item map-ctx-danger"
-                                on:click={
-                                    let ids = ids.clone();
-                                    move |_| {
-                                        token_context_menu.set(None);
-                                        for &tid in &ids {
-                                            send.with_value(|f| {
-                                                if let Some(f) = f {
-                                                    f(ClientMessage::RemoveToken { token_id: tid });
-                                                }
-                                            });
-                                        }
-                                        selected_ids.set(std::collections::HashSet::new());
-                                    }
-                                }
-                            >
-                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="3 6 5 6 21 6"/>
-                                    <path d="M19 6l-1 14H6L5 6"/>
-                                    <path d="M10 11v6"/><path d="M14 11v6"/>
-                                    <path d="M9 6V4h6v2"/>
-                                </svg>
-                                {if count > 1 { format!(" Delete {count} tokens") } else { " Delete".to_string() }}
-                            </button>
-                        </Show>
-                    </div>
-                })
-            }}
+            <TokenContextMenu
+                token_context_menu=token_context_menu
+                tokens=tokens
+                selected_ids=selected_ids
+            />
             <TokenHpPopup selected_ids=selected_ids tokens=tokens />
             <crate::components::media_browser::MediaBrowser
                 on_select=on_bg_select
@@ -2055,6 +2015,204 @@ pub fn MapCanvas() -> impl IntoView {
                 show=show_media_browser
             />
         </div>
+    }
+}
+
+/// Token right-click context menu with rename, visibility, initiative, and delete.
+#[component]
+fn TokenContextMenu(
+    token_context_menu: RwSignal<Option<(f64, f64, Vec<i32>)>>,
+    tokens: RwSignal<Vec<TokenInfo>>,
+    selected_ids: RwSignal<std::collections::HashSet<i32>>,
+) -> impl IntoView {
+    let ctx = expect_context::<GameContext>();
+    let send = ctx.send;
+    let rename_value = RwSignal::new(String::new());
+    let renaming = RwSignal::new(false);
+
+    view! {
+        {move || {
+            let menu = token_context_menu.get()?;
+            let (mx, my, ids) = menu;
+            let count = ids.len();
+            let single_token = if count == 1 {
+                tokens.get().iter().find(|t| t.id == ids[0]).cloned()
+            } else {
+                None
+            };
+            let label = single_token.as_ref().map(|t| t.label.clone())
+                .unwrap_or_else(|| format!("{count} tokens"));
+            let is_visible = single_token.as_ref().map(|t| t.visible).unwrap_or(true);
+            let character_id = single_token.as_ref().and_then(|t| t.character_id);
+            let creature_id = single_token.as_ref().and_then(|t| t.creature_id);
+            let creature_label = single_token.as_ref().map(|t| t.label.clone()).unwrap_or_default();
+            let is_single = count == 1;
+            let single_id = ids.first().copied().unwrap_or(0);
+
+            // Reset rename state when menu opens
+            if !renaming.get() {
+                rename_value.set(label.clone());
+            }
+
+            Some(view! {
+                <div
+                    class="map-ctx-backdrop"
+                    on:click=move |_: leptos::ev::MouseEvent| {
+                        token_context_menu.set(None);
+                        renaming.set(false);
+                    }
+                    on:contextmenu=move |ev: leptos::ev::MouseEvent| {
+                        ev.prevent_default();
+                        token_context_menu.set(None);
+                        renaming.set(false);
+                    }
+                />
+                <div
+                    class="map-ctx-menu"
+                    style=format!("left:{}px;top:{}px", mx, my)
+                >
+                    // Header: inline rename or static label
+                    <Show
+                        when=move || renaming.get()
+                        fallback=move || view! {
+                            <div
+                                class="map-ctx-header"
+                                class:map-ctx-header-renamable=move || is_single && ctx.is_gm.get()
+                                on:dblclick=move |_| {
+                                    if is_single && ctx.is_gm.get() {
+                                        renaming.set(true);
+                                    }
+                                }
+                            >
+                                {label.clone()}
+                            </div>
+                        }
+                    >
+                        <form
+                            class="map-ctx-rename-form"
+                            on:submit=move |ev: leptos::ev::SubmitEvent| {
+                                ev.prevent_default();
+                                let new_label = rename_value.get();
+                                if !new_label.trim().is_empty() {
+                                    send.with_value(|f| {
+                                        if let Some(f) = f {
+                                            f(ClientMessage::UpdateTokenLabel {
+                                                token_id: single_id,
+                                                label: new_label,
+                                            });
+                                        }
+                                    });
+                                }
+                                renaming.set(false);
+                            }
+                        >
+                            <input
+                                type="text"
+                                class="map-ctx-rename-input"
+                                prop:value=move || rename_value.get()
+                                on:input=move |ev| {
+                                    rename_value.set(leptos::prelude::event_target_value(&ev));
+                                }
+                                on:blur=move |_| renaming.set(false)
+                                node_ref={
+                                    let r = NodeRef::<leptos::html::Input>::new();
+                                    Effect::new(move || {
+                                        if let Some(el) = r.get() {
+                                            let _ = el.focus();
+                                            el.select();
+                                        }
+                                    });
+                                    r
+                                }
+                            />
+                        </form>
+                    </Show>
+                    // GM-only: Rename button (single token only)
+                    <Show when=move || is_single && ctx.is_gm.get() && !renaming.get()>
+                        <button
+                            class="map-ctx-item"
+                            on:click=move |_| renaming.set(true)
+                        >
+                            " Rename"
+                        </button>
+                    </Show>
+                    // GM-only: Toggle visibility (single token only)
+                    <Show when=move || is_single && ctx.is_gm.get()>
+                        <button
+                            class="map-ctx-item"
+                            on:click=move |_| {
+                                token_context_menu.set(None);
+                                send.with_value(|f| {
+                                    if let Some(f) = f {
+                                        f(ClientMessage::UpdateTokenVisibility {
+                                            token_id: single_id,
+                                            visible: !is_visible,
+                                        });
+                                    }
+                                });
+                            }
+                        >
+                            {if is_visible { " Hide from players" } else { " Show to players" }}
+                        </button>
+                    </Show>
+                    // GM-only: Roll Initiative (single character/creature token)
+                    <Show when=move || is_single && ctx.is_gm.get() && (character_id.is_some() || creature_id.is_some())>
+                        <button
+                            class="map-ctx-item"
+                            on:click={
+                                let creature_label = creature_label.clone();
+                                move |_| {
+                                    token_context_menu.set(None);
+                                    send.with_value(|f| {
+                                        if let Some(f) = f {
+                                            if let Some(cid) = character_id {
+                                                f(ClientMessage::RollCharacterInitiative { character_id: cid });
+                                            } else if let Some(crid) = creature_id {
+                                                f(ClientMessage::RollCreatureInitiative {
+                                                    creature_id: crid,
+                                                    label: creature_label.clone(),
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        >
+                            " Roll Initiative"
+                        </button>
+                    </Show>
+                    // GM-only: Delete
+                    <Show when=move || ctx.is_gm.get()>
+                        <div class="map-ctx-separator"/>
+                        <button
+                            class="map-ctx-item map-ctx-danger"
+                            on:click={
+                                let ids = ids.clone();
+                                move |_| {
+                                    token_context_menu.set(None);
+                                    for &tid in &ids {
+                                        send.with_value(|f| {
+                                            if let Some(f) = f {
+                                                f(ClientMessage::RemoveToken { token_id: tid });
+                                            }
+                                        });
+                                    }
+                                    selected_ids.set(std::collections::HashSet::new());
+                                }
+                            }
+                        >
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14H6L5 6"/>
+                                <path d="M10 11v6"/><path d="M14 11v6"/>
+                                <path d="M9 6V4h6v2"/>
+                            </svg>
+                            {if count > 1 { format!(" Delete {count} tokens") } else { " Delete".to_string() }}
+                        </button>
+                    </Show>
+                </div>
+            })
+        }}
     }
 }
 

@@ -788,6 +788,21 @@ h1, h2, h3, h4 {
 .map-ctx-item:hover { background: #2a3a4a; color: #fff; }
 .map-ctx-danger { color: #f88; }
 .map-ctx-danger:hover { background: #5a2020; color: #faa; }
+.map-ctx-separator { border-top: 1px solid #3a3a4a; margin: 2px 0; }
+.map-ctx-header-renamable { cursor: pointer; }
+.map-ctx-header-renamable:hover { background: #2a3a4a; }
+.map-ctx-rename-form { padding: 2px 4px; }
+.map-ctx-rename-input {
+    width: 100%;
+    background: #1a1a2e;
+    border: 1px solid #4a5568;
+    color: #e0e0e0;
+    padding: 2px 4px;
+    font-size: 11px;
+    border-radius: 2px;
+    box-sizing: border-box;
+}
+.map-ctx-rename-input:focus { outline: 1px solid #6688cc; }
 
 .create-map-form {
     position: absolute;

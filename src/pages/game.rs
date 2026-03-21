@@ -328,6 +328,20 @@ impl GameContext {
                     }
                 });
             }
+            ServerMessage::TokenLabelUpdated { token_id, label } => {
+                self.tokens.update(|tokens| {
+                    if let Some(t) = tokens.iter_mut().find(|t| t.id == token_id) {
+                        t.label = label;
+                    }
+                });
+            }
+            ServerMessage::TokenVisibilityUpdated { token_id, visible } => {
+                self.tokens.update(|tokens| {
+                    if let Some(t) = tokens.iter_mut().find(|t| t.id == token_id) {
+                        t.visible = visible;
+                    }
+                });
+            }
             ServerMessage::PingBroadcast {
                 username: _,
                 x,
