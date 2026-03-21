@@ -491,6 +491,8 @@ pub fn MapCanvas() -> impl IntoView {
 
                 // Draw tokens
                 let is_gm = ctx.is_gm.get();
+                let active_init_tid = ctx.active_initiative_token_id.get();
+                let now_ms = web_sys::js_sys::Date::now();
                 for t in &tokens_data {
                     if !t.visible && !is_gm {
                         continue;
@@ -560,6 +562,17 @@ pub fn MapCanvas() -> impl IntoView {
                         let _ = ctx2d.arc(cx, cy, radius, 0.0, std::f64::consts::TAU);
                         ctx2d.set_stroke_style_str("#ffff00");
                         ctx2d.set_line_width(2.0 / zoom);
+                        ctx2d.stroke();
+                    }
+
+                    // Active initiative highlight — pulsing green ring
+                    if active_init_tid == Some(t.id) {
+                        let pulse = (now_ms / 600.0).sin() * 0.3 + 0.7; // 0.4..1.0
+                        let ring_radius = radius + 3.0 / zoom;
+                        ctx2d.begin_path();
+                        let _ = ctx2d.arc(cx, cy, ring_radius, 0.0, std::f64::consts::TAU);
+                        ctx2d.set_stroke_style_str(&format!("rgba(0, 255, 128, {:.2})", pulse));
+                        ctx2d.set_line_width(2.5 / zoom);
                         ctx2d.stroke();
                     }
 

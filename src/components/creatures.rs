@@ -94,6 +94,26 @@ pub fn CreaturePanel() -> impl IntoView {
         });
     };
 
+    let duplicate_creature = move |name: String,
+                                   stat_data: serde_json::Value,
+                                   image_url: Option<String>| {
+        let sid = session_id.get();
+        let dup_name = format!("{name} (copy)");
+        leptos::task::spawn_local(async move {
+            match crate::server::api::create_creature(sid, dup_name, stat_data).await {
+                Ok(c) => {
+                    // Copy the image if the original had one
+                    if let Some(url) = image_url {
+                        let _ = crate::server::api::update_creature_image(c.id, Some(url)).await;
+                    }
+                    set_editing.set(Some(c.id));
+                    trigger_refetch();
+                }
+                Err(e) => log::error!("Failed to duplicate creature: {e}"),
+            }
+        });
+    };
+
     view! {
         <div class="creature-panel">
             <div class="panel-header">
@@ -141,6 +161,9 @@ pub fn CreaturePanel() -> impl IntoView {
                 editing_id.and_then(|edit_id| {
                     creature_list.into_iter().find(|c| c.id == edit_id).map(|creature| {
                         let cid = creature.id;
+                        let dup_name = creature.name.clone();
+                        let dup_stats = creature.stat_data.clone();
+                        let dup_image = creature.image_url.clone();
                         view! {
                             <div>
                                 <div class="editor-toolbar">
@@ -151,6 +174,18 @@ pub fn CreaturePanel() -> impl IntoView {
                                             set_editing.set(None);
                                         }
                                     >"< Back to list"</button>
+                                    <button
+                                        class="btn-duplicate"
+                                        title="Duplicate creature"
+                                        on:click=move |_| {
+                                            duplicate_creature(dup_name.clone(), dup_stats.clone(), dup_image.clone());
+                                        }
+                                    >
+                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                        </svg>
+                                    </button>
                                     <button
                                         class="btn-delete"
                                         title="Delete creature"
@@ -202,6 +237,9 @@ pub fn CreaturePanel() -> impl IntoView {
                             }
                             parts.join(" | ")
                         };
+                        let dup_name_card = creature.name.clone();
+                        let dup_stats_card = creature.stat_data.clone();
+                        let dup_image_card = creature.image_url.clone();
                         let roll_name = creature.name.clone();
                         let place_name = creature.name.clone();
                         let place_image = creature.image_url.clone();
@@ -259,6 +297,18 @@ pub fn CreaturePanel() -> impl IntoView {
                                             <span class="item-card-stat">{stats_summary}</span>
                                         })}
                                     </div>
+                                    <button
+                                        class="btn-duplicate"
+                                        data-tooltip="Duplicate creature"
+                                        on:click:stopPropagation=move |_: leptos::ev::MouseEvent| {
+                                            duplicate_creature(dup_name_card.clone(), dup_stats_card.clone(), dup_image_card.clone());
+                                        }
+                                    >
+                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                        </svg>
+                                    </button>
                                     <button
                                         class="btn-delete"
                                         data-tooltip="Delete creature"

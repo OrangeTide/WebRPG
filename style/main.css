@@ -1280,7 +1280,8 @@ h1, h2, h3, h4 {
     margin-bottom: 0.5rem;
 }
 
-.editor-toolbar .btn-delete {
+.editor-toolbar .btn-delete,
+.editor-toolbar .btn-duplicate {
     font-size: 0.8rem;
     color: var(--color-accent);
 }
@@ -1291,7 +1292,7 @@ h1, h2, h3, h4 {
     padding: 0.5rem 0;
 }
 
-.btn-delete {
+.btn-delete, .btn-duplicate {
     background: none;
     border: none;
     color: var(--color-text-disabled);
@@ -1304,6 +1305,10 @@ h1, h2, h3, h4 {
 
 .btn-delete:hover {
     color: var(--color-accent);
+}
+
+.btn-duplicate:hover {
+    color: var(--color-highlight);
 }
 
 .btn-cancel {

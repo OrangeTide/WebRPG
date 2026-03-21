@@ -138,6 +138,8 @@ pub struct GameContext {
     pub turn_notify: RwSignal<Option<InitiativeEntryInfo>>,
     /// Turn-start star animation on map: (world_x, world_y, start_timestamp_ms).
     pub turn_star: RwSignal<Option<(f64, f64, f64)>>,
+    /// Token ID of the creature/character whose initiative turn it is (for map highlight).
+    pub active_initiative_token_id: RwSignal<Option<i32>>,
     /// Decremented for each locally-created message to avoid ID collisions with DB rows.
     next_local_id: std::sync::Arc<std::sync::atomic::AtomicI32>,
 }
@@ -162,6 +164,13 @@ impl GameContext {
         self.map.set(snapshot.map);
         self.tokens.set(snapshot.tokens);
         self.fog.set(snapshot.fog);
+        self.active_initiative_token_id.set(
+            snapshot
+                .initiative
+                .iter()
+                .find(|e| e.is_current_turn)
+                .and_then(|e| e.token_id),
+        );
         self.initiative.set(snapshot.initiative);
         self.chat_messages.set(snapshot.recent_chat);
         self.inventory.set(snapshot.inventory);
@@ -293,11 +302,15 @@ impl GameContext {
 
                 self.initiative.set(entries);
 
+                // Always track the active initiative token for map highlight
+                self.active_initiative_token_id
+                    .set(new_current.as_ref().and_then(|e| e.token_id));
+
                 if changed {
                     if let Some(ref entry) = new_current {
                         self.turn_notify.set(Some(entry.clone()));
 
-                        // Compute star position from token if linked
+                        // Compute star position and auto-center on active token
                         if let Some(tid) = entry.token_id {
                             let tokens = self.tokens.get_untracked();
                             let map = self.map.get_untracked();
@@ -313,6 +326,8 @@ impl GameContext {
                                 let now = 0.0;
                                 self.turn_star.set(Some((wx, wy, now)));
                             }
+                            // Auto-center map on the active token
+                            self.center_on_token_id.set(Some(tid));
                         }
                     }
                 }
@@ -462,6 +477,7 @@ pub fn GamePage() -> impl IntoView {
         loading: RwSignal::new(Some(LoadingState::INITIALIZING)),
         turn_notify: RwSignal::new(None),
         turn_star: RwSignal::new(None),
+        active_initiative_token_id: RwSignal::new(None),
         next_local_id: std::sync::Arc::new(std::sync::atomic::AtomicI32::new(-1)),
     };
 
