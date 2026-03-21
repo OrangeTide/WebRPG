@@ -19,7 +19,17 @@ Currently right-click on a selected token only rotates it. Add a proper context 
 
 - **Feature 47: Fog of War UI** — token visibility toggle depends on the visibility system
 
-## Status: Not Started
+## Status: In Progress
+
+Basic context menu implemented (commit 422a536). Right-click on selected token opens menu with:
+- Edit label, color, image, size, conditions
+- Remove token
+- Rotation removed from right-click
+
+### Remaining work
+- Toggle visibility (GM only — depends on Feature 47)
+- GM option: "Roll Initiative" for that token's character/creature (triggers server-side roll)
+- Inline rename (currently opens edit fields)
 
 ## Plan
 
@@ -27,7 +37,7 @@ Currently right-click on a selected token only rotates it. Add a proper context 
 
 ## Findings
 
-- Right-click handler exists in `src/components/map.rs` but only does rotation
-- Token HP popup exists (click on token shows HP edit) — context menu could subsume or complement this
-- Token size field exists in DB and rendering (`token.size`)
-- Token color, image_url fields exist
+- Context menu implemented in `src/components/map.rs`
+- Token HP popup coexists with context menu (click vs right-click)
+- Token instance model now supports both character and creature tokens
+- Unique creature labeling exists server-side for initiative rolls
