@@ -422,6 +422,18 @@ impl VfsPath {
         }
         self.path.rsplit('/').next()
     }
+
+    /// Join a child name onto this path, returning the new path string.
+    ///
+    /// Handles the root-path special case so callers don't need to check
+    /// whether the path is `"/"` before appending.
+    pub fn join(&self, name: &str) -> String {
+        if self.path == "/" {
+            format!("/{name}")
+        } else {
+            format!("{}/{name}", self.path)
+        }
+    }
 }
 
 /// Normalize a path string.
@@ -747,6 +759,33 @@ fn scoped_delete_path(
                 .filter(vfs_files::drive.eq(drive_str))
                 .filter(vfs_files::user_id.eq(*uid))
                 .filter(vfs_files::path.eq(path)),
+        )
+        .execute(conn),
+    }
+}
+
+/// Delete all entries whose path starts with the given prefix (e.g. `"/dir/"`).
+/// Used by [`vfs_delete`] for recursive directory removal.
+#[cfg(feature = "ssr")]
+fn scoped_delete_prefix(
+    conn: &mut diesel::SqliteConnection,
+    drive_str: &str,
+    filter: &DriveFilter,
+    prefix: &str,
+) -> Result<usize, diesel::result::Error> {
+    match filter {
+        DriveFilter::Session(sid) => diesel::delete(
+            vfs_files::table
+                .filter(vfs_files::drive.eq(drive_str))
+                .filter(vfs_files::session_id.eq(*sid))
+                .filter(vfs_files::path.like(format!("{prefix}%"))),
+        )
+        .execute(conn),
+        DriveFilter::User(uid) => diesel::delete(
+            vfs_files::table
+                .filter(vfs_files::drive.eq(drive_str))
+                .filter(vfs_files::user_id.eq(*uid))
+                .filter(vfs_files::path.like(format!("{prefix}%"))),
         )
         .execute(conn),
     }
@@ -1333,18 +1372,15 @@ pub fn vfs_delete(
         )));
     }
 
+    let filter = scope.scope_for_drive(drive)?;
+
+    // If directory, recursively delete all descendants first
     if entry.is_directory {
-        let children = vfs_list(conn, scope, drive, path)?;
-        if !children.is_empty() {
-            return Err(VfsError::DirectoryNotEmpty(format!(
-                "{}:{}",
-                drive.letter(),
-                path
-            )));
-        }
+        let prefix = format!("{}/", path);
+        scoped_delete_prefix(conn, drive.as_str(), &filter, &prefix)
+            .map_err(|e| VfsError::DatabaseError(e.to_string()))?;
     }
 
-    let filter = scope.scope_for_drive(drive)?;
     let deleted = scoped_delete_path(conn, drive.as_str(), &filter, path)
         .map_err(|e| VfsError::DatabaseError(e.to_string()))?;
 

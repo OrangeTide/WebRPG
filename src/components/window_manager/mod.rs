@@ -24,6 +24,8 @@ pub enum WindowId {
     HelpViewer,
     /// Dynamic window for editing a specific character (by character_id).
     CharacterEditor(i32),
+    /// Dynamic additional file browser window (by instance counter).
+    FileBrowserExtra(u32),
 }
 
 impl WindowId {
@@ -39,6 +41,7 @@ impl WindowId {
             WindowId::FileBrowser => "File Viewer",
             WindowId::HelpViewer => "Help",
             WindowId::CharacterEditor(_) => "Character Sheet",
+            WindowId::FileBrowserExtra(_) => "File Viewer",
         }
     }
 
@@ -70,27 +73,32 @@ impl WindowId {
             WindowId::FileBrowser => (450.0, 350.0),
             WindowId::HelpViewer => (400.0, 300.0),
             WindowId::CharacterEditor(_) => (300.0, 350.0),
+            WindowId::FileBrowserExtra(_) => (450.0, 350.0),
         }
     }
 
     /// Returns true for dynamic windows that should not be persisted to localStorage.
     pub fn is_dynamic(&self) -> bool {
-        matches!(self, WindowId::CharacterEditor(_))
+        matches!(
+            self,
+            WindowId::CharacterEditor(_) | WindowId::FileBrowserExtra(_)
+        )
     }
 
     /// Unicode icon for dock tile display.
     pub fn dock_icon(&self) -> &'static str {
         match self {
-            WindowId::Map => "\u{1f5fa}",                // 🗺 world map
-            WindowId::Chat => "\u{1f4ac}",               // 💬 speech balloon
-            WindowId::CharacterSelection => "\u{1f464}", // 👤 bust in silhouette
-            WindowId::Initiative => "\u{2694}",          // ⚔ crossed swords
-            WindowId::Inventory => "\u{1f392}",          // 🎒 backpack
-            WindowId::Creatures => "\u{1f409}",          // 🐉 dragon
-            WindowId::Terminal => "\u{1f4bb}",           // 💻 personal computer
-            WindowId::FileBrowser => "\u{1f4c2}",        // 📂 open file folder
-            WindowId::HelpViewer => "\u{1f4d6}",         // 📖 open book
-            WindowId::CharacterEditor(_) => "\u{1f4dc}", // 📜 scroll
+            WindowId::Map => "\u{1f5fa}",                 // 🗺 world map
+            WindowId::Chat => "\u{1f4ac}",                // 💬 speech balloon
+            WindowId::CharacterSelection => "\u{1f464}",  // 👤 bust in silhouette
+            WindowId::Initiative => "\u{2694}",           // ⚔ crossed swords
+            WindowId::Inventory => "\u{1f392}",           // 🎒 backpack
+            WindowId::Creatures => "\u{1f409}",           // 🐉 dragon
+            WindowId::Terminal => "\u{1f4bb}",            // 💻 personal computer
+            WindowId::FileBrowser => "\u{1f4c2}",         // 📂 open file folder
+            WindowId::HelpViewer => "\u{1f4d6}",          // 📖 open book
+            WindowId::CharacterEditor(_) => "\u{1f4dc}",  // 📜 scroll
+            WindowId::FileBrowserExtra(_) => "\u{1f4c2}", // 📂 open file folder
         }
     }
 
@@ -99,7 +107,7 @@ impl WindowId {
     pub fn help_topic(&self) -> Option<&'static str> {
         match self {
             WindowId::Map => Some("map-viewer"),
-            WindowId::FileBrowser => Some("file-viewer"),
+            WindowId::FileBrowser | WindowId::FileBrowserExtra(_) => Some("file-viewer"),
             _ => None,
         }
     }
@@ -117,6 +125,7 @@ impl WindowId {
             WindowId::FileBrowser => "Files",
             WindowId::HelpViewer => "Help",
             WindowId::CharacterEditor(_) => "Sheet",
+            WindowId::FileBrowserExtra(_) => "Files",
         }
     }
 }
@@ -173,6 +182,7 @@ pub struct WindowManagerContext {
     pub windows: RwSignal<Vec<WindowState>>,
     drag_op: RwSignal<Option<DragOp>>,
     next_z: RwSignal<u32>,
+    next_fb_id: RwSignal<u32>,
 }
 
 impl WindowManagerContext {
@@ -286,6 +296,37 @@ impl WindowManagerContext {
                 });
             });
         }
+    }
+
+    /// Open a new dynamic file browser window.
+    pub fn open_file_browser(&self) {
+        let fb_id = self.next_fb_id.get_untracked();
+        self.next_fb_id.set(fb_id + 1);
+        let win_id = WindowId::FileBrowserExtra(fb_id);
+
+        let z = self.next_z.get_untracked();
+        self.next_z.set(z + 1);
+
+        // Offset new windows slightly so they don't stack exactly
+        let count = self.windows.with_untracked(|wins| {
+            wins.iter()
+                .filter(|w| matches!(w.id, WindowId::FileBrowser | WindowId::FileBrowserExtra(_)))
+                .count()
+        });
+        let offset = (count as f64) * 25.0;
+
+        self.windows.update(|wins| {
+            wins.push(WindowState {
+                id: win_id,
+                title: Some(format!("File Viewer {}", fb_id)),
+                x: 80.0 + offset,
+                y: 40.0 + offset,
+                width: 550.0,
+                height: 450.0,
+                z_index: z,
+                minimized: false,
+            });
+        });
     }
 
     fn start_move(&self, id: WindowId, offset_x: f64, offset_y: f64) {
@@ -789,6 +830,7 @@ pub fn WindowManager(children: Children) -> impl IntoView {
         windows: RwSignal::new(initial_layout),
         drag_op: RwSignal::new(None),
         next_z: RwSignal::new(max_z),
+        next_fb_id: RwSignal::new(1),
     };
 
     provide_context(wm_ctx.clone());

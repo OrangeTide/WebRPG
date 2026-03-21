@@ -1,6 +1,6 @@
 [package]
 name = "webrpg"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 authors = ["Jon Mayo <jon@rm-f.net>"]
 description = "A roleplaying game virtual tabletop server."
@@ -90,6 +90,8 @@ web-sys = { version = "0.3", optional = true, features = [
     "DomStringList",
     "ResizeObserver",
     "ResizeObserverEntry",
+    "DataTransfer",
+    "DragEvent",
 ] }
 
 [features]

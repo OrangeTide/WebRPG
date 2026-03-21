@@ -79,7 +79,7 @@ Right-click on a `.zip` also offers these options in the context menu.
 
 - **Feature 34: Virtual File System** — provides the backend VFS operations
 
-## Status: In Progress
+## Status: Done
 
 ### Completed
 - WindowId, component, root view, directory view, toolbar, location bar, navigation
@@ -95,6 +95,11 @@ Right-click on a `.zip` also offers these options in the context menu.
 - Multi-select with Ctrl+click (toggle) and Shift+click (range)
 - Multi-delete and multi-download support
 - Help manual page (`help/file-viewer.md`)
+- Multiple Finder windows (dynamic `FileBrowserExtra(u32)` WindowId with close button)
+- Gas gauge progress bar (OpenStep-style) in status line for multi-file operations
+- Drag-and-drop file upload from desktop onto browser content area
+- Folder upload via `webkitdirectory` preserving directory structure
+- File count confirmation dialog (soft limit 25, hard limit 250)
 
 ## Plan
 

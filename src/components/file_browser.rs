@@ -6,6 +6,73 @@ use crate::components::terminal::vfs_file_icon;
 use crate::scratch_drive::ScratchDrives;
 use crate::vfs::{Drive, VfsPath};
 
+/// Soft limit for bulk operations: confirm before proceeding.
+#[cfg(feature = "hydrate")]
+const BULK_CONFIRM_THRESHOLD: u32 = 25;
+/// Hard limit for bulk operations: refuse outright.
+#[cfg(feature = "hydrate")]
+const BULK_HARD_LIMIT: u32 = 250;
+
+/// Check file count for bulk operations. Returns Ok(()) if the operation
+/// should proceed, Err(message) if it should be aborted.
+#[cfg(feature = "hydrate")]
+fn confirm_file_count(count: u32, operation: &str) -> Result<(), String> {
+    if count > BULK_HARD_LIMIT {
+        return Err(format!(
+            "Too many files ({count}). Maximum is {BULK_HARD_LIMIT} per operation."
+        ));
+    }
+    if count > BULK_CONFIRM_THRESHOLD {
+        let window = web_sys::window().unwrap();
+        if !window
+            .confirm_with_message(&format!("{operation} {count} files?"))
+            .unwrap_or(false)
+        {
+            return Err("Cancelled".to_string());
+        }
+    }
+    Ok(())
+}
+
+/// Extract the MIME type from a `web_sys::File`, returning `None` if empty.
+#[cfg(feature = "hydrate")]
+fn file_content_type(file: &web_sys::File) -> Option<String> {
+    let t = file.type_();
+    if t.is_empty() { None } else { Some(t) }
+}
+
+/// Prompt the user for a new filename and return (old_path, new_path) if valid.
+/// Returns `None` if the user cancels or enters the same name.
+#[cfg(feature = "hydrate")]
+fn prompt_rename(item: &BrowserItem) -> Option<(VfsPath, VfsPath)> {
+    let window = web_sys::window().unwrap();
+    let new_name = window
+        .prompt_with_message_and_default("Rename to:", &item.name)
+        .ok()
+        .flatten()?;
+    let new_name = new_name.trim().to_string();
+    if new_name.is_empty() || new_name == item.name {
+        return None;
+    }
+    let parent_path = item.full_path.parent().unwrap_or_else(|| "/".to_string());
+    let parent = VfsPath {
+        drive: item.full_path.drive,
+        path: parent_path,
+    };
+    let new_vfs = VfsPath {
+        drive: item.full_path.drive,
+        path: parent.join(&new_name),
+    };
+    Some((item.full_path.clone(), new_vfs))
+}
+
+/// Global VFS revision counter shared across all file browser instances.
+/// Bumped after any mutation (upload, delete, rename, copy, mkdir) so that
+/// every pane watching a directory re-fetches its contents.
+#[derive(Clone, Copy)]
+#[cfg(feature = "hydrate")]
+struct VfsRevision(RwSignal<u32>);
+
 /// Context menu state: position and target item.
 #[derive(Debug, Clone)]
 struct ContextMenu {
@@ -98,6 +165,8 @@ struct PaneState {
     status_line: RwSignal<String>,
     loading: RwSignal<bool>,
     selected_items: RwSignal<Vec<BrowserItem>>,
+    /// Progress bar state: (completed, total) or None when inactive.
+    progress: RwSignal<Option<(usize, usize)>>,
 }
 
 impl PaneState {
@@ -112,6 +181,7 @@ impl PaneState {
             status_line: RwSignal::new("Select a drive".to_string()),
             loading: RwSignal::new(false),
             selected_items: RwSignal::new(Vec::new()),
+            progress: RwSignal::new(None),
         }
     }
 }
@@ -133,6 +203,14 @@ pub fn FileBrowserPanel() -> impl IntoView {
     #[cfg(feature = "hydrate")]
     let scratch_drives =
         expect_context::<RwSignal<crate::scratch_drive::ScratchDrives, LocalStorage>>();
+
+    // Global VFS revision counter: bumped after any mutation so all panes refresh.
+    #[cfg(feature = "hydrate")]
+    let vfs_rev = use_context::<VfsRevision>().unwrap_or_else(|| {
+        let rev = VfsRevision(RwSignal::new(0u32));
+        provide_context(rev);
+        rev
+    });
 
     // Helper: get active pane state
     let active = move || match active_pane.get() {
@@ -158,10 +236,12 @@ pub fn FileBrowserPanel() -> impl IntoView {
             pane.location_input.set(loc);
         });
 
-        // Fetch directory contents when view changes
+        // Fetch directory contents when view or VFS revision changes
         #[cfg(feature = "hydrate")]
         Effect::new(move |_| {
             let v = pane.view.get();
+            // Track global revision so this effect re-runs when any window mutates the VFS.
+            let _rev = vfs_rev.0.get();
             match v {
                 BrowserView::DriveList => {
                     pane.items.set(Vec::new());
@@ -280,11 +360,7 @@ pub fn FileBrowserPanel() -> impl IntoView {
                     if name.is_empty() {
                         return;
                     }
-                    let new_path = if path.path == "/" {
-                        format!("/{name}")
-                    } else {
-                        format!("{}/{name}", path.path)
-                    };
+                    let new_path = path.join(&name);
                     let drive = path.drive;
                     let sid = session_id.get();
                     let vfs_path = VfsPath {
@@ -292,13 +368,12 @@ pub fn FileBrowserPanel() -> impl IntoView {
                         path: new_path,
                     };
                     let sd = scratch_drives.get();
-                    let refresh_view = pane.view;
                     leptos::task::spawn_local(async move {
                         let result = create_directory(&vfs_path, sid, &sd).await;
                         if let Err(e) = result {
                             log::error!("mkdir failed: {e}");
                         }
-                        refresh_view.set(refresh_view.get());
+                        vfs_rev.0.update(|r| *r += 1);
                     });
                 }
             }
@@ -315,14 +390,37 @@ pub fn FileBrowserPanel() -> impl IntoView {
                 let dest = path.clone();
                 let sid = session_id.get();
                 let sd = scratch_drives.get();
-                let refresh_view = pane.view;
                 let status = pane.status_line;
+                let prog = pane.progress;
                 leptos::task::spawn_local(async move {
-                    match upload_files(&dest, sid, &sd).await {
+                    match upload_files(&dest, sid, &sd, prog).await {
                         Ok(msg) => status.set(msg),
                         Err(e) => status.set(format!("Upload: {e}")),
                     }
-                    refresh_view.set(refresh_view.get());
+                    vfs_rev.0.update(|r| *r += 1);
+                });
+            }
+        }
+    };
+
+    // Folder upload button
+    let on_upload_folder = move |_: leptos::ev::MouseEvent| {
+        #[cfg(feature = "hydrate")]
+        {
+            let pane = active();
+            let v = pane.view.get();
+            if let BrowserView::Directory(ref path) = v {
+                let dest = path.clone();
+                let sid = session_id.get();
+                let sd = scratch_drives.get();
+                let status = pane.status_line;
+                let prog = pane.progress;
+                leptos::task::spawn_local(async move {
+                    match upload_folder(&dest, sid, &sd, prog).await {
+                        Ok(msg) => status.set(msg),
+                        Err(e) => status.set(format!("Folder upload: {e}")),
+                    }
+                    vfs_rev.0.update(|r| *r += 1);
                 });
             }
         }
@@ -335,6 +433,14 @@ pub fn FileBrowserPanel() -> impl IntoView {
             let pane = active();
             let sel = pane.selected_items.get();
             if sel.is_empty() {
+                return;
+            }
+            if sel.len() as u32 > BULK_HARD_LIMIT {
+                pane.status_line.set(format!(
+                    "Too many items ({}). Maximum is {} per operation.",
+                    sel.len(),
+                    BULK_HARD_LIMIT
+                ));
                 return;
             }
             let window = web_sys::window().unwrap();
@@ -351,22 +457,30 @@ pub fn FileBrowserPanel() -> impl IntoView {
             if window.confirm_with_message(&msg).unwrap_or(false) {
                 let sid = session_id.get();
                 let sd = scratch_drives.get();
-                let refresh_view = pane.view;
                 let status = pane.status_line;
                 let selected = pane.selected_items;
                 let paths: Vec<_> = sel.iter().map(|i| i.full_path.clone()).collect();
+                let prog = pane.progress;
                 leptos::task::spawn_local(async move {
+                    let total = paths.len();
+                    if total > 1 {
+                        prog.set(Some((0, total)));
+                    }
                     let mut errors = Vec::new();
-                    for path in &paths {
+                    for (i, path) in paths.iter().enumerate() {
                         if let Err(e) = delete_entry(path, sid, &sd).await {
                             errors.push(format!("{}: {e}", path.path));
                         }
+                        if total > 1 {
+                            prog.set(Some((i + 1, total)));
+                        }
                     }
+                    prog.set(None);
                     if !errors.is_empty() {
                         status.set(format!("Delete errors: {}", errors.join("; ")));
                     }
                     selected.set(Vec::new());
-                    refresh_view.set(refresh_view.get());
+                    vfs_rev.0.update(|r| *r += 1);
                 });
             }
         }
@@ -378,31 +492,10 @@ pub fn FileBrowserPanel() -> impl IntoView {
         {
             let pane = active();
             let sel = pane.selected_items.get();
-            if let Some(item) = sel.first().cloned() {
-                let window = web_sys::window().unwrap();
-                if let Some(new_name) = window
-                    .prompt_with_message_and_default("Rename to:", &item.name)
-                    .ok()
-                    .flatten()
-                {
-                    let new_name = new_name.trim().to_string();
-                    if new_name.is_empty() || new_name == item.name {
-                        return;
-                    }
-                    let parent = item.full_path.parent().unwrap_or_else(|| "/".to_string());
-                    let new_file_path = if parent == "/" {
-                        format!("/{new_name}")
-                    } else {
-                        format!("{parent}/{new_name}")
-                    };
-                    let old_path = item.full_path.clone();
-                    let new_vfs = VfsPath {
-                        drive: old_path.drive,
-                        path: new_file_path,
-                    };
+            if let Some(item) = sel.first() {
+                if let Some((old_path, new_vfs)) = prompt_rename(item) {
                     let sid = session_id.get();
                     let sd = scratch_drives.get();
-                    let refresh_view = pane.view;
                     let status = pane.status_line;
                     let selected = pane.selected_items;
                     leptos::task::spawn_local(async move {
@@ -411,7 +504,7 @@ pub fn FileBrowserPanel() -> impl IntoView {
                             Err(e) => status.set(format!("Rename failed: {e}")),
                         }
                         selected.set(Vec::new());
-                        refresh_view.set(refresh_view.get());
+                        vfs_rev.0.update(|r| *r += 1);
                     });
                 }
             }
@@ -440,15 +533,14 @@ pub fn FileBrowserPanel() -> impl IntoView {
             let sd = scratch_drives.get();
             let src_status = src_pane.status_line;
             let src_selected = src_pane.selected_items;
-            let dst_refresh = dst_pane.view;
+            let prog = src_pane.progress;
             leptos::task::spawn_local(async move {
-                match copy_items(&sel, &dest, sid, &sd).await {
+                match copy_items(&sel, &dest, sid, &sd, prog).await {
                     Ok(msg) => src_status.set(msg),
                     Err(e) => src_status.set(format!("Copy failed: {e}")),
                 }
                 src_selected.set(Vec::new());
-                // Refresh destination pane
-                dst_refresh.set(dst_refresh.get());
+                vfs_rev.0.update(|r| *r += 1);
             });
         }
     };
@@ -538,7 +630,8 @@ pub fn FileBrowserPanel() -> impl IntoView {
                     if in_directory() {
                         view! {
                             <button class="fb-btn" on:click=on_new_folder data-tooltip="New Folder">{"\u{1f4c1}+"}</button>
-                            <button class="fb-btn" on:click=on_upload data-tooltip="Upload">{"\u{1f4e4}"}</button>
+                            <button class="fb-btn" on:click=on_upload data-tooltip="Upload Files">{"\u{1f4e4}"}</button>
+                            <button class="fb-btn" on:click=on_upload_folder data-tooltip="Upload Folder">{"\u{1f4c1}\u{2b06}"}</button>
                             <button
                                 class="fb-btn"
                                 on:click=on_rename
@@ -554,20 +647,34 @@ pub fn FileBrowserPanel() -> impl IntoView {
                                             let pane = active();
                                             let sel = pane.selected_items.get();
                                             let files: Vec<_> = sel.into_iter().filter(|i| !i.is_directory).collect();
+                                            if let Err(e) = confirm_file_count(files.len() as u32, "Download") {
+                                                pane.status_line.set(e);
+                                                return;
+                                            }
                                             let sid = session_id.get();
                                             let sd = scratch_drives.get();
                                             let status = pane.status_line;
+                                            let prog = pane.progress;
                                             leptos::task::spawn_local(async move {
+                                                let total = files.len();
+                                                if total > 1 {
+                                                    prog.set(Some((0, total)));
+                                                }
                                                 let mut count = 0;
-                                                for item in &files {
+                                                for (i, item) in files.iter().enumerate() {
                                                     match download_file(&item.full_path, &item.name, sid, &sd).await {
                                                         Ok(_) => count += 1,
                                                         Err(e) => {
+                                                            prog.set(None);
                                                             status.set(format!("Download failed: {e}"));
                                                             return;
                                                         }
                                                     }
+                                                    if total > 1 {
+                                                        prog.set(Some((i + 1, total)));
+                                                    }
                                                 }
+                                                prog.set(None);
                                                 if count > 1 {
                                                     status.set(format!("Downloaded {count} files"));
                                                 } else if count == 1 {
@@ -601,6 +708,16 @@ pub fn FileBrowserPanel() -> impl IntoView {
                         view! { <span></span> }.into_any()
                     }
                 }}
+
+                <button
+                    class="fb-btn"
+                    on:click=move |_: leptos::ev::MouseEvent| {
+                        if let Some(wm) = use_context::<crate::components::window_manager::WindowManagerContext>() {
+                            wm.open_file_browser();
+                        }
+                    }
+                    data-tooltip="New Window"
+                >{"\u{2795}"}</button>
             </div>
 
             <div class="fb-panes">
@@ -657,44 +774,20 @@ pub fn FileBrowserPanel() -> impl IntoView {
                     let on_ctx_rename = move |_: leptos::ev::MouseEvent| {
                         #[cfg(feature = "hydrate")]
                         if let Some(menu) = context_menu.get() {
-                            let window = web_sys::window().unwrap();
-                            if let Some(new_name) = window
-                                .prompt_with_message_and_default("Rename to:", &menu.item.name)
-                                .ok()
-                                .flatten()
-                            {
-                                let new_name = new_name.trim().to_string();
-                                if !new_name.is_empty() && new_name != menu.item.name {
-                                    let parent = menu
-                                        .item
-                                        .full_path
-                                        .parent()
-                                        .unwrap_or_else(|| "/".to_string());
-                                    let new_file_path = if parent == "/" {
-                                        format!("/{new_name}")
-                                    } else {
-                                        format!("{parent}/{new_name}")
-                                    };
-                                    let old_path = menu.item.full_path.clone();
-                                    let new_vfs = VfsPath {
-                                        drive: old_path.drive,
-                                        path: new_file_path,
-                                    };
-                                    let sid = session_id.get();
-                                    let sd = scratch_drives.get();
-                                    let pane = active();
-                                    let refresh_view = pane.view;
-                                    let status = pane.status_line;
-                                    let selected = pane.selected_items;
-                                    leptos::task::spawn_local(async move {
-                                        match rename_entry(&old_path, &new_vfs, sid, &sd).await {
-                                            Ok(()) => {}
-                                            Err(e) => status.set(format!("Rename failed: {e}")),
-                                        }
-                                        selected.set(Vec::new());
-                                        refresh_view.set(refresh_view.get());
-                                    });
-                                }
+                            if let Some((old_path, new_vfs)) = prompt_rename(&menu.item) {
+                                let sid = session_id.get();
+                                let sd = scratch_drives.get();
+                                let pane = active();
+                                let status = pane.status_line;
+                                let selected = pane.selected_items;
+                                leptos::task::spawn_local(async move {
+                                    match rename_entry(&old_path, &new_vfs, sid, &sd).await {
+                                        Ok(()) => {}
+                                        Err(e) => status.set(format!("Rename failed: {e}")),
+                                    }
+                                    selected.set(Vec::new());
+                                    vfs_rev.0.update(|r| *r += 1);
+                                });
                             }
                         }
                         context_menu.set(None);
@@ -715,8 +808,7 @@ pub fn FileBrowserPanel() -> impl IntoView {
                                 let sid = session_id.get();
                                 let sd = scratch_drives.get();
                                 let pane = active();
-                                let refresh_view = pane.view;
-                                let status = pane.status_line;
+                                            let status = pane.status_line;
                                 let selected = pane.selected_items;
                                 leptos::task::spawn_local(async move {
                                     match delete_entry(&path, sid, &sd).await {
@@ -724,7 +816,7 @@ pub fn FileBrowserPanel() -> impl IntoView {
                                         Err(e) => status.set(format!("Delete failed: {e}")),
                                     }
                                     selected.set(Vec::new());
-                                    refresh_view.set(refresh_view.get());
+                                    vfs_rev.0.update(|r| *r += 1);
                                 });
                             }
                         }
@@ -803,6 +895,9 @@ fn BrowserPaneView(
     #[cfg(feature = "hydrate")]
     let scratch_drives =
         expect_context::<RwSignal<crate::scratch_drive::ScratchDrives, LocalStorage>>();
+
+    #[cfg(feature = "hydrate")]
+    let vfs_rev = expect_context::<VfsRevision>();
 
     let navigate_to = move |new_view: BrowserView| {
         let current = pane.view.get();
@@ -918,6 +1013,10 @@ fn BrowserPaneView(
 
     let is_active = move || active_pane.get() == pane.id;
 
+    // Drag-and-drop state
+    let drop_active = RwSignal::new(false);
+    let drag_counter = RwSignal::new(0i32);
+
     view! {
         <div class=move || if is_active() { "fb-pane fb-pane-active" } else { "fb-pane" }>
             <div class="fb-location">
@@ -934,8 +1033,56 @@ fn BrowserPaneView(
                     spellcheck="false"
                 />
             </div>
-            <div class="fb-content" on:click=on_content_click
-                on:contextmenu=move |ev: leptos::ev::MouseEvent| { ev.prevent_default(); context_menu.set(None); }>
+            <div
+                class=move || if drop_active.get() { "fb-content fb-drop-active" } else { "fb-content" }
+                on:click=on_content_click
+                on:contextmenu=move |ev: leptos::ev::MouseEvent| { ev.prevent_default(); context_menu.set(None); }
+                on:dragenter=move |ev: leptos::ev::DragEvent| {
+                    ev.prevent_default();
+                    drag_counter.update(|c| *c += 1);
+                    drop_active.set(true);
+                }
+                on:dragover=move |ev: leptos::ev::DragEvent| {
+                    ev.prevent_default();
+                }
+                on:dragleave=move |_: leptos::ev::DragEvent| {
+                    drag_counter.update(|c| *c -= 1);
+                    if drag_counter.get() <= 0 {
+                        drop_active.set(false);
+                        drag_counter.set(0);
+                    }
+                }
+                on:drop=move |ev: leptos::ev::DragEvent| {
+                    ev.prevent_default();
+                    drop_active.set(false);
+                    drag_counter.set(0);
+                    #[cfg(feature = "hydrate")]
+                    {
+                        let v = pane.view.get();
+                        if let BrowserView::Directory(ref dest) = v {
+                            let dest = dest.clone();
+                            let sid = session_id.get();
+                            let sd = scratch_drives.get();
+                            let status = pane.status_line;
+                            let prog = pane.progress;
+                                    let dt: Option<web_sys::DataTransfer> = ev.data_transfer();
+                            if let Some(dt) = dt {
+                                let files: Option<web_sys::FileList> = dt.files();
+                                if let Some(file_list) = files {
+                                    leptos::task::spawn_local(async move {
+                                        let result = upload_file_list(file_list, &dest, sid, &sd, prog).await;
+                                        match result {
+                                            Ok(msg) => status.set(msg),
+                                            Err(e) => status.set(format!("Drop upload: {e}")),
+                                        }
+                                        vfs_rev.0.update(|r| *r += 1);
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            >
                 {move || {
                     let v = pane.view.get();
                     let sel = pane.selected_items.get();
@@ -989,15 +1136,29 @@ fn BrowserPaneView(
                     }
                 }}
             </div>
-            <div class="fb-status">{move || {
-                let sel_count = pane.selected_items.get().len();
-                let base = pane.status_line.get();
-                if sel_count > 1 {
-                    format!("{base} \u{2014} {sel_count} selected")
-                } else {
-                    base
-                }
-            }}</div>
+            <div class="fb-status">
+                {move || {
+                    if let Some((done, total)) = pane.progress.get() {
+                        let pct = if total > 0 { (done * 100) / total } else { 0 };
+                        let width = if total > 0 { (done as f64 / total as f64) * 100.0 } else { 0.0 };
+                        view! {
+                            <div class="fb-progress">
+                                <div class="fb-progress-fill" style=move || format!("width:{width}%")></div>
+                                <span class="fb-progress-text">{format!("{done}/{total} ({pct}%)")}</span>
+                            </div>
+                        }.into_any()
+                    } else {
+                        let sel_count = pane.selected_items.get().len();
+                        let base = pane.status_line.get();
+                        let text = if sel_count > 1 {
+                            format!("{base} \u{2014} {sel_count} selected")
+                        } else {
+                            base
+                        };
+                        view! { <span>{text}</span> }.into_any()
+                    }
+                }}
+            </div>
         </div>
     }
 }
@@ -1009,23 +1170,25 @@ async fn copy_items(
     dest: &VfsPath,
     session_id: i32,
     scratch: &ScratchDrives,
+    progress: RwSignal<Option<(usize, usize)>>,
 ) -> Result<String, String> {
     use crate::models::VfsFileData;
 
+    let total = items.len();
+    confirm_file_count(total as u32, "Copy")?;
+
     let mut copied = 0u32;
     let mut errors = Vec::new();
-    let total = items.len();
 
-    for item in items {
+    if total > 1 {
+        progress.set(Some((0, total)));
+    }
+
+    for (idx, item) in items.iter().enumerate() {
         let src = &item.full_path;
-        let dest_path = if dest.path == "/" {
-            format!("/{}", item.name)
-        } else {
-            format!("{}/{}", dest.path, item.name)
-        };
         let dst = VfsPath {
             drive: dest.drive,
-            path: dest_path,
+            path: dest.join(&item.name),
         };
 
         let src_scratch = src.drive.is_scratch();
@@ -1055,6 +1218,9 @@ async fn copy_items(
             {
                 Ok(()) => copied += 1,
                 Err(e) => errors.push(format!("{}: {e}", item.name)),
+            }
+            if total > 1 {
+                progress.set(Some((idx + 1, total)));
             }
             continue;
         }
@@ -1165,7 +1331,12 @@ async fn copy_items(
                 Err(e) => errors.push(format!("{}: read: {e}", item.name)),
             }
         }
+        if total > 1 {
+            progress.set(Some((idx + 1, total)));
+        }
     }
+
+    progress.set(None);
 
     if errors.is_empty() {
         Ok(format!("Copied {copied}/{total} items"))
@@ -1374,18 +1545,13 @@ async fn scratch_rename(
         let children = sd.list(&old_path.path).await?;
         for child in &children {
             let child_name = child.path.rsplit('/').next().unwrap_or(&child.path);
-            let new_child_path = if new_path.path == "/" {
-                format!("/{child_name}")
-            } else {
-                format!("{}/{child_name}", new_path.path)
-            };
             let child_old = VfsPath {
                 drive: old_path.drive,
                 path: child.path.clone(),
             };
             let child_new = VfsPath {
                 drive: old_path.drive,
-                path: new_child_path,
+                path: new_path.join(child_name),
             };
             Box::pin(scratch_rename(&child_old, &child_new, scratch, depth + 1)).await?;
         }
@@ -1591,29 +1757,49 @@ fn blob_url_from_bytes(data: &[u8], content_type: &str) -> String {
 }
 
 /// Open a browser file picker and upload files to the current directory.
-/// Continues uploading remaining files on per-file errors (like the terminal's PUT).
 #[cfg(feature = "hydrate")]
 async fn upload_files(
     dest: &VfsPath,
     session_id: i32,
     scratch: &ScratchDrives,
+    progress: RwSignal<Option<(usize, usize)>>,
+) -> Result<String, String> {
+    use crate::components::browser_helpers::open_file_picker;
+    let files = open_file_picker().await?;
+    upload_file_list(files, dest, session_id, scratch, progress).await
+}
+
+/// Upload a FileList to the VFS, reused by drag-drop and folder upload.
+#[cfg(feature = "hydrate")]
+async fn upload_file_list(
+    files: web_sys::FileList,
+    dest: &VfsPath,
+    session_id: i32,
+    scratch: &ScratchDrives,
+    progress: RwSignal<Option<(usize, usize)>>,
 ) -> Result<String, String> {
     use wasm_bindgen_futures::JsFuture;
 
-    use crate::components::browser_helpers::{open_file_picker, upload_large_file};
+    use crate::components::browser_helpers::upload_large_file;
 
     let dest_scratch = dest.drive.is_scratch();
     if dest_scratch && scratch.get(dest.drive).is_none() {
         return Err("Scratch drive not initialized".to_string());
     }
 
-    let files = open_file_picker().await?;
-
     let sid = dest.drive.session_id(session_id);
+    let total = files.length();
+    if total == 0 {
+        return Ok("No files dropped".to_string());
+    }
+    confirm_file_count(total, "Upload")?;
 
     let mut uploaded = 0u32;
     let mut errors = Vec::new();
-    let total = files.length();
+
+    if total > 1 {
+        progress.set(Some((0, total as usize)));
+    }
 
     for i in 0..total {
         let file = match files.get(i) {
@@ -1634,16 +1820,8 @@ async fn upload_files(
         let uint8 = js_sys::Uint8Array::new(&array_buffer);
         let data = uint8.to_vec();
 
-        let file_path = if dest.path == "/" {
-            format!("/{name}")
-        } else {
-            format!("{}/{name}", dest.path)
-        };
-
-        let content_type = {
-            let t = file.type_();
-            if t.is_empty() { None } else { Some(t) }
-        };
+        let file_path = dest.join(&name);
+        let content_type = file_content_type(&file);
 
         if dest_scratch {
             let sd = scratch.get(dest.drive).unwrap();
@@ -1651,10 +1829,12 @@ async fn upload_files(
                 Ok(()) => uploaded += 1,
                 Err(e) => errors.push(format!("{name}: {e}")),
             }
+            if total > 1 {
+                progress.set(Some(((i + 1) as usize, total as usize)));
+            }
             continue;
         }
 
-        // Server drives: small files inline, large files via media upload
         if size <= 8192 {
             match crate::server::api::vfs_write_file(
                 dest.drive.as_str().to_string(),
@@ -1674,7 +1854,170 @@ async fn upload_files(
                 Err(e) => errors.push(format!("{name}: {e}")),
             }
         }
+        if total > 1 {
+            progress.set(Some(((i + 1) as usize, total as usize)));
+        }
     }
+
+    progress.set(None);
+
+    if errors.is_empty() {
+        Ok(format!("Uploaded {uploaded}/{total} files"))
+    } else {
+        Ok(format!(
+            "Uploaded {uploaded}/{total} ({} failed: {})",
+            errors.len(),
+            errors.join("; ")
+        ))
+    }
+}
+
+/// Upload a folder via webkitdirectory picker, preserving directory structure.
+#[cfg(feature = "hydrate")]
+async fn upload_folder(
+    dest: &VfsPath,
+    session_id: i32,
+    scratch: &ScratchDrives,
+    progress: RwSignal<Option<(usize, usize)>>,
+) -> Result<String, String> {
+    use crate::components::browser_helpers::open_folder_picker;
+
+    let files = open_folder_picker().await?;
+    let total = files.length();
+    if total == 0 {
+        return Ok("No files in folder".to_string());
+    }
+    confirm_file_count(total, "Upload folder with")?;
+
+    let dest_scratch = dest.drive.is_scratch();
+    let sid = dest.drive.session_id(session_id);
+
+    // Create parent directories for all files first (server drives only)
+    if !dest_scratch {
+        let mut dirs_created: std::collections::HashSet<String> = std::collections::HashSet::new();
+        for i in 0..total {
+            let file = match files.get(i) {
+                Some(f) => f,
+                None => continue,
+            };
+            let rel_path: String = js_sys::Reflect::get(
+                file.as_ref(),
+                &wasm_bindgen::JsValue::from_str("webkitRelativePath"),
+            )
+            .ok()
+            .and_then(|v| v.as_string())
+            .unwrap_or_else(|| file.name());
+            let rel_path = rel_path.trim_start_matches('/');
+            let file_path = dest.join(rel_path);
+            if let Some(parent_pos) = file_path.rfind('/') {
+                let parent = &file_path[..parent_pos];
+                if !parent.is_empty() && parent != "/" {
+                    let mut dirs_to_create = Vec::new();
+                    let mut p = parent.to_string();
+                    while !p.is_empty() && p != "/" && !dirs_created.contains(&p) {
+                        dirs_to_create.push(p.clone());
+                        if let Some(pos) = p.rfind('/') {
+                            p = p[..pos].to_string();
+                        } else {
+                            break;
+                        }
+                    }
+                    dirs_to_create.reverse();
+                    for dir in dirs_to_create {
+                        let _ = crate::server::api::vfs_mkdir_dir(
+                            dest.drive.as_str().to_string(),
+                            dir.clone(),
+                            sid,
+                        )
+                        .await;
+                        dirs_created.insert(dir);
+                    }
+                }
+            }
+        }
+    }
+
+    // Upload files using webkitRelativePath for proper directory structure
+    use crate::components::browser_helpers::upload_large_file;
+    use wasm_bindgen_futures::JsFuture;
+
+    if dest_scratch && scratch.get(dest.drive).is_none() {
+        return Err("Scratch drive not initialized".to_string());
+    }
+
+    let mut uploaded = 0u32;
+    let mut errors = Vec::new();
+
+    if total > 1 {
+        progress.set(Some((0, total as usize)));
+    }
+
+    for i in 0..total {
+        let file = match files.get(i) {
+            Some(f) => f,
+            None => continue,
+        };
+
+        let rel_path: String = js_sys::Reflect::get(
+            file.as_ref(),
+            &wasm_bindgen::JsValue::from_str("webkitRelativePath"),
+        )
+        .ok()
+        .and_then(|v| v.as_string())
+        .unwrap_or_else(|| file.name());
+        let rel_path = rel_path.trim_start_matches('/');
+
+        let file_path = dest.join(rel_path);
+
+        let name = file.name();
+        let size = file.size() as u64;
+
+        let array_buffer = match JsFuture::from(file.array_buffer()).await {
+            Ok(ab) => ab,
+            Err(e) => {
+                errors.push(format!("{name}: read error ({e:?})"));
+                if total > 1 {
+                    progress.set(Some(((i + 1) as usize, total as usize)));
+                }
+                continue;
+            }
+        };
+        let uint8 = js_sys::Uint8Array::new(&array_buffer);
+        let data = uint8.to_vec();
+
+        let content_type = file_content_type(&file);
+
+        if dest_scratch {
+            let sd = scratch.get(dest.drive).unwrap();
+            match sd.write(&file_path, &data, content_type.as_deref()).await {
+                Ok(()) => uploaded += 1,
+                Err(e) => errors.push(format!("{name}: {e}")),
+            }
+        } else if size <= 8192 {
+            match crate::server::api::vfs_write_file(
+                dest.drive.as_str().to_string(),
+                file_path,
+                data,
+                content_type,
+                sid,
+            )
+            .await
+            {
+                Ok(()) => uploaded += 1,
+                Err(e) => errors.push(format!("{name}: {e}")),
+            }
+        } else {
+            match upload_large_file(&file, &dest.drive, &file_path, size, content_type, sid).await {
+                Ok(()) => uploaded += 1,
+                Err(e) => errors.push(format!("{name}: {e}")),
+            }
+        }
+        if total > 1 {
+            progress.set(Some(((i + 1) as usize, total as usize)));
+        }
+    }
+
+    progress.set(None);
 
     if errors.is_empty() {
         Ok(format!("Uploaded {uploaded}/{total} files"))

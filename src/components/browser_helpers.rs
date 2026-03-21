@@ -33,10 +33,19 @@ pub fn trigger_browser_download(filename: &str, data: &[u8], content_type: &str)
     let _ = web_sys::Url::revoke_object_url(&url);
 }
 
-/// Open a browser file picker dialog allowing multiple file selection.
+/// Picker mode for `open_picker`.
+#[cfg(feature = "hydrate")]
+pub enum PickerMode {
+    /// Select multiple individual files.
+    Files,
+    /// Select a folder (uses webkitdirectory).
+    Folder,
+}
+
+/// Open a browser file/folder picker dialog.
 /// Returns the selected `FileList`, or an error string if cancelled or empty.
 #[cfg(feature = "hydrate")]
-pub async fn open_file_picker() -> Result<web_sys::FileList, String> {
+async fn open_picker(mode: PickerMode) -> Result<web_sys::FileList, String> {
     use wasm_bindgen::JsCast;
     use wasm_bindgen_futures::JsFuture;
 
@@ -48,7 +57,12 @@ pub async fn open_file_picker() -> Result<web_sys::FileList, String> {
         .dyn_into()
         .unwrap();
     input.set_type("file");
-    input.set_multiple(true);
+    match mode {
+        PickerMode::Files => input.set_multiple(true),
+        PickerMode::Folder => {
+            let _ = input.set_attribute("webkitdirectory", "");
+        }
+    }
 
     let promise = js_sys::Promise::new(&mut {
         let input_for_change = input.clone();
@@ -93,6 +107,19 @@ pub async fn open_file_picker() -> Result<web_sys::FileList, String> {
         Some(f) if f.length() > 0 => Ok(f),
         _ => Err("No files selected".to_string()),
     }
+}
+
+/// Open a browser file picker dialog allowing multiple file selection.
+#[cfg(feature = "hydrate")]
+pub async fn open_file_picker() -> Result<web_sys::FileList, String> {
+    open_picker(PickerMode::Files).await
+}
+
+/// Open a browser folder picker dialog (webkitdirectory).
+/// Returns the selected `FileList` with webkitRelativePath on each File.
+#[cfg(feature = "hydrate")]
+pub async fn open_folder_picker() -> Result<web_sys::FileList, String> {
+    open_picker(PickerMode::Folder).await
 }
 
 /// Upload a large file via the media CAS endpoint, then write a CAS reference to VFS.

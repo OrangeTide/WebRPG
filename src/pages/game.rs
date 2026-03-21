@@ -777,6 +777,7 @@ pub fn GamePage() -> impl IntoView {
                     <HelpViewerPanel />
                 </GameWindow>
                 <DynamicCharacterWindows />
+                <DynamicFileBrowserWindows />
             </WindowManager>
         </div>
     }
@@ -813,6 +814,43 @@ fn DynamicCharacterWindows() -> impl IntoView {
                 view! {
                     <GameWindow id=win_id>
                         <CharacterEditorPanel character_id=char_id />
+                    </GameWindow>
+                }
+            }
+        </For>
+    }
+}
+
+/// Renders dynamic GameWindow instances for each extra file browser.
+#[component]
+fn DynamicFileBrowserWindows() -> impl IntoView {
+    let wm = expect_context::<WindowManagerContext>();
+
+    let open_browsers = move || {
+        wm.windows
+            .get()
+            .into_iter()
+            .filter_map(|w| {
+                if let WindowId::FileBrowserExtra(fb_id) = w.id {
+                    Some((w.id, fb_id))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+    };
+
+    view! {
+        <For
+            each=open_browsers
+            key=|(_, fb_id)| *fb_id
+            let:item
+        >
+            {
+                let (win_id, _fb_id) = item;
+                view! {
+                    <GameWindow id=win_id>
+                        <FileBrowserPanel />
                     </GameWindow>
                 }
             }
