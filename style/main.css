@@ -272,11 +272,7 @@ h1, h2, h3, h4 {
 }
 [data-tooltip]::after {
     content: attr(data-tooltip);
-    position: absolute;
-    left: 100%;
-    top: 50%;
-    transform: translateY(-50%);
-    margin-left: 6px;
+    position: fixed;
     background: rgba(10, 10, 20, 0.92);
     color: #ddd;
     font-size: 11px;
@@ -288,6 +284,9 @@ h1, h2, h3, h4 {
     opacity: 0;
     transition: opacity 0.15s;
     z-index: 9999;
+    left: var(--tt-left, 0);
+    top: var(--tt-top, 0);
+    transform: translateX(-50%);
 }
 [data-tooltip]:hover::after {
     opacity: 1;

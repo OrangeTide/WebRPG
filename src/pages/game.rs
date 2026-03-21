@@ -423,6 +423,42 @@ pub fn GamePage() -> impl IntoView {
         });
     }
 
+    // Position [data-tooltip] pseudo-elements using CSS custom properties.
+    // The ::after uses position:fixed, so we set --tt-left/--tt-top on mouseover.
+    #[cfg(feature = "hydrate")]
+    {
+        use wasm_bindgen::prelude::*;
+
+        let cb = Closure::<dyn Fn(web_sys::MouseEvent)>::new(move |ev: web_sys::MouseEvent| {
+            let Some(target) = ev.target() else { return };
+            let Ok(el) = target.dyn_into::<web_sys::HtmlElement>() else {
+                return;
+            };
+            // Walk up to find the [data-tooltip] element (may be the target or a parent)
+            let mut node = Some(el);
+            while let Some(ref n) = node {
+                if n.get_attribute("data-tooltip").is_some() {
+                    let rect = n.get_bounding_client_rect();
+                    let cx = rect.left() + rect.width() / 2.0;
+                    let below_top = rect.bottom() + 4.0;
+                    let style = n.style();
+                    let _ = style.set_property("--tt-left", &format!("{cx}px"));
+                    let _ = style.set_property("--tt-top", &format!("{below_top}px"));
+                    return;
+                }
+                node = n
+                    .parent_element()
+                    .and_then(|e| e.dyn_into::<web_sys::HtmlElement>().ok());
+            }
+        });
+        let _ = web_sys::window()
+            .unwrap()
+            .document()
+            .unwrap()
+            .add_event_listener_with_callback("mouseover", cb.as_ref().unchecked_ref());
+        cb.forget();
+    }
+
     // Fetch WS token and connect
     #[cfg(feature = "hydrate")]
     {
