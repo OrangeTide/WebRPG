@@ -323,23 +323,35 @@ pub fn CharacterEditorPanel(character_id: i32) -> impl IntoView {
         });
     }
 
+    let is_current_turn = move || {
+        ctx.initiative
+            .get()
+            .iter()
+            .any(|e| e.character_id == Some(character_id) && e.is_current_turn)
+    };
+
     view! {
         <div class="character-sheet-panel">
-            {move || {
-                if loading.get() && character.get().is_none() {
-                    view! { <p class="loading-text">"Loading..."</p> }.into_any()
-                } else if let Some(char_data) = character.get() {
-                    let tmpl = template.get();
-                    view! {
-                        <CharacterEditor
-                            character=char_data
-                            template=tmpl
-                        />
-                    }.into_any()
-                } else {
-                    view! { <p>"Character not found"</p> }.into_any()
-                }
-            }}
+            <div class="character-sheet-content">
+                {move || {
+                    if loading.get() && character.get().is_none() {
+                        view! { <p class="loading-text">"Loading..."</p> }.into_any()
+                    } else if let Some(char_data) = character.get() {
+                        let tmpl = template.get();
+                        view! {
+                            <CharacterEditor
+                                character=char_data
+                                template=tmpl
+                            />
+                        }.into_any()
+                    } else {
+                        view! { <p>"Character not found"</p> }.into_any()
+                    }
+                }}
+            </div>
+            <div class="cs-status" class:your-turn=is_current_turn>
+                {move || if is_current_turn() { "Your Turn" } else { "" }}
+            </div>
         </div>
     }
 }

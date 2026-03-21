@@ -133,6 +133,11 @@ pub struct GameContext {
     pub initiative_locked: RwSignal<bool>,
     /// Loading modal state. `Some(…)` shows the modal; `None` hides it.
     pub loading: RwSignal<Option<LoadingState>>,
+    /// Set when a new initiative turn begins — holds the entry that became active.
+    /// Used by character sheet windows (title flash) and the map (star animation).
+    pub turn_notify: RwSignal<Option<InitiativeEntryInfo>>,
+    /// Turn-start star animation on map: (world_x, world_y, start_timestamp_ms).
+    pub turn_star: RwSignal<Option<(f64, f64, f64)>>,
     /// Decremented for each locally-created message to avoid ID collisions with DB rows.
     next_local_id: std::sync::Arc<std::sync::atomic::AtomicI32>,
 }
@@ -269,7 +274,48 @@ impl GameContext {
                 self.fog.set(fog);
             }
             ServerMessage::InitiativeUpdated { entries } => {
+                // Detect turn change: compare old current turn to new
+                let old_current = self
+                    .initiative
+                    .with_untracked(|old| old.iter().find(|e| e.is_current_turn).cloned());
+                let new_current = entries.iter().find(|e| e.is_current_turn).cloned();
+
+                // Fire notification if the current turn entry changed
+                let changed = match (&old_current, &new_current) {
+                    (Some(old), Some(new)) => {
+                        old.label != new.label
+                            || old.character_id != new.character_id
+                            || old.token_id != new.token_id
+                    }
+                    (None, Some(_)) => true,
+                    _ => false,
+                };
+
                 self.initiative.set(entries);
+
+                if changed {
+                    if let Some(ref entry) = new_current {
+                        self.turn_notify.set(Some(entry.clone()));
+
+                        // Compute star position from token if linked
+                        if let Some(tid) = entry.token_id {
+                            let tokens = self.tokens.get_untracked();
+                            let map = self.map.get_untracked();
+                            if let (Some(t), Some(m)) =
+                                (tokens.iter().find(|t| t.id == tid), map.as_ref())
+                            {
+                                let cell = m.cell_size as f64;
+                                let wx = (t.x as f64 + 0.5) * cell;
+                                let wy = (t.y as f64 + 0.5) * cell;
+                                #[cfg(feature = "hydrate")]
+                                let now = web_sys::js_sys::Date::now();
+                                #[cfg(not(feature = "hydrate"))]
+                                let now = 0.0;
+                                self.turn_star.set(Some((wx, wy, now)));
+                            }
+                        }
+                    }
+                }
             }
             ServerMessage::CharacterUpdated { .. } => {
                 self.character_revision.update(|n| *n += 1);
@@ -414,6 +460,8 @@ pub fn GamePage() -> impl IntoView {
         focus_creature: RwSignal::new(None),
         initiative_locked: RwSignal::new(false),
         loading: RwSignal::new(Some(LoadingState::INITIALIZING)),
+        turn_notify: RwSignal::new(None),
+        turn_star: RwSignal::new(None),
         next_local_id: std::sync::Arc::new(std::sync::atomic::AtomicI32::new(-1)),
     };
 

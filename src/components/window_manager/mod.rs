@@ -969,6 +969,31 @@ pub fn GameWindow(
         }
     };
 
+    // Title bar flash: detect when turn_notify matches this character editor window
+    let is_flashing = RwSignal::new(false);
+    #[cfg(feature = "hydrate")]
+    {
+        if let WindowId::CharacterEditor(char_id) = id {
+            if let Some(game_ctx) = use_context::<crate::pages::game::GameContext>() {
+                Effect::new(move |_| {
+                    let notify = game_ctx.turn_notify.get();
+                    if let Some(ref entry) = notify {
+                        if entry.character_id == Some(char_id) {
+                            is_flashing.set(true);
+                            // Clear flash after animation completes (800ms)
+                            let _ = leptos::prelude::set_timeout(
+                                move || {
+                                    is_flashing.set(false);
+                                },
+                                std::time::Duration::from_millis(800),
+                            );
+                        }
+                    }
+                });
+            }
+        }
+    }
+
     let rendered_children = children();
 
     view! {
@@ -988,7 +1013,7 @@ pub fn GameWindow(
             <div class="gw-resize gw-resize-br" on:mousedown=on_resize_br></div>
 
             // Title bar
-            <div class="gw-titlebar" on:mousedown=on_titlebar_mousedown>
+            <div class="gw-titlebar" class:gw-flash=move || is_flashing.get() on:mousedown=on_titlebar_mousedown>
                 <span class="gw-title-icon">{id.dock_icon()}</span>
                 <span class="gw-title">{display_title}</span>
                 <div class="gw-controls">

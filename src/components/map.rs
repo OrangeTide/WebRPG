@@ -330,6 +330,32 @@ pub fn MapCanvas() -> impl IntoView {
         });
     }
 
+    // Auto-expire turn star animation (2 seconds) and trigger periodic redraws
+    #[cfg(feature = "hydrate")]
+    {
+        Effect::new(move |_| {
+            let star = ctx.turn_star.get();
+            if star.is_none() {
+                return;
+            }
+            // Schedule a tick to keep the animation rendering
+            let _ = leptos::prelude::set_timeout(
+                move || {
+                    let now = web_sys::js_sys::Date::now();
+                    ctx.turn_star.update(|s| {
+                        if let Some((_, _, t)) = s {
+                            if now - *t >= 2000.0 {
+                                *s = None;
+                            }
+                        }
+                    });
+                    // If still active, the update triggers re-render for animation
+                },
+                std::time::Duration::from_millis(50),
+            );
+        });
+    }
+
     // Watch for canvas container resize → bump canvas_size_tick to trigger redraw
     #[cfg(feature = "hydrate")]
     {
@@ -655,6 +681,43 @@ pub fn MapCanvas() -> impl IntoView {
                     ctx2d.set_line_width(1.5 / zoom);
                     ctx2d.stroke();
                     ctx2d.restore();
+                }
+
+                // Turn-start star animation (world space)
+                if let Some((sx, sy, start_t)) = ctx.turn_star.get() {
+                    let age = now - start_t;
+                    if age < 2000.0 {
+                        let alpha = 1.0 - (age / 2000.0);
+                        let rotation = age / 500.0; // radians
+                        let pulse = 1.0 + (age / 200.0).sin().abs() * 0.15;
+                        let outer_r = cell * 0.7 * pulse;
+                        let inner_r = outer_r * 0.55;
+                        let points = 12;
+
+                        ctx2d.save();
+                        ctx2d.set_global_alpha(alpha);
+                        ctx2d.set_stroke_style_str("#ffcc00");
+                        ctx2d.set_line_width(2.5 / zoom);
+                        ctx2d.begin_path();
+
+                        for i in 0..(points * 2) {
+                            let angle =
+                                rotation + (i as f64) * std::f64::consts::PI / (points as f64);
+                            let r = if i % 2 == 0 { outer_r } else { inner_r };
+                            let px = sx + r * angle.cos();
+                            let py = sy + r * angle.sin();
+                            if i == 0 {
+                                ctx2d.move_to(px, py);
+                            } else {
+                                ctx2d.line_to(px, py);
+                            }
+                        }
+                        ctx2d.close_path();
+                        ctx2d.stroke();
+                        ctx2d.restore();
+                    } else {
+                        ctx.turn_star.set(None);
+                    }
                 }
 
                 // --- Overlays in screen space ---

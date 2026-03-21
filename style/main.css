@@ -616,6 +616,16 @@ h1, h2, h3, h4 {
     cursor: grabbing;
 }
 
+@keyframes gw-title-flash {
+    0%, 100% { background: var(--color-bg-header); }
+    25% { background: #cc9900; }
+    50% { background: var(--color-bg-header); }
+    75% { background: #cc9900; }
+}
+.gw-titlebar.gw-flash {
+    animation: gw-title-flash 0.8s ease-in-out;
+}
+
 .gw-title-icon {
     font-size: 0.85rem;
     pointer-events: none;
@@ -1182,9 +1192,31 @@ h1, h2, h3, h4 {
 .character-sheet-panel {
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+}
+.character-sheet-content {
+    flex: 1;
     overflow-y: auto;
     padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
     gap: 0.75rem;
+}
+.cs-status {
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    color: #444;
+    background: var(--chrome-surface);
+    border-top: 1px solid #888;
+    flex-shrink: 0;
+    white-space: nowrap;
+    text-align: center;
+    min-height: 1.1em;
+}
+.cs-status.your-turn {
+    background: #3a5a2a;
+    color: #88ff88;
+    font-weight: bold;
 }
 
 /* Shared panel header with + button */
