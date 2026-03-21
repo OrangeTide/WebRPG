@@ -1204,6 +1204,14 @@ h1, h2, h3, h4 {
 .btn-add:hover {
     background: var(--color-btn-border);
 }
+.btn-add:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: auto;
+}
+.btn-add:disabled:hover {
+    background: transparent;
+}
 
 .btn-back {
     font-size: 0.8rem;

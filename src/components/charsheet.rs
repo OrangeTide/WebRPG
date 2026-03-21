@@ -248,7 +248,14 @@ pub fn CharacterSelection() -> impl IntoView {
                                 </button>
                                 <button
                                     class="btn-add"
-                                    data-tooltip="Place on Map"
+                                    data-tooltip=move || {
+                                        if ctx.tokens.get().iter().any(|t| t.character_id == Some(cid)) {
+                                            "Already on map"
+                                        } else {
+                                            "Place on Map"
+                                        }
+                                    }
+                                    disabled=move || ctx.tokens.get().iter().any(|t| t.character_id == Some(cid))
                                     on:click={
                                         let place = place_character.clone();
                                         let name = name_for_place.clone();

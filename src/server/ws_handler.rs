@@ -190,6 +190,34 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                         });
                         continue;
                     }
+                    // Reject duplicate character tokens on the same map
+                    if let Some(cid) = character_id {
+                        use crate::schema::{maps, tokens as tokens_table};
+                        use diesel::prelude::*;
+                        let conn = &mut crate::db::get_conn();
+                        let map_id: Option<i32> = maps::table
+                            .filter(maps::session_id.eq(session_id))
+                            .order(maps::id.desc())
+                            .select(maps::id)
+                            .first(conn)
+                            .optional()
+                            .unwrap_or(None);
+                        if let Some(mid) = map_id {
+                            let exists = tokens_table::table
+                                .filter(tokens_table::map_id.eq(mid))
+                                .filter(tokens_table::character_id.eq(cid))
+                                .count()
+                                .get_result::<i64>(conn)
+                                .unwrap_or(0)
+                                > 0;
+                            if exists {
+                                let _ = tx.send(ServerMessage::Error {
+                                    message: "Character already has a token on this map".into(),
+                                });
+                                continue;
+                            }
+                        }
+                    }
                     match place_token(
                         session_id,
                         &label,
