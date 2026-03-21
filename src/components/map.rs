@@ -108,6 +108,10 @@ pub fn MapCanvas() -> impl IntoView {
     // --- Token list dropdown ---
     let show_token_list = RwSignal::new(false);
 
+    // --- Token context menu ---
+    // (screen_x, screen_y, vec of token ids)
+    let token_context_menu = RwSignal::new(Option::<(f64, f64, Vec<i32>)>::None);
+
     let show_media_browser = RwSignal::new(false);
     let show_map_settings = RwSignal::new(false);
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
@@ -685,6 +689,9 @@ pub fn MapCanvas() -> impl IntoView {
         {
             let canvas_ref = canvas_ref.clone();
             move |ev: leptos::ev::MouseEvent| {
+                // Dismiss context menu on any click
+                token_context_menu.set(None);
+
                 let map_data = map.get();
                 let Some(m) = map_data else { return };
                 let Some((sx, sy)) = canvas_coords(&canvas_ref, &ev) else {
@@ -1230,89 +1237,51 @@ pub fn MapCanvas() -> impl IntoView {
         }
     };
 
-    // Right-click: rotate selected tokens (orbit around group center)
+    // Right-click: show token context menu
     let on_contextmenu = {
         #[cfg(feature = "hydrate")]
         {
             move |ev: leptos::ev::MouseEvent| {
                 ev.prevent_default();
 
-                let sel = selected_ids.get();
-                if sel.is_empty() {
-                    return;
-                }
-
-                // Multi-token rotation disabled in snap-to-grid mode
-                if snap_to_grid.get() && sel.len() > 1 {
-                    return;
-                }
-
                 let map_data = map.get();
                 let Some(m) = map_data else { return };
                 let cell = m.cell_size as f64;
+                let zoom = view_zoom.get();
+                let offset = view_offset.get();
 
-                // 15 degrees per click; shift = counterclockwise
-                let angle = if ev.shift_key() {
-                    -std::f64::consts::PI / 12.0
-                } else {
-                    std::f64::consts::PI / 12.0
+                let Some((sx, sy)) = canvas_coords(&canvas_ref, &ev) else {
+                    return;
                 };
-                let cos_a = angle.cos();
-                let sin_a = angle.sin();
+                let (wx, wy) = screen_to_world(sx, sy, offset, zoom);
 
-                // Compute group center
-                let selected_tokens: Vec<_> = tokens
-                    .get()
-                    .iter()
-                    .filter(|t| sel.contains(&t.id))
-                    .cloned()
-                    .collect();
-                let count = selected_tokens.len() as f64;
-                let center_x = selected_tokens
-                    .iter()
-                    .map(|t| (t.x as f64 + 0.5) * cell)
-                    .sum::<f64>()
-                    / count;
-                let center_y = selected_tokens
-                    .iter()
-                    .map(|t| (t.y as f64 + 0.5) * cell)
-                    .sum::<f64>()
-                    / count;
-
-                let multi = selected_tokens.len() > 1;
-                let mut rotations = Vec::new();
-                let mut moves = Vec::new();
-                tokens.update(|ts| {
-                    for t in ts.iter_mut() {
-                        if sel.contains(&t.id) {
-                            if multi {
-                                // Orbit position around group center
-                                let wx = (t.x as f64 + 0.5) * cell;
-                                let wy = (t.y as f64 + 0.5) * cell;
-                                let rx = wx - center_x;
-                                let ry = wy - center_y;
-                                let new_wx = center_x + rx * cos_a - ry * sin_a;
-                                let new_wy = center_y + rx * sin_a + ry * cos_a;
-                                t.x = (new_wx / cell - 0.5) as f32;
-                                t.y = (new_wy / cell - 0.5) as f32;
-                                moves.push((t.id, t.x, t.y));
-                            }
-                            t.rotation += angle as f32;
-                            rotations.push((t.id, t.rotation));
-                        }
+                // Hit-test: find token under cursor
+                let tokens_data = tokens.get();
+                let clicked = tokens_data.iter().rev().find(|t| {
+                    if !t.visible {
+                        return false;
                     }
+                    let cx = (t.x as f64 + 0.5) * cell;
+                    let cy = (t.y as f64 + 0.5) * cell;
+                    let radius = cell * t.size as f64 * 0.5;
+                    let dx = wx - cx;
+                    let dy = wy - cy;
+                    (dx * dx + dy * dy).sqrt() <= radius
                 });
 
-                send.with_value(|f| {
-                    if let Some(f) = f {
-                        if !moves.is_empty() {
-                            f(ClientMessage::MoveTokens { moves });
-                        }
-                        if !rotations.is_empty() {
-                            f(ClientMessage::RotateTokens { rotations });
-                        }
+                if let Some(t) = clicked {
+                    // If right-clicked token isn't in selection, select just it
+                    let mut sel = selected_ids.get();
+                    if !sel.contains(&t.id) {
+                        sel.clear();
+                        sel.insert(t.id);
+                        selected_ids.set(sel.clone());
                     }
-                });
+                    let ids: Vec<i32> = sel.into_iter().collect();
+                    token_context_menu.set(Some((ev.client_x() as f64, ev.client_y() as f64, ids)));
+                } else {
+                    token_context_menu.set(None);
+                }
             }
         }
         #[cfg(not(feature = "hydrate"))]
@@ -1995,6 +1964,62 @@ pub fn MapCanvas() -> impl IntoView {
                     {move || format!("{}%", (view_zoom.get() * 100.0).round() as i32)}
                 </span>
             </div>
+            // Token context menu
+            {move || {
+                let menu = token_context_menu.get()?;
+                let (mx, my, ids) = menu;
+                let count = ids.len();
+                let label = if count == 1 {
+                    tokens.get().iter().find(|t| t.id == ids[0]).map(|t| t.label.clone())
+                } else {
+                    Some(format!("{count} tokens"))
+                };
+                Some(view! {
+                    <div
+                        class="map-ctx-backdrop"
+                        on:click=move |_: leptos::ev::MouseEvent| token_context_menu.set(None)
+                        on:contextmenu=move |ev: leptos::ev::MouseEvent| {
+                            ev.prevent_default();
+                            token_context_menu.set(None);
+                        }
+                    />
+                    <div
+                        class="map-ctx-menu"
+                        style=format!("left:{}px;top:{}px", mx, my)
+                    >
+                        {label.map(|l| view! {
+                            <div class="map-ctx-header">{l}</div>
+                        })}
+                        <Show when=move || ctx.is_gm.get()>
+                            <button
+                                class="map-ctx-item map-ctx-danger"
+                                on:click={
+                                    let ids = ids.clone();
+                                    move |_| {
+                                        token_context_menu.set(None);
+                                        for &tid in &ids {
+                                            send.with_value(|f| {
+                                                if let Some(f) = f {
+                                                    f(ClientMessage::RemoveToken { token_id: tid });
+                                                }
+                                            });
+                                        }
+                                        selected_ids.set(std::collections::HashSet::new());
+                                    }
+                                }
+                            >
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"/>
+                                    <path d="M19 6l-1 14H6L5 6"/>
+                                    <path d="M10 11v6"/><path d="M14 11v6"/>
+                                    <path d="M9 6V4h6v2"/>
+                                </svg>
+                                {if count > 1 { format!(" Delete {count} tokens") } else { " Delete".to_string() }}
+                            </button>
+                        </Show>
+                    </div>
+                })
+            }}
             <TokenHpPopup selected_ids=selected_ids tokens=tokens />
             <crate::components::media_browser::MediaBrowser
                 on_select=on_bg_select
