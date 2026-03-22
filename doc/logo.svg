@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Shield -->
+  <path d="M32 4 L8 16 L8 36 Q8 52 32 60 Q56 52 56 36 L56 16 Z"
+        fill="#1e2a3a" stroke="#4a7ab5" stroke-width="2"/>
+  <path d="M32 8 L12 18 L12 35 Q12 49 32 56 Q52 49 52 35 L52 18 Z"
+        fill="#243448"/>
+  <!-- Crossed swords -->
+  <g stroke="#c0a040" stroke-width="2.5" stroke-linecap="round" fill="none">
+    <!-- Sword 1 (top-left to bottom-right) -->
+    <line x1="20" y1="18" x2="44" y2="46"/>
+    <line x1="20" y1="18" x2="18" y2="14"/>
+    <line x1="25" y1="28" x2="30" y2="25"/>
+    <!-- Sword 2 (top-right to bottom-left) -->
+    <line x1="44" y1="18" x2="20" y2="46"/>
+    <line x1="44" y1="18" x2="46" y2="14"/>
+    <line x1="39" y1="28" x2="34" y2="25"/>
+  </g>
+  <!-- Sword guards (crossguards) -->
+  <line x1="23" y1="30" x2="29" y2="24" stroke="#c0a040" stroke-width="3" stroke-linecap="round"/>
+  <line x1="35" y1="24" x2="41" y2="30" stroke="#c0a040" stroke-width="3" stroke-linecap="round"/>
+</svg>
