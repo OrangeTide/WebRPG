@@ -13,6 +13,7 @@ use serde::Deserialize;
 use tokio::sync::mpsc;
 
 use crate::auth;
+use crate::server::metrics::SERVER_METRICS;
 use crate::ws::messages::{ClientMessage, ServerMessage};
 use crate::ws::session::SESSION_MANAGER;
 
@@ -55,6 +56,7 @@ fn is_gm(session_id: i32, user_id: i32) -> bool {
 }
 
 async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
+    SERVER_METRICS.inc_ws_connections();
     let (mut ws_sender, mut ws_receiver) = socket.split();
     let (tx, mut rx) = mpsc::unbounded_channel::<ServerMessage>();
 
@@ -88,6 +90,8 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
             }
         };
 
+        SERVER_METRICS.inc_ws_messages();
+
         match client_msg {
             ClientMessage::JoinSession { session_id } => {
                 if let Some(prev_id) = current_session.take() {
@@ -114,6 +118,9 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                     },
                     Some(&username),
                 );
+
+                // Push session info to metrics cache
+                push_session_to_cache(session_id);
             }
 
             ClientMessage::LeaveSession => {
@@ -126,6 +133,7 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                         },
                         None,
                     );
+                    push_session_to_cache(session_id);
                 }
             }
 
@@ -895,6 +903,7 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
     }
 
     // Client disconnected
+    SERVER_METRICS.dec_ws_connections();
     if let Some(session_id) = current_session {
         SESSION_MANAGER.remove_client(session_id, &username_clone);
         SESSION_MANAGER.broadcast(
@@ -907,4 +916,41 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
     }
 
     send_task.abort();
+}
+
+/// Push current session state to the metrics session cache.
+fn push_session_to_cache(session_id: i32) {
+    use crate::db;
+    use crate::schema::{sessions, users};
+    use crate::server::metrics::SessionCacheEntry;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    let session_row: Option<(String, String, String)> = sessions::table
+        .inner_join(users::table.on(users::id.eq(sessions::gm_user_id)))
+        .filter(sessions::id.eq(session_id))
+        .select((sessions::name, users::username, sessions::created_at))
+        .first(conn)
+        .optional()
+        .unwrap_or(None);
+
+    if let Some((name, gm_username, created_at)) = session_row {
+        let player_count = SESSION_MANAGER
+            .sessions
+            .get(&session_id)
+            .map(|s| s.clients.len())
+            .unwrap_or(0);
+        let active = player_count > 0;
+
+        SERVER_METRICS.push_session(SessionCacheEntry {
+            session_id,
+            name,
+            gm_username,
+            player_count,
+            created_at,
+            last_active: std::time::Instant::now(),
+            active,
+        });
+    }
 }

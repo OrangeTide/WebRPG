@@ -41,6 +41,9 @@ async fn main() {
         .fallback(leptos_axum::file_and_error_handler(shell))
         .with_state(leptos_options);
 
+    // Add HTTP request counting middleware
+    let app = app.layer(axum::middleware::from_fn(count_requests));
+
     let tls_config = match (
         std::env::var("TLS_CERT_PATH"),
         std::env::var("TLS_KEY_PATH"),
@@ -85,24 +88,19 @@ async fn main() {
         log!("HTTPS on https://{}", tls_addr);
         log!("HTTP redirect on http://{}", addr);
 
-        let https_handle = tokio::spawn(async move {
+        tokio::spawn(async move {
             axum_server::bind_rustls(tls_addr, tls_config)
                 .serve(app.into_make_service())
                 .await
                 .unwrap();
         });
 
-        let http_handle = tokio::spawn(async move {
+        tokio::spawn(async move {
             let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
             axum::serve(listener, redirect_app.into_make_service())
                 .await
                 .unwrap();
         });
-
-        tokio::select! {
-            r = https_handle => r.unwrap(),
-            r = http_handle => r.unwrap(),
-        }
     } else {
         // No built-in TLS — apply middleware that checks X-Forwarded-Proto
         // for reverse proxy deployments
@@ -110,10 +108,40 @@ async fn main() {
 
         log!("listening on http://{}", &addr);
         let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-        axum::serve(listener, app.into_make_service())
-            .await
-            .unwrap();
+        tokio::spawn(async move {
+            axum::serve(listener, app.into_make_service())
+                .await
+                .unwrap();
+        });
     }
+
+    // Run TUI if stdout is a terminal, otherwise block forever
+    use std::io::IsTerminal;
+    if std::io::stdout().is_terminal() {
+        let port = addr.port();
+        let db_url = database_url.clone();
+        let tui_result =
+            tokio::task::spawn_blocking(move || webrpg::server::tui::run_tui(port, db_url)).await;
+        match tui_result {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => log!("TUI error: {e}"),
+            Err(e) => log!("TUI task error: {e}"),
+        }
+    } else {
+        log!("No TTY detected, running without TUI (press Ctrl+C to stop)");
+        // Block forever — server runs on spawned tasks
+        std::future::pending::<()>().await;
+    }
+}
+
+/// Middleware that counts HTTP requests for the TUI metrics display.
+#[cfg(feature = "ssr")]
+async fn count_requests(
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    webrpg::server::metrics::SERVER_METRICS.inc_http_requests();
+    next.run(req).await
 }
 
 /// Middleware that redirects /login to HTTPS when behind a reverse proxy
