@@ -302,6 +302,10 @@ the dock area when new tiles appear. Dock tile layout is persisted to
 Default windows: Map (large, center), Chat (right), Character Sheet, Initiative,
 Inventory (minimized), Creatures (GM only).
 
+See [doc/dock-design.md](doc/dock-design.md) for a language-neutral write-up of
+the dock's design, grid/snapping algorithm, lessons learned, and limitations,
+intended for reusing the approach in other projects.
+
 ### Media Storage
 
 Media files (images and audio) use content-addressable storage (CAS). Files are
@@ -358,7 +362,13 @@ toolbar buttons have not yet been re-themed to full NeXTSTEP style. It provides:
 The terminal emulator (`src/components/terminal.rs`) provides a DOS-style
 command-line interface to the VFS. Commands: ATTRIB, CD, CLS, COPY, DEL, DIR,
 EXIT, GET, HELP, MKDIR, PUT, RMDIR, TYPE, VER. Bare drive letters (e.g. `C:`)
-switch drives. EXIT minimizes the terminal to the dock.
+switch drives. EXIT minimizes the terminal to the dock. The command set is
+lifted from MSX-DOS (not MS-DOS) with some tweaks.
+
+See [doc/shell-design.md](doc/shell-design.md) for a language-neutral write-up
+of the shell's design, MSX-DOS lineage and deviations, parse/dispatch
+architecture, lessons learned, limitations, and extension ideas, intended for
+reusing the approach in other projects.
 
 **Help documentation:**
 
