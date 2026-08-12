@@ -1,0 +1,20 @@
+--- src/schema.rs
++++ src/schema.rs
+@@ -103,7 +103,7 @@
+         hash -> Text,
+         content_type -> Text,
+         media_type -> Text,
+-        size_bytes -> Integer,
++        size_bytes -> BigInt,
+         uploaded_by -> Integer,
+         created_at -> Timestamp,
+     }
+@@ -199,7 +199,7 @@
+         user_id -> Nullable<Integer>,
+         path -> Text,
+         is_directory -> Bool,
+-        size_bytes -> Integer,
++        size_bytes -> BigInt,
+         content_type -> Nullable<Text>,
+         inline_data -> Nullable<Binary>,
+         media_hash -> Nullable<Text>,

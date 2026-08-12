@@ -4,6 +4,11 @@
 [print_schema]
 file = "src/schema.rs"
 custom_type_derives = ["diesel::query_builder::QueryId", "Clone"]
+# SQLite reports the size_bytes columns as INTEGER, so print-schema types them
+# as Integer while the code uses i64. Diesel CLI regenerates src/schema.rs on
+# every `diesel migration run`, which used to silently undo the fix and break
+# the build; this patch reapplies it every time instead.
+patch_file = "src/schema.patch"
 
 [migrations_directory]
 dir = "migrations"
