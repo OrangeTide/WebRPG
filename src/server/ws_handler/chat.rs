@@ -43,6 +43,83 @@ pub fn save_chat_message(
     }
 }
 
+/// Resolve a check: roll the system's dice, add the ability and the bonuses
+/// the player picked, and work out the margin if a DS was given.
+///
+/// The margin is the interesting number. In Tunnel Goons and its relatives the
+/// gap between the total and the DS is damage, dealt to whoever lost, so the
+/// summary states it in those terms rather than just pass or fail.
+pub fn roll_check(
+    label: &str,
+    dice: &str,
+    ability: &str,
+    ability_mod: i32,
+    bonuses: &[crate::ws::messages::RollBonus],
+    ds: Option<i32>,
+    dangerous: bool,
+) -> Result<(String, crate::ws::messages::CheckResult), String> {
+    use crate::ws::messages::CheckResult;
+
+    let dice_expr = if dice.trim().is_empty() { "2d6" } else { dice };
+    let (rolls, dice_total) = parse_and_roll(dice_expr)?;
+
+    let bonus_total: i32 = bonuses.iter().map(|b| b.value).sum();
+    let total = dice_total + ability_mod + bonus_total;
+    let margin = ds.map(|ds| total - ds);
+
+    // "2d6 (3+4) + Brute 2 + hammer 1 = 10"
+    let rolled: Vec<String> = rolls.iter().map(|r| r.to_string()).collect();
+    let mut parts = format!("{dice_expr} ({})", rolled.join("+"));
+    if !ability.is_empty() || ability_mod != 0 {
+        let name = if ability.is_empty() {
+            "ability"
+        } else {
+            ability
+        };
+        parts.push_str(&format!(" {name} {ability_mod:+}"));
+    }
+    for bonus in bonuses {
+        parts.push_str(&format!(" {} {:+}", bonus.label, bonus.value));
+    }
+
+    let mut summary = if label.trim().is_empty() {
+        format!("{parts} = {total}")
+    } else {
+        format!("{label}: {parts} = {total}")
+    };
+
+    if let (Some(ds), Some(margin)) = (ds, margin) {
+        if margin >= 0 {
+            summary.push_str(&format!(" vs DS {ds} - success by {margin}"));
+            if dangerous {
+                summary.push_str(&format!(", {margin} damage dealt"));
+            }
+        } else {
+            let short = -margin;
+            summary.push_str(&format!(" vs DS {ds} - short by {short}"));
+            if dangerous {
+                summary.push_str(&format!(", {short} damage taken"));
+            }
+        }
+    }
+
+    let result = CheckResult {
+        kind: "check".to_string(),
+        label: label.to_string(),
+        dice: dice_expr.to_string(),
+        rolls,
+        ability: ability.to_string(),
+        ability_mod,
+        bonuses: bonuses.to_vec(),
+        total,
+        ds,
+        margin,
+        dangerous,
+    };
+
+    Ok((summary, result))
+}
+
 /// Parse dice expressions like "2d6+3", "1d20", "4d8-2"
 pub fn parse_and_roll(expression: &str) -> Result<(Vec<i32>, i32), String> {
     use rand::Rng;

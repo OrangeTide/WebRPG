@@ -118,8 +118,23 @@ pub async fn get_help_content(slug: String) -> Result<String, ServerFnError> {
         return Err(ServerFnError::new("Invalid topic slug"));
     }
     let path = format!("help/{}.md", slug);
-    std::fs::read_to_string(&path)
-        .map_err(|_| ServerFnError::new(format!("Help topic '{}' not found", slug)))
+    if let Ok(text) = std::fs::read_to_string(&path) {
+        return Ok(text);
+    }
+
+    // Installed modules contribute their own pages, so `help:tunnel-goons`
+    // resolves whether or not the server ships that file itself.
+    for (module_id, topic) in crate::modules::loader::all_help_topics() {
+        if topic.slug == slug {
+            return crate::modules::loader::load_help(&module_id, &slug)
+                .map_err(ServerFnError::new);
+        }
+    }
+
+    Err(ServerFnError::new(format!(
+        "Help topic '{}' not found",
+        slug
+    )))
 }
 
 /// List help entries (files and subdirectories) under a parent path.
@@ -175,6 +190,20 @@ pub async fn list_help_topics(parent: String) -> Result<Vec<HelpEntry>, ServerFn
             });
         }
     }
+    // Module help pages sit alongside the built-in ones at the root.
+    if parent.is_empty() {
+        for (_, topic) in crate::modules::loader::all_help_topics() {
+            if entries.iter().any(|e| e.slug == topic.slug) {
+                continue;
+            }
+            entries.push(HelpEntry {
+                slug: topic.slug,
+                title: topic.title,
+                is_directory: false,
+            });
+        }
+    }
+
     // Directories first, then alphabetical by title
     entries.sort_by(|a, b| {
         b.is_directory

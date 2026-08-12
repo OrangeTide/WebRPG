@@ -1,0 +1,43 @@
+[
+  {
+    "name": "Tower elevation (players)",
+    "width": 24,
+    "height": 32,
+    "cell_size": 50,
+    "asset": "tower-elevation.png",
+    "asset_source": "Build it from player/handouts/tower-elevation.typ in the session materials, or draw the four faces with one window per floor and chains between them.",
+    "notes": "The honest map. Four faces of the tower, every window in its true position, chains drawn between them, no room numbers anywhere. Safe to show the players; the exterior never lies about height or facing."
+  },
+  {
+    "name": "The Spire (GM only)",
+    "width": 30,
+    "height": 30,
+    "cell_size": 50,
+    "asset": "24-Sky-Blind-Spire-Map.png",
+    "asset_source": "https://blog.trilemma.com/2016/04/the-sky-blind-spire.html",
+    "notes": "Prescott's exploded isometric. Keep it to yourself until the game is over; the interior geometry is the puzzle and the map gives away the gates. Afterwards it is a fine reveal."
+  },
+  {
+    "name": "Rooftop altar",
+    "width": 16,
+    "height": 16,
+    "cell_size": 50,
+    "asset": "24-Towertop.png",
+    "asset_source": "https://blog.trilemma.com/2016/04/the-sky-blind-spire.html",
+    "notes": "Room 24. Wind, iron rods, a drift of grit, a low altar, and the chain the party climbed."
+  },
+  {
+    "name": "Hall of the Giants",
+    "width": 24,
+    "height": 16,
+    "cell_size": 50,
+    "notes": "Blank tactical grid for rooms 16 and 17, built for people twice your height. Firepit, iron pot, heaps of hay, six sacks of silver."
+  },
+  {
+    "name": "Dire Pelicans' Roost",
+    "width": 20,
+    "height": 20,
+    "cell_size": 50,
+    "notes": "Blank tactical grid for room 9. Four windows, one per face, all opening onto the second floor. Seven birds."
+  }
+]

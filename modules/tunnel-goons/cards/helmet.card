@@ -1,0 +1,14 @@
+name: Great helmet
+kind: armour
+slots: 2
+effect: Absorbs 1 damage. You hear half of what is said to you.
+art:
+     .---.
+    |\ . .\
+    | \*  .|
+  .=========.
+ /  _______  \
+|   |_|_|_|   |
+|   l_|_|_j   |
+ \___________/
+ /___________\

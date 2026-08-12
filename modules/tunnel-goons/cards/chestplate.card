@@ -1,0 +1,16 @@
+name: Chestplate
+kind: armour
+slots: 3
+effect: Absorbs 2 damage. -1 Skulker while worn.
+note: Heavy enough that a chain climb becomes a decision.
+art:
+   /\'-.-'/\
+  /  |xxx|  \
+ /   |xxx|   \
+|    |vvv|    |
+|   .     .   |
+|    _____    |
+|   (_---_)   |
+|             |
+ \_|_|_|_|_|_/
+ [_/_\_/_\_\_]

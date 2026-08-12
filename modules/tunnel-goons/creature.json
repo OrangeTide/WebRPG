@@ -1,0 +1,30 @@
+[
+  {
+    "name": "ds",
+    "label": "Difficulty Score (also its HP)",
+    "type": "number",
+    "category": "Stats",
+    "default": 8
+  },
+  {
+    "name": "attack",
+    "label": "Attacks with",
+    "type": "text",
+    "category": "Stats",
+    "default": ""
+  },
+  {
+    "name": "armour_absorbs",
+    "label": "Armour absorbs",
+    "type": "number",
+    "category": "Stats",
+    "default": 0
+  },
+  {
+    "name": "notes",
+    "label": "Notes",
+    "type": "textarea",
+    "category": "Notes",
+    "default": ""
+  }
+]

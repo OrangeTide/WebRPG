@@ -1,0 +1,11 @@
+name: Traveller's boots
+kind: gear
+slots: 1
+effect: +1 Brute to endure a long march or a bad road.
+art:
+ .-------.   .-------.
+|   *    | |   *    |
+|  |--|  | |  |--|  |
+|  |--|  | |  |--|  |
+|        | |        |
+'-------' '-------'

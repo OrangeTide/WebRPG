@@ -1,0 +1,55 @@
+[
+  {
+    "id": "childhood",
+    "name": "Childhood",
+    "die": "d6",
+    "description": "Roll d6. Take +1 to the ability named and the item listed.",
+    "entries": [
+      { "key": "1", "text": "Desert Urchin. +1 Skulker, waterskin." },
+      { "key": "2", "text": "Garden Acolyte. +1 Erudite, shovel." },
+      { "key": "3", "text": "Wheel Rat. +1 Brute, hammer." },
+      { "key": "4", "text": "Smoke Scrub. +1 Skulker, rope." },
+      { "key": "5", "text": "Book Fetch. +1 Erudite, quill and ink." },
+      { "key": "6", "text": "Gear Lark. +1 Brute, crowbar." }
+    ]
+  },
+  {
+    "id": "profession",
+    "name": "Profession",
+    "die": "d6",
+    "description": "Roll d6. Take +1 to the ability named and the item listed.",
+    "entries": [
+      { "key": "1", "text": "Caravan Drifter. +1 Skulker, parasol." },
+      { "key": "2", "text": "Botany Priest. +1 Erudite, rose incense." },
+      { "key": "3", "text": "Slab Dragger. +1 Brute, black mallet." },
+      { "key": "4", "text": "Lock Snipe. +1 Skulker, lock pick." },
+      { "key": "5", "text": "Library Guide. +1 Erudite, lantern." },
+      { "key": "6", "text": "Pit Warden. +1 Brute, tusk spear." }
+    ]
+  },
+  {
+    "id": "war",
+    "name": "During the war",
+    "die": "d6",
+    "description": "Roll d6. Take the item. No ability bonus from this table.",
+    "entries": [
+      { "key": "1", "text": "Joined the militia. Shield." },
+      { "key": "2", "text": "Went underground. Torch." },
+      { "key": "3", "text": "Joined the rebels. Bear trap." },
+      { "key": "4", "text": "Fled. Compass." },
+      { "key": "5", "text": "Gathered intel. Mirror." },
+      { "key": "6", "text": "Profiteered. Item of your choice." }
+    ]
+  },
+  {
+    "id": "difficulty",
+    "name": "Setting a Difficulty Score",
+    "die": "",
+    "description": "What the referee names before the dice go down.",
+    "entries": [
+      { "key": "8", "text": "Easy. You would probably manage this on a bad day." },
+      { "key": "10", "text": "Moderate. Skill or the right tool decides it." },
+      { "key": "12", "text": "Hard. Something is genuinely against you." }
+    ]
+  }
+]

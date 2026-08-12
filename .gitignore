@@ -7,3 +7,6 @@ database.db
 /testing
 /uploads
 todo
+
+# Generated card renders
+REF/inv-cards/png/

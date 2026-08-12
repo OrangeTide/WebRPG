@@ -34,6 +34,10 @@ async fn main() {
             "/api/media/{hash}",
             axum::routing::get(webrpg::server::media_handler::serve_media),
         )
+        .route(
+            "/api/modules/{module_id}/assets/{*asset}",
+            axum::routing::get(webrpg::server::module_assets::serve_module_asset),
+        )
         .leptos_routes(&leptos_options, routes, {
             let leptos_options = leptos_options.clone();
             move || shell(leptos_options.clone())

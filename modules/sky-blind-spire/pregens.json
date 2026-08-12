@@ -1,0 +1,219 @@
+[
+  {
+    "id": "grog-the-smasher",
+    "name": "Grog the Smasher",
+    "summary": "The Muscle. Two hammers is just one hammer that thought ahead.",
+    "sheet": {
+      "brute": 2,
+      "skulker": 0,
+      "erudite": 0,
+      "hp_max": 10,
+      "inventory": 8,
+      "armour_absorbs": 0,
+      "role": "The Muscle",
+      "tagline": "Two hammers is just one hammer that thought ahead.",
+      "childhood": "Wheel Rat. Grew up under a mill, oiling gears and dodging the wheel.",
+      "profession": "Slab Dragger. Hauled cut stone for a mason who never paid on time.",
+      "war": "Joined the militia. Held a gate for nine days. Does not talk about day seven.",
+      "hook": "A mason's crew you drank with went up the Spire last spring for the silver. Nobody came down. You would like the silver, and you would like to know.",
+      "notes": "Your cloak is grey. Ordinary. Your friends can still see you."
+    },
+    "items": [
+      { "name": "Hammer", "bonus": "+1 Brute when you swing it at something" },
+      { "name": "Black mallet", "bonus": "+1 Brute for breaking stone, doors, and idols" },
+      { "name": "Shield", "bonus": "+1 to hold a line, block a gap, or catch a falling friend" },
+      { "name": "Grey wool cloak", "bonus": "" },
+      { "name": "Rations", "bonus": "Two meals" },
+      { "name": "Rope, 50 ft", "bonus": "+1 to any climb" }
+    ]
+  },
+  {
+    "id": "sly-needle",
+    "name": "Sly Needle",
+    "summary": "The Rogue. Locks are just questions asked badly.",
+    "sheet": {
+      "brute": 0,
+      "skulker": 2,
+      "erudite": 0,
+      "hp_max": 10,
+      "inventory": 8,
+      "armour_absorbs": 0,
+      "role": "The Rogue",
+      "tagline": "Locks are just questions asked badly.",
+      "childhood": "Desert Urchin. Learned to read a crowd before learning letters.",
+      "profession": "Lock Snipe. Opened other people's doors for a fee, then for spite.",
+      "war": "Gathered intel. Sold the same map to both sides, twice.",
+      "hook": "A fence in town is paying triple for anything Titardinal-made. You have never seen a fence want something that badly, and that interests you more than the money.",
+      "notes": "You picked a blue cloak. One hour into the tower, everyone else stops being able to see it. From the neck down you are a rumour. Ask the referee what that gets you before you rely on it."
+    },
+    "items": [
+      { "name": "Lock picks", "bonus": "+1 Skulker on locks, latches, and gibbet cages" },
+      { "name": "Small mirror", "bonus": "+1 to look around a corner without being the thing that gets looked at" },
+      { "name": "Waterskin", "bonus": "+1 to endure heat, thirst, or a long climb" },
+      { "name": "Sky-blue cloak", "bonus": "Nobody sees it after the first hour" },
+      { "name": "Rations", "bonus": "Two meals" },
+      { "name": "Twin knives", "bonus": "+1 Brute or Skulker in a knife fight" }
+    ]
+  },
+  {
+    "id": "professor-quill",
+    "name": "Professor Quill",
+    "summary": "The Scholar. Every tower is an argument. This one is a bad one.",
+    "sheet": {
+      "brute": 0,
+      "skulker": 0,
+      "erudite": 2,
+      "hp_max": 10,
+      "inventory": 8,
+      "armour_absorbs": 0,
+      "role": "The Scholar",
+      "tagline": "Every tower is an argument. This one is a bad one.",
+      "childhood": "Book Fetch. Ran ladders in a library that would not hire you as a reader.",
+      "profession": "Library Guide. Showed rich fools to the shelves they could not understand.",
+      "war": "Fled. Took the rare manuscripts with you. Regret only the weight.",
+      "hook": "You have read three contradictory accounts of the kastromancer Titardinal, and all three agree the tower is a spell rather than a building. You want to stand inside a sentence.",
+      "notes": "You know the word kastromancy: magic written in architecture. Walking a shape casts it."
+    },
+    "items": [
+      { "name": "Quill and ink", "bonus": "+1 Erudite to copy a map, a rune, or a room number" },
+      { "name": "Lantern", "bonus": "+1 to see anything that is not blue" },
+      { "name": "Compass", "bonus": "+1 Erudite to work out which way a window actually faces" },
+      { "name": "Dust-brown cloak", "bonus": "" },
+      { "name": "Rations", "bonus": "Two meals" },
+      { "name": "Slim book of kastromancy", "bonus": "+1 Erudite on the Spire's own magic" }
+    ]
+  },
+  {
+    "id": "lucky-moxie",
+    "name": "Lucky Moxie",
+    "summary": "The All-Rounder. Never been dropped down a hole I couldn't climb out of. Yet.",
+    "sheet": {
+      "brute": 1,
+      "skulker": 1,
+      "erudite": 0,
+      "hp_max": 10,
+      "inventory": 8,
+      "armour_absorbs": 0,
+      "role": "The All-Rounder",
+      "tagline": "Never been dropped down a hole I couldn't climb out of. Yet.",
+      "childhood": "Smoke Scrub. Swept chimneys, learned that the way out is usually up.",
+      "profession": "Slab Dragger. A season on the quarry sleds; strong shoulders, ruined boots.",
+      "war": "Profiteered. Bought a spyglass from a dying officer for the price of water.",
+      "hook": "You have been broke in six towns. The Spire is either the seventh or the last one.",
+      "notes": "Rope plus hook is two items and two bonuses. Say which one you are using and why."
+    },
+    "items": [
+      { "name": "Rope, 50 ft", "bonus": "+1 to any climb, +1 to lower someone down a shaft" },
+      { "name": "Black mallet", "bonus": "+1 Brute for smashing" },
+      { "name": "Brass spyglass", "bonus": "+1 Erudite to read a distant window number or count giants" },
+      { "name": "Green cloak", "bonus": "" },
+      { "name": "Rations", "bonus": "Two meals" },
+      { "name": "Grappling hook", "bonus": "+1 to catch a chain from a window ledge" }
+    ]
+  },
+  {
+    "id": "barnaby-the-stout",
+    "name": "Barnaby the Stout",
+    "summary": "The Defender. I stand in the doorway. That is the whole plan.",
+    "sheet": {
+      "brute": 1,
+      "skulker": 0,
+      "erudite": 1,
+      "hp_max": 10,
+      "inventory": 8,
+      "armour_absorbs": 0,
+      "role": "The Defender",
+      "tagline": "I stand in the doorway. That is the whole plan.",
+      "childhood": "Garden Acolyte. Raised in a temple orchard, taught to bury things properly.",
+      "profession": "Pit Warden. Guarded a fighting pit; knows how big things move.",
+      "war": "Joined the militia. Came home with the shield and none of the men.",
+      "hook": "The Ricalu goblins buried teeth in a ring around the tower to lay the curse. You were taught what buried teeth mean. You would like to dig them up.",
+      "notes": "Salt, buried teeth, and a spectral mentor who wants a favour. You are the party's superstition, and in this tower superstition is correct more often than not."
+    },
+    "items": [
+      { "name": "Tusk spear", "bonus": "+1 Brute, and long enough to keep a pelican at arm's length" },
+      { "name": "Shield", "bonus": "+1 to block, brace a door, or shelter someone" },
+      { "name": "Shovel", "bonus": "+1 Brute to dig, pry, or turn over a garbage heap" },
+      { "name": "Brown cloak", "bonus": "" },
+      { "name": "Rations", "bonus": "Two meals" },
+      { "name": "Bag of salt", "bonus": "" }
+    ]
+  },
+  {
+    "id": "vesper-the-shadow",
+    "name": "Vesper the Shadow",
+    "summary": "The Scout. I go first. I come back. Usually in that order.",
+    "sheet": {
+      "brute": 0,
+      "skulker": 1,
+      "erudite": 1,
+      "hp_max": 10,
+      "inventory": 8,
+      "armour_absorbs": 0,
+      "role": "The Scout",
+      "tagline": "I go first. I come back. Usually in that order.",
+      "childhood": "Desert Urchin. Slept on roofs, learned every drainpipe in a city you can't name.",
+      "profession": "Botany Priest. Read the lake's weeds for omens; the weeds have been wrong since spring.",
+      "war": "Went underground. Two years by torchlight taught you to trust your hands over your eyes.",
+      "hook": "The lake has gone quiet. The fish are strange. You think something in the tower is stealing from the water, and you intend to see it stop.",
+      "notes": "Trusting hands over eyes is literally the correct strategy here. Once sky-blindness lands, a deliberate search by touch beats any amount of looking."
+    },
+    "items": [
+      { "name": "Torch", "bonus": "+1 to any Skulker roll made in the dark" },
+      { "name": "Rose incense", "bonus": "+1 Erudite to speak with something that is not alive" },
+      { "name": "Waterskin", "bonus": "+1 to endure heat, thirst, or a long climb" },
+      { "name": "Charcoal-grey cloak", "bonus": "" },
+      { "name": "Rations", "bonus": "Two meals" },
+      { "name": "Light crossbow", "bonus": "+1 Skulker at range" }
+    ]
+  },
+  {
+    "id": "pennywhistle",
+    "name": "Pennywhistle",
+    "summary": "The Hedge Wizard. It is not a real spell if it doesn't cost you something.",
+    "sheet": {
+      "brute": 0,
+      "skulker": 0,
+      "erudite": 2,
+      "hp_max": 10,
+      "inventory": 8,
+      "armour_absorbs": 0,
+      "role": "The Hedge Wizard",
+      "tagline": "It is not a real spell if it doesn't cost you something.",
+      "childhood": "Book Fetch. Copied a dead wizard's marginalia for bread money.",
+      "profession": "Botany Priest. Blessed goat sheds, read smoke, kept the incense trade honest.",
+      "war": "Joined the rebels. Set traps. Slept badly ever since.",
+      "hook": "A spark of stolen starlight, carried to the top of a spell-shaped tower, grants a wish. You have one wish and you have had it for eleven years.",
+      "notes": "In Tunnel Goons, magic is just an Erudite roll plus the right item. Describe the working, name the item, take the consequence when you miss."
+    },
+    "items": [
+      { "name": "Quill and ink", "bonus": "+1 Erudite to copy a rune or record a room order" },
+      { "name": "Rose incense", "bonus": "+1 Erudite to call, calm, or bargain with a spirit" },
+      { "name": "Bear trap", "bonus": "+1 to hold a doorway against something heavy" },
+      { "name": "Ash-white cloak", "bonus": "" },
+      { "name": "Rations", "bonus": "Two meals" },
+      { "name": "Chalk", "bonus": "+1 Erudite to mark rooms you've already walked" }
+    ]
+  },
+  {
+    "id": "roll-your-own",
+    "name": "Roll your own",
+    "summary": "Blank sheet. Roll d6 on Childhood, Profession, and During the War.",
+    "sheet": {
+      "brute": 0,
+      "skulker": 0,
+      "erudite": 0,
+      "hp_max": 10,
+      "inventory": 8,
+      "armour_absorbs": 0,
+      "role": "",
+      "tagline": "",
+      "childhood": "",
+      "profession": "",
+      "war": "",
+      "hook": "Why do you want what is at the top of the tower? One sentence.",
+      "notes": "Roll d6 on each of the three tables in the module window. The first two each give +1 to an ability and an item, the third gives an item. Then take 2 rations, a cloak of your chosen colour, and one item of your choice. Cloak colour matters this session: pick blue only if you have thought about what that means after the first hour."
+    },
+    "items": []
+  }
+]

@@ -1,0 +1,12 @@
+name: Fatigue
+kind: condition
+slots: 1
+effect: Takes up a slot until you rest somewhere safe.
+note: Optional. Borrowed from Knave, not in Tunnel Goons 1.2.
+art:
+   / \'-'/ \
+  /   |'|   \
+ |    \ /    |
+ \     X     /
+  \___/_\___/
+    /_\ /_\

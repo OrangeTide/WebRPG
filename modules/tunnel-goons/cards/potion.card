@@ -1,0 +1,16 @@
+name: Potion
+kind: consumable
+slots: 1
+uses: 1
+effect: One drink, one effect. Ask what it does before you need it.
+art:
+     .---.
+    /  /  \
+   /__/____\
+    |~~~~~|
+  .-'     '-.
+ /   *       \
+|     .       |
+|             |
+ \           /
+  '-._____.-'

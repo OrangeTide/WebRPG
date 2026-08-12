@@ -1,6 +1,7 @@
 pub mod browser_helpers;
 pub mod charsheet;
 pub mod chat;
+pub mod check_roller;
 pub mod creatures;
 pub mod file_browser;
 pub mod help_viewer;
@@ -8,5 +9,6 @@ pub mod initiative;
 pub mod inventory;
 pub mod map;
 pub mod media_browser;
+pub mod modules_panel;
 pub mod terminal;
 pub mod window_manager;

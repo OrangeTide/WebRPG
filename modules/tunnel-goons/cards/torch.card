@@ -1,0 +1,16 @@
+name: Torch
+kind: gear
+slots: 1
+effect: +1 Skulker in the dark.
+note: It burns out when the referee says so.
+art:
+    (  )
+  (    )
+ (  )   )
+ .-'---'-.
+ | *   * |
+ |=======|
+    | |
+    | |
+    | |
+    |_|

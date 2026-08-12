@@ -1,0 +1,32 @@
+{
+  "id": "tunnel-goons",
+  "name": "Tunnel Goons",
+  "version": "1.2",
+  "kind": "system",
+  "description": "Rules-light dungeon crawling on one roll: 2d6 + ability + 1 per helpful item, meet or beat the Difficulty Score. Dangerous actions deal the difference as damage, in whichever direction the roll went.",
+  "authors": ["Nate Treme, Highland Paranormal Society"],
+  "license": "Tunnel Goons is by Nate Treme. Players should get the rulebook from the author. These data files are PUBLIC DOMAIN (CC0-1.0).",
+  "links": [
+    {
+      "label": "Get the Tunnel Goons rulebook (itch.io)",
+      "url": "https://natetreme.itch.io/tunnelgoons"
+    },
+    {
+      "label": "Tunnel Goons SRD",
+      "url": "https://tunnelgoons.com/srd"
+    }
+  ],
+  "files": {
+    "rules": "rules.json",
+    "sheet": "sheet.json",
+    "creature_sheet": "creature.json",
+    "tables": "tables.json"
+  },
+  "help": [
+    {
+      "slug": "tunnel-goons",
+      "title": "Tunnel Goons",
+      "file": "tunnel-goons.md"
+    }
+  ]
+}

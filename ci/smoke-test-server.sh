@@ -97,6 +97,16 @@ if [ -z "$SUFFIX" ]; then
     exit 1
 fi
 
+# Leptos hashes server function URLs per function, so a function's suffix is
+# not always the one signup got. Look each one up in the WASM, and fall back to
+# the signup suffix when the name is not found there.
+fn_url() {
+    local name="$1" found
+    found=$(strings target/site/pkg/webrpg.wasm 2>/dev/null \
+        | grep -oP "(?<=/api/${name})\d+" | head -1)
+    printf '%s/api/%s%s' "$BASE" "$name" "${found:-$SUFFIX}"
+}
+
 echo ""
 echo "=== Auth (suffix: $SUFFIX) ==="
 
@@ -202,6 +212,69 @@ BAD_FORMAT_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/media/not-a-
 check "Invalid hash format returns 400" "$([ "$BAD_FORMAT_CODE" = "400" ] && echo 0 || echo 1)"
 
 echo ""
+echo "=== Game modules ==="
+
+MODULES_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url list_modules)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' --data '')
+check "list_modules finds the system module" \
+    "$(echo "$MODULES_RESP" | grep -q '"id":"tunnel-goons"' && echo 0 || echo 1)"
+check "list_modules finds the adventure module" \
+    "$(echo "$MODULES_RESP" | grep -q '"id":"sky-blind-spire"' && echo 0 || echo 1)"
+
+INSTALL_SYS=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url install_module)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}&module_id=tunnel-goons")
+check "Install system module" \
+    "$(echo "$INSTALL_SYS" | grep -q '"template_id"' && echo 0 || echo 1)"
+
+INSTALL_ADV=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url install_module)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}&module_id=sky-blind-spire")
+check "Install adventure module" \
+    "$(echo "$INSTALL_ADV" | grep -q '"creatures_added"' && echo 0 || echo 1)"
+
+CREATURE_COUNT=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM creatures WHERE session_id = $SESSION_ID;")
+check "Adventure seeded creatures ($CREATURE_COUNT)" \
+    "$([ "$CREATURE_COUNT" -gt 0 ] && echo 0 || echo 1)"
+
+MODULE_BINDING=$(sqlite3 "$TMPDB" "SELECT system_module_id || ',' || adventure_module_id FROM sessions WHERE id = $SESSION_ID;")
+check "Session bound to both modules" \
+    "$([ "$MODULE_BINDING" = "tunnel-goons,sky-blind-spire" ] && echo 0 || echo 1)"
+
+SESSION_MODULES=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url get_session_modules)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}")
+check "get_session_modules returns the roll model" \
+    "$(echo "$SESSION_MODULES" | grep -q '"dice":"2d6"' && echo 0 || echo 1)"
+
+PREGEN_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url create_character_from_pregen)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}&module_id=sky-blind-spire&pregen_id=grog-the-smasher")
+check "Create character from pregen" \
+    "$(echo "$PREGEN_RESP" | grep -q 'Grog the Smasher' && echo 0 || echo 1)"
+
+PREGEN_ITEMS=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM inventory_items WHERE session_id = $SESSION_ID AND owner_character_id IS NOT NULL;")
+check "Pregen gear dealt with slots ($PREGEN_ITEMS items)" \
+    "$([ "$PREGEN_ITEMS" -gt 0 ] && echo 0 || echo 1)"
+
+ASSET_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/modules/tunnel-goons/assets/cards/torch.png")
+check "Serve module card art (200)" "$([ "$ASSET_CODE" = "200" ] && echo 0 || echo 1)"
+
+ASSET_TRAVERSAL=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/modules/tunnel-goons/assets/../module.json")
+check "Module asset traversal refused" \
+    "$([ "$ASSET_TRAVERSAL" != "200" ] && echo 0 || echo 1)"
+
+echo ""
 echo "=== Game page ==="
 # Create a map so the game page has something to render
 sqlite3 "$TMPDB" "INSERT INTO maps (session_id, name, width, height, cell_size) VALUES ($SESSION_ID, 'Test Map', 20, 15, 40);"
@@ -211,7 +284,10 @@ check "Game page loads (200)" "$([ "$GAME_CODE" = "200" ] && echo 0 || echo 1)"
 
 GAME_HTML=$(curl -s -b "$COOKIES" "$BASE/game/$SESSION_ID")
 check "Game page has map container" "$(echo "$GAME_HTML" | grep -q 'map-container' && echo 0 || echo 1)"
-check "Game page has Set Background button" "$(echo "$GAME_HTML" | grep -q 'Set Background' && echo 0 || echo 1)"
+# "Set Background" moved inside the map settings dropdown, and the map
+# management buttons are GM-gated, so neither is in server-rendered HTML.
+# The tool palette is always rendered, so check for that instead.
+check "Game page has map tool palette" "$(echo "$GAME_HTML" | grep -q 'map-tool-palette' && echo 0 || echo 1)"
 check "Game page has chat panel" "$(echo "$GAME_HTML" | grep -q 'chat-panel' && echo 0 || echo 1)"
 check "Game page has character sheet" "$(echo "$GAME_HTML" | grep -q 'character-sheet-panel' && echo 0 || echo 1)"
 check "Game page has CSS link" "$(echo "$GAME_HTML" | grep -q 'webrpg.css' && echo 0 || echo 1)"

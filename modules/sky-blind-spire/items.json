@@ -1,0 +1,280 @@
+[
+  {
+    "id": "waterskin",
+    "name": "Waterskin",
+    "kind": "gear",
+    "bonus": "+1 to endure heat, thirst, or a long climb."
+  },
+  {
+    "id": "shovel",
+    "name": "Shovel",
+    "kind": "gear",
+    "bonus": "+1 Brute to dig, pry, or turn over a heap."
+  },
+  {
+    "id": "hammer",
+    "name": "Hammer",
+    "kind": "weapon",
+    "bonus": "+1 Brute in a fight, and to break something small."
+  },
+  {
+    "id": "rope",
+    "name": "Rope, 50 ft",
+    "kind": "gear",
+    "bonus": "+1 to any climb, and to lower someone down a shaft."
+  },
+  {
+    "id": "quill-and-ink",
+    "name": "Quill and ink",
+    "kind": "gear",
+    "bonus": "+1 Erudite to copy a map, a rune, or a room number."
+  },
+  {
+    "id": "crowbar",
+    "name": "Crowbar",
+    "kind": "gear",
+    "bonus": "+1 Brute to force a door, a lid, or a gibbet."
+  },
+  {
+    "id": "parasol",
+    "name": "Parasol",
+    "kind": "gear",
+    "bonus": "+1 Skulker to break a fall or hide what you are carrying."
+  },
+  {
+    "id": "rose-incense",
+    "name": "Rose incense",
+    "kind": "gear",
+    "bonus": "+1 Erudite to call, calm, or bargain with a spirit."
+  },
+  {
+    "id": "black-mallet",
+    "name": "Black mallet",
+    "kind": "weapon",
+    "bonus": "+1 Brute for smashing stone, doors, and idols."
+  },
+  {
+    "id": "lock-pick",
+    "name": "Lock pick",
+    "kind": "gear",
+    "bonus": "+1 Skulker on locks, latches, and cages."
+  },
+  {
+    "id": "lantern",
+    "name": "Lantern",
+    "kind": "gear",
+    "bonus": "+1 to see anything that is not blue.",
+    "note": "Lit, you are the most visible thing in the room."
+  },
+  {
+    "id": "tusk-spear",
+    "name": "Tusk spear",
+    "kind": "weapon",
+    "bonus": "+1 Brute, and long enough to keep a pelican at arm's length."
+  },
+  {
+    "id": "shield",
+    "name": "Shield",
+    "kind": "armour",
+    "bonus": "+1 to block, brace a door, or shelter someone."
+  },
+  {
+    "id": "torch",
+    "art": "tunnel-goons:cards/torch.png",
+    "name": "Torch",
+    "kind": "gear",
+    "bonus": "+1 Skulker in the dark.",
+    "note": "It burns out when the referee says so."
+  },
+  {
+    "id": "bear-trap",
+    "name": "Bear trap",
+    "kind": "gear",
+    "bonus": "+1 to hold a doorway against something heavy."
+  },
+  {
+    "id": "compass",
+    "name": "Compass",
+    "kind": "gear",
+    "bonus": "+1 Erudite to work out which way a window really faces."
+  },
+  {
+    "id": "mirror",
+    "name": "Mirror",
+    "kind": "gear",
+    "bonus": "+1 to look round a corner without being the thing that gets looked at."
+  },
+  {
+    "id": "rations",
+    "name": "Rations",
+    "kind": "consumable",
+    "uses": 2,
+    "bonus": "A meal each.",
+    "note": "Eaten somewhere quiet, or not at all."
+  },
+  {
+    "id": "cloak",
+    "name": "Cloak",
+    "kind": "gear",
+    "bonus": "Your colour, your choice.",
+    "note": "Pick blue and nobody sees it after the first hour. Including you."
+  },
+  {
+    "id": "knife",
+    "art": "tunnel-goons:cards/shortsword.png",
+    "name": "Knife",
+    "kind": "weapon",
+    "bonus": "+1 in a close fight. Everyone has one."
+  },
+  {
+    "id": "grappling-hook",
+    "name": "Grappling hook",
+    "kind": "gear",
+    "bonus": "+1 to catch a chain from a window ledge."
+  },
+  {
+    "id": "chalk",
+    "name": "Chalk",
+    "kind": "gear",
+    "bonus": "+1 Erudite to keep track of rooms you have already walked."
+  },
+  {
+    "id": "flask-of-oil",
+    "name": "Flask of oil",
+    "kind": "consumable",
+    "uses": 1,
+    "bonus": "Burns, or makes a floor treacherous. Pick one."
+  },
+  {
+    "id": "brass-spyglass",
+    "name": "Brass spyglass",
+    "kind": "gear",
+    "bonus": "+1 Erudite to read a distant window number or count giants."
+  },
+  {
+    "id": "twin-knives",
+    "art": "tunnel-goons:cards/shortsword.png",
+    "name": "Twin knives",
+    "kind": "weapon",
+    "bonus": "+1 Brute or Skulker in a knife fight."
+  },
+  {
+    "id": "light-crossbow",
+    "art": "tunnel-goons:cards/shortbow.png",
+    "name": "Light crossbow",
+    "kind": "weapon",
+    "bonus": "+1 Skulker at range."
+  },
+  {
+    "id": "book-of-kastromancy",
+    "name": "Slim book of kastromancy",
+    "kind": "gear",
+    "bonus": "+1 Erudite on the Spire's own magic."
+  },
+  {
+    "id": "bag-of-salt",
+    "name": "Bag of salt",
+    "kind": "gear",
+    "bonus": "Superstition, made portable."
+  },
+  {
+    "id": "ring-of-water-breathing",
+    "art": "tunnel-goons:cards/ring.png",
+    "name": "Ring of water breathing",
+    "kind": "treasure",
+    "bonus": "Breathe water indefinitely.",
+    "note": "Room 1, on a skeletal finger. Drowning stops being one of the ways this tower can kill you."
+  },
+  {
+    "id": "defenders-blade",
+    "art": "tunnel-goons:cards/shortsword.png",
+    "name": "Defender's blade",
+    "kind": "weapon",
+    "bonus": "+1 Brute, and +1 again when you are fighting for someone else.",
+    "note": "Room 7, in the font."
+  },
+  {
+    "id": "plate-armour",
+    "art": "tunnel-goons:cards/chestplate.png",
+    "name": "Plate armour",
+    "kind": "armour",
+    "slots": 3,
+    "bonus": "Absorbs 2 damage. -1 Skulker.",
+    "note": "Room 7. Most of a suit. The rest is still in the fountain."
+  },
+  {
+    "id": "venomous-quills",
+    "name": "Venomous quills",
+    "kind": "consumable",
+    "uses": 3,
+    "bonus": "Thrown, Skulker DS 8. A hit does 4 extra as the venom works.",
+    "note": "Room 9, lodged in a pelican jawbone."
+  },
+  {
+    "id": "potion-of-leaping",
+    "art": "tunnel-goons:cards/potion.png",
+    "name": "Potion of leaping",
+    "kind": "consumable",
+    "uses": 1,
+    "bonus": "One enormous jump. Window to window, or roof to boat.",
+    "note": "Room 9, under the jawbone."
+  },
+  {
+    "id": "circlet-of-clear-sight",
+    "name": "Circlet of clear sight",
+    "kind": "treasure",
+    "bonus": "The wearer sees blue.",
+    "note": "Rooms 16-17, in a silver sack. Sky-blindness does not touch you. Nobody else will believe what you describe."
+  },
+  {
+    "id": "sack-of-silver",
+    "art": "tunnel-goons:cards/coin-pouch.png",
+    "name": "Sack of silver",
+    "kind": "treasure",
+    "slots": 4,
+    "bonus": "A year's wages.",
+    "note": "Two hands, or a strap, and a bad climb. Climbing a chain with one is DS 12."
+  },
+  {
+    "id": "silver-drinking-bowl",
+    "name": "Silver drinking bowl",
+    "kind": "treasure",
+    "slots": 2,
+    "bonus": "A month's wages.",
+    "note": "A giant's cup. The size of a shield."
+  },
+  {
+    "id": "smoked-lake-fish",
+    "name": "Smoked lake-fish",
+    "kind": "consumable",
+    "uses": 4,
+    "bonus": "Restores 2 HP if eaten somewhere quiet."
+  },
+  {
+    "id": "cut-chain",
+    "name": "Cut chain, 12 ft",
+    "kind": "gear",
+    "bonus": "+1 to climbs, and jams a door shut.",
+    "note": "Heavy. Rust comes off on everything."
+  },
+  {
+    "id": "torn-tower-map",
+    "name": "Torn tower map",
+    "kind": "gear",
+    "bonus": "Shows three rooms in the correct order.",
+    "note": "Which three is the referee's business."
+  },
+  {
+    "id": "cracked-hand-mirror",
+    "name": "Cracked hand-mirror",
+    "kind": "gear",
+    "bonus": "+1 Erudite to look at something you must not look at directly."
+  },
+  {
+    "id": "tooth-pouch",
+    "name": "Goblin's tooth-pouch",
+    "kind": "treasure",
+    "bonus": "The shaman wants it back badly.",
+    "note": "Leverage, if anyone works out what it is for."
+  }
+]

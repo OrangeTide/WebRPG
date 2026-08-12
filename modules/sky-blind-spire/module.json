@@ -1,0 +1,44 @@
+{
+  "id": "sky-blind-spire",
+  "name": "The Sky-Blind Spire",
+  "version": "1.0",
+  "kind": "adventure",
+  "requires": "tunnel-goons",
+  "description": "A tower that is a spell, a curse that hides the colour blue, and a wish at the top worth a lake. One session, three to five players.",
+  "authors": [
+    "Michael Prescott (the adventure)",
+    "Tunnel Goons conversion and table material: PUBLIC DOMAIN (CC0-1.0)"
+  ],
+  "license": "The Sky-Blind Spire (c) 2016 Michael Prescott, CC BY-NC 3.0. The conversion text in this module is PUBLIC DOMAIN (CC0-1.0).",
+  "overview": "The kastromancer Titardinal built a spire that is a spell: magic written as architecture, cast by walking it. He meant to bind the spirit of the great lake at the tower's foot, and fell to his death before he could finish. Every room is engraved with a number. Enter room 1 and you pick up a spark stolen from the lake spirit; walk the rooms in numerical order and it grows; step out of order and it is gone. Carry a full-grown spark to the rooftop altar in room 24 and the spell closes, and if you live you get a wish. Three wishes kill the lake. Meanwhile four giants hold the upper halls with their silver, eight Ricalu goblins have cursed the site so that everyone inside goes blind to blue, and seven dire pelicans nest in the middle of the building.",
+  "links": [
+    {
+      "label": "The Sky-Blind Spire (Michael Prescott, trilemma.com)",
+      "url": "https://blog.trilemma.com/2016/04/the-sky-blind-spire.html"
+    },
+    {
+      "label": "Get the Tunnel Goons rulebook (itch.io)",
+      "url": "https://natetreme.itch.io/tunnelgoons"
+    }
+  ],
+  "files": {
+    "bestiary": "bestiary.json",
+    "pregens": "pregens.json",
+    "items": "items.json",
+    "rooms": "rooms.json",
+    "tables": "tables.json",
+    "maps": "maps.json"
+  },
+  "help": [
+    {
+      "slug": "sky-blind-spire",
+      "title": "The Sky-Blind Spire",
+      "file": "sky-blind-spire.md"
+    },
+    {
+      "slug": "spire-rulings",
+      "title": "Spire rulings",
+      "file": "spire-rulings.md"
+    }
+  ]
+}

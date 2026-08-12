@@ -22,6 +22,7 @@ pub(super) const STATIC_WINDOWS: &[(WindowId, &str)] = &[
     (WindowId::Terminal, "COMMAND.COM"),
     (WindowId::FileBrowser, "File Viewer"),
     (WindowId::HelpViewer, "Help"),
+    (WindowId::Modules, "Modules"),
 ];
 
 /// Load startup window preferences from localStorage.

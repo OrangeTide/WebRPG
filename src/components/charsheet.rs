@@ -530,6 +530,12 @@ fn CharacterEditor(character: CharacterInfo, template: Option<TemplateInfo>) -> 
                 }
             }
 
+            // Check roller, when the session runs a system module that has one
+            <crate::components::check_roller::CheckRoller
+                character_id=char_id
+                data=data.clone()
+            />
+
             // Ability Scores (compact grid)
             {(!ability_scores.is_empty()).then(|| {
                 let scores = ability_scores.clone();

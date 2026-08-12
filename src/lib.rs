@@ -3,6 +3,7 @@
 pub mod app;
 pub mod components;
 pub mod models;
+pub mod modules;
 pub mod pages;
 pub mod server;
 pub mod ws;

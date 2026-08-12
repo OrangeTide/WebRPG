@@ -2,6 +2,34 @@ use serde::{Deserialize, Serialize};
 
 use crate::models::{ChatMessageInfo, InitiativeEntryInfo, InventoryItemInfo, MapInfo, TokenInfo};
 
+/// One modifier a player applied to a check, and why.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RollBonus {
+    pub label: String,
+    pub value: i32,
+}
+
+/// A resolved check, stored as the chat message's structured dice result.
+///
+/// `margin` is the whole point in a system where the gap between the total and
+/// the DS is damage. It is `None` when the players were not told the DS, which
+/// is the usual case.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CheckResult {
+    /// Always "check", to tell this apart from a plain dice roll.
+    pub kind: String,
+    pub label: String,
+    pub dice: String,
+    pub rolls: Vec<i32>,
+    pub ability: String,
+    pub ability_mod: i32,
+    pub bonuses: Vec<RollBonus>,
+    pub total: i32,
+    pub ds: Option<i32>,
+    pub margin: Option<i32>,
+    pub dangerous: bool,
+}
+
 // ===== Client -> Server messages =====
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,6 +90,48 @@ pub enum ClientMessage {
         description: String,
         quantity: i32,
         is_party_item: bool,
+        /// gear, weapon, armour, treasure, or consumable.
+        #[serde(default)]
+        kind: String,
+        /// What the item gives, in the language of the roll.
+        #[serde(default)]
+        bonus: String,
+        /// Carrying capacity the item eats. Defaults to one.
+        #[serde(default)]
+        slots: Option<i32>,
+        /// Uses for a consumable, filled to full when dealt.
+        #[serde(default)]
+        uses: Option<i32>,
+        /// Character carrying it. `None` leaves it with the party.
+        #[serde(default)]
+        owner_character_id: Option<i32>,
+    },
+    /// Spend or restore uses on a consumable.
+    SetInventoryItemUses {
+        item_id: i32,
+        uses_left: i32,
+    },
+    /// Hand an item to a character, or back to the party with `None`.
+    AssignInventoryItem {
+        item_id: i32,
+        character_id: Option<i32>,
+    },
+    /// Roll the system's check: dice + ability + the bonuses the player picked,
+    /// against a DS the player may or may not know.
+    RollCheck {
+        /// What is being attempted, shown in the chat line.
+        label: String,
+        /// Ability label, e.g. "Brute". Empty rolls without one.
+        ability: String,
+        ability_mod: i32,
+        /// Bonuses the player ticked, each with what justifies it.
+        bonuses: Vec<RollBonus>,
+        /// Difficulty score, when the players have been told it.
+        ds: Option<i32>,
+        /// Whether missing costs hit points.
+        dangerous: bool,
+        /// Dice to roll, in `NdN` form. Comes from the system module.
+        dice: String,
     },
     RemoveInventoryItem {
         item_id: i32,

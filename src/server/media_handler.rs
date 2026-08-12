@@ -12,7 +12,8 @@ use crate::schema::*;
 
 const MAX_FILE_SIZE: usize = 20 * 1024 * 1024; // 20 MB
 
-fn media_dir() -> PathBuf {
+/// Root of the content-addressable media store.
+pub fn media_dir() -> PathBuf {
     PathBuf::from(std::env::var("MEDIA_DIR").unwrap_or_else(|_| "uploads/media".to_string()))
 }
 

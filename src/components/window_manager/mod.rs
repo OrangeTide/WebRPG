@@ -22,6 +22,7 @@ pub enum WindowId {
     Terminal,
     FileBrowser,
     HelpViewer,
+    Modules,
     /// Dynamic window for editing a specific character (by character_id).
     CharacterEditor(i32),
     /// Dynamic additional file browser window (by instance counter).
@@ -40,6 +41,7 @@ impl WindowId {
             WindowId::Terminal => "COMMAND.COM",
             WindowId::FileBrowser => "File Viewer",
             WindowId::HelpViewer => "Help",
+            WindowId::Modules => "Modules",
             WindowId::CharacterEditor(_) => "Character Sheet",
             WindowId::FileBrowserExtra(_) => "File Viewer",
         }
@@ -57,6 +59,7 @@ impl WindowId {
             WindowId::Terminal,
             WindowId::FileBrowser,
             WindowId::HelpViewer,
+            WindowId::Modules,
         ]
     }
 
@@ -72,6 +75,7 @@ impl WindowId {
             WindowId::Terminal => (500.0, 300.0),
             WindowId::FileBrowser => (450.0, 350.0),
             WindowId::HelpViewer => (400.0, 300.0),
+            WindowId::Modules => (420.0, 320.0),
             WindowId::CharacterEditor(_) => (300.0, 350.0),
             WindowId::FileBrowserExtra(_) => (450.0, 350.0),
         }
@@ -97,6 +101,7 @@ impl WindowId {
             WindowId::Terminal => "\u{1f4bb}",            // 💻 personal computer
             WindowId::FileBrowser => "\u{1f4c2}",         // 📂 open file folder
             WindowId::HelpViewer => "\u{1f4d6}",          // 📖 open book
+            WindowId::Modules => "\u{1f3b2}",             // 🎲 game die
             WindowId::CharacterEditor(_) => "\u{1f4dc}",  // 📜 scroll
             WindowId::FileBrowserExtra(_) => "\u{1f4c2}", // 📂 open file folder
         }
@@ -124,6 +129,7 @@ impl WindowId {
             WindowId::Terminal => "Term",
             WindowId::FileBrowser => "Files",
             WindowId::HelpViewer => "Help",
+            WindowId::Modules => "Module",
             WindowId::CharacterEditor(_) => "Sheet",
             WindowId::FileBrowserExtra(_) => "Files",
         }
@@ -606,6 +612,16 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 z_index: 9,
                 minimized: true,
             },
+            WindowState {
+                id: WindowId::Modules,
+                title: None,
+                x: pad,
+                y: pad,
+                width: win_w.min(480.0),
+                height: 420.0,
+                z_index: 10,
+                minimized: true,
+            },
         ]
     } else if vw < 1400.0 {
         // Medium screen: two-column layout
@@ -704,6 +720,16 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 width: 550.0,
                 height: 450.0,
                 z_index: 9,
+                minimized: true,
+            },
+            WindowState {
+                id: WindowId::Modules,
+                title: None,
+                x: 120.0,
+                y: 80.0,
+                width: 520.0,
+                height: 460.0,
+                z_index: 10,
                 minimized: true,
             },
         ]
@@ -806,6 +832,16 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 width: 600.0,
                 height: 500.0,
                 z_index: 9,
+                minimized: true,
+            },
+            WindowState {
+                id: WindowId::Modules,
+                title: None,
+                x: 160.0,
+                y: 100.0,
+                width: 600.0,
+                height: 520.0,
+                z_index: 10,
                 minimized: true,
             },
         ]

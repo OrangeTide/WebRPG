@@ -1,0 +1,14 @@
+name: Coin pouch
+kind: treasure
+slots: 1
+effect: Money. Spend it in town, if you reach one.
+art:
+       (~~~)
+       /   \
+     .-'---'-.
+    /   *  *  \
+   |   ( $ )   |
+   |           |
+  .-'_________'-.
+ (   $   $   $   )
+  `-------------'

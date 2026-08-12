@@ -142,6 +142,9 @@ pub struct GameContext {
     pub active_initiative_token_id: RwSignal<Option<i32>>,
     /// Initiative round number (increments each time the turn wraps to the top).
     pub initiative_round: RwSignal<u32>,
+    /// Modules this session runs, and the roll model that comes with them.
+    /// Empty until the fetch after join completes.
+    pub modules: RwSignal<crate::server::modules_api::SessionModules>,
     /// Decremented for each locally-created message to avoid ID collisions with DB rows.
     next_local_id: std::sync::Arc<std::sync::atomic::AtomicI32>,
 }
@@ -494,6 +497,7 @@ pub fn GamePage() -> impl IntoView {
         turn_star: RwSignal::new(None),
         active_initiative_token_id: RwSignal::new(None),
         initiative_round: RwSignal::new(1),
+        modules: RwSignal::new(Default::default()),
         next_local_id: std::sync::Arc::new(std::sync::atomic::AtomicI32::new(-1)),
     };
 
@@ -569,6 +573,16 @@ pub fn GamePage() -> impl IntoView {
             session_id_w.set(sid);
 
             let ctx = ctx_ws.clone();
+
+            // Which modules this session runs. Needed before the first roll,
+            // but not worth blocking the connection on.
+            let modules_signal = ctx.modules;
+            leptos::task::spawn_local(async move {
+                match crate::server::modules_api::get_session_modules(sid).await {
+                    Ok(m) => modules_signal.set(m),
+                    Err(e) => log::warn!("Failed to load session modules: {e}"),
+                }
+            });
 
             leptos::task::spawn_local(async move {
                 ctx.loading.set(Some(LoadingState::AUTHENTICATING));
@@ -775,6 +789,9 @@ pub fn GamePage() -> impl IntoView {
                 </GameWindow>
                 <GameWindow id=WindowId::HelpViewer>
                     <HelpViewerPanel />
+                </GameWindow>
+                <GameWindow id=WindowId::Modules>
+                    <crate::components::modules_panel::ModulesPanel />
                 </GameWindow>
                 <DynamicCharacterWindows />
                 <DynamicFileBrowserWindows />

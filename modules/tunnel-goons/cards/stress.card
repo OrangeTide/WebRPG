@@ -1,0 +1,12 @@
+name: Stress
+kind: condition
+slots: 1
+effect: Takes up a slot. -1 Erudite until it is cleared.
+note: Optional. Cleared by a deep rest, or whatever the referee names.
+art:
+   /\  _  /\
+  // \ / \ \\
+ |/--|-|--\|
+ |\__/ \__/|
+  \\ / \ //
+   \/ _ \/

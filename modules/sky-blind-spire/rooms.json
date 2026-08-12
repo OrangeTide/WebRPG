@@ -1,0 +1,171 @@
+[
+  {
+    "number": 1,
+    "title": "Unwelcoming Hall",
+    "card": "Iron gibbets on chains, and a body in each. A mote of cold light peels off the air and starts to orbit your head.",
+    "read_aloud": "The door is off its hinges and the hall beyond is colder than the wind outside. Cages hang from the ceiling on chains, each with something in it that used to be a person. Cut into the floor stone, deep and neat and three feet across, is the number one.",
+    "gm": "Titardinal hung the gibbets to frighten visitors off. The ceiling is far too high for the building's exterior. Everyone who steps in gets a spark; describe it clearly before the first hour is up, then take it away when the curse lands. Treasure: a ring of water breathing on one skeletal finger, found in the first ten minutes if anyone searches the cages. Conversion detail: a refuse chute opens in the high ceiling, and room 10's rug hides a pit that drops into it.",
+    "exits": "Outside (front door); west door to room 2; gate A to room 18, behind the blue tapestry."
+  },
+  {
+    "number": 2,
+    "title": "Antechamber",
+    "card": "A bare antechamber. A low hallway runs off it with six little cells opening from the sides.",
+    "gm": "Run rooms 2 through 6 fast. Their job is to teach the sequence rule, and to make somebody lose a spark by wandering into 5 before 4. Squeaks the turncoat goblin can be hiding in one of the cells.",
+    "exits": "Room 1; the north-south corridor serving rooms 3, 4, 5, 6, and 23."
+  },
+  {
+    "number": 3,
+    "title": "Cell with a window",
+    "card": "A cramped chamber with a high slit window. A rusty chain is bolted to the sill outside.",
+    "gm": "Window 4W. The chain drops to window 3W, which is room 4.",
+    "exits": "The corridor; window 4W with a chain."
+  },
+  {
+    "number": 4,
+    "title": "Cell with a window",
+    "card": "A cramped chamber with a high slit window. Another chain, dropping away down the outside of the tower.",
+    "gm": "Window 3W. The chain drops to the second floor, which is the pelicans' roost.",
+    "exits": "The corridor; window 3W with a chain."
+  },
+  {
+    "number": 5,
+    "title": "Empty cell",
+    "card": "A cell with nothing in it at all except the number.",
+    "gm": "The classic spark-killer. Players who wander in here out of order lose the spark silently.",
+    "exits": "The corridor."
+  },
+  {
+    "number": 6,
+    "title": "Stair chamber",
+    "card": "A staircase that bends to the right, and keeps bending, further round than the room allows.",
+    "gm": "The first honest hint that the interior geometry is not stable.",
+    "exits": "The corridor; bending stair up to room 7."
+  },
+  {
+    "number": 7,
+    "title": "The Fountain Room",
+    "card": "A round hall under a dome. A stone font in the middle, still wet, the water moving without any wind.",
+    "gm": "Titardinal used this font to commune with the lake spirit and learn its weaknesses. Trigger: if anyone in the room carries a spark, d6 undines rise out of the water to reclaim it. They are made of water, so after the first hour the party cannot see them, and a still undine is nowhere at all. Treasure: a defender's blade and most of a suit of plate armour in the font. The undines will hand both over with no fight, in exchange for a solemn oath to destroy the altar. That oath is the adventure's real question; do not resolve it for the players.",
+    "exits": "Stair from room 6; north to room 8; gate B to the giants at room 16; window 5N."
+  },
+  {
+    "number": 8,
+    "title": "Landing",
+    "card": "A tiled crossroads. A corridor west, a stair up, a stair down toward a smell like a harbour at low tide.",
+    "gm": "Connective tissue. Window 3N.",
+    "exits": "Room 7; stair up to room 13; stair east down to room 9; corridor west to gate E."
+  },
+  {
+    "number": 9,
+    "title": "Dire Pelicans' Roost",
+    "card": "Mud, sticks, fish spines. Four big windows. Seven birds large enough to swallow a person.",
+    "gm": "Stinks like a wharf. Seven birds fly in and out all day catching fish. They do not wander the tower, and they are relentless and vindictive if disturbed. Treasure: three venomous quills lodged in a pelican jawbone, and a potion of leaping underneath. The four windows are the party's best route to the upper floors, which means the correct plan is to cross a room full of sleeping monsters quietly: Skulker DS 10, or DS 8 if they do something clever with fish. All four second-floor windows open into this room.",
+    "exits": "Room 8; east to room 10; south corridor down to the 3/4 corridor; windows 2N, 2E, 2S, 2W."
+  },
+  {
+    "number": 10,
+    "title": "The rug",
+    "card": "A plain floor with a rug across it.",
+    "gm": "Conversion detail: the rug is blue, and covers a pit that drops into room 1's ceiling chute. Before the first hour it is a visible rug. After, it is not there at all, and the first person across falls.",
+    "exits": "Room 9; stair north to room 11; corridor east to gate E."
+  },
+  {
+    "number": 11,
+    "title": "Short hall",
+    "card": "A short hall, and a number.",
+    "gm": "Corridor. Handle it in a sentence.",
+    "exits": "Room 10; gate D to room 12."
+  },
+  {
+    "number": 12,
+    "title": "Cell with a window",
+    "card": "A cell with a high window, and a chain outside it.",
+    "gm": "Window 4S. The chain drops to window 3S, which is room 19.",
+    "exits": "Gate D to room 11; east to the stair landing by rooms 13 and 14; window 4S."
+  },
+  {
+    "number": 13,
+    "title": "Bleak Hall",
+    "card": "Twin staircases to a shared landing. Four idols hold out shallow bowls. The air in here is hungry.",
+    "gm": "Four wicked idols fill the air with invisible, hungry spirits. Dead bodies reanimate here. Anyone who sleeps or drops below 4 HP resists possession with Erudite DS 10. Praying at the idols calls Titardinal's spectral mentor, who is courteous, patient, and entirely committed to seeing the master spell completed. He explains the numbers, the sparks, and the altar honestly, and does not mention that finishing the spell kills the lake. Use him as your safety valve if the table is lost. Smashing the idols stops the possessions and the reanimation, and brings the mentor immediately, furious. The armoured figure on the stairs is Lady Beatrice.",
+    "exits": "Two flights and a landing; down to room 8, up to the 12/14 landing, on up toward rooms 18 and 19."
+  },
+  {
+    "number": 14,
+    "title": "Stairs",
+    "card": "Stairs down into a smell. Stairs up into daylight.",
+    "gm": "The junction above the cone.",
+    "exits": "The landing; stairs down to room 15; stairs up to room 22."
+  },
+  {
+    "number": 15,
+    "title": "The Changeling Cone",
+    "card": "A cone of hand-holds and old scaffolding, forty feet above a heap of garbage and flies the size of cats.",
+    "gm": "An error in Titardinal's work. Descend the 40 feet and you double in size for d6 days; ascend and you shrink by half. The change is imperceptible from inside, and nobody in the room notices anything. Do not tell the player. Describe the next few rooms with one detail off: a doorway they have to duck, a chain that feels thin as wire, a giant who suddenly seems the right size to punch. Doubled: +1 Brute, -1 Skulker, and you cannot fit through the small cells or the pelican windows. Halved: +1 Skulker, -1 Brute, and a pelican can swallow you without trying. Falling from the lip to the heap is 6 damage, halved if they land in the muck. Huge muck-flies live in the heap and follow anyone who disturbs it.",
+    "exits": "The cone runs from the garbage heap at the bottom up into the giants' level."
+  },
+  {
+    "number": 16,
+    "title": "Hall of the Giants",
+    "card": "Bones on the floor, a firepit with an iron pot, heaps of hay. Everything is built for people twice your height.",
+    "gm": "Four giants from Firevault seized the spire two years ago. Faroch, armoured, their leader, wants the tower held and the hoard intact. Sossa, feared most, drinks molten lead and spits it. Affa and Isho are inseparable twins who feud incessantly and can be turned against each other with very little effort. They are distressed and wary: the hoard has begun to shrink, and the blue tapestry over the north exit in room 18 now prevents them from finding their way out of the tower. They are trapped and they do not know why. Treasure: six sacks of silver, one of which contains a circlet of clear sight. The best deal in the tower is showing four homesick giants the way home; have Faroch offer one sack, and let a good roll or good roleplay get two. Four DS 12-plus monsters will end a party of five.",
+    "exits": "One hall with room 17. Gate B to room 7; room 18 west; window 5W."
+  },
+  {
+    "number": 17,
+    "title": "Hall of the Giants, the far half",
+    "card": "The other half of the same hall, and the rest of what lives in it.",
+    "gm": "Same room as 16 for every purpose except the number engraved on the floor, which matters enormously to anyone carrying a spark.",
+    "exits": "One hall with room 16; gate C east of here; window 5W."
+  },
+  {
+    "number": 18,
+    "title": "The blank hall",
+    "card": "A blank hall. The north side is solid stone. The giants come here, stand at it, and swear.",
+    "gm": "A blue tapestry hangs over the north exit. After the first hour no character perceives it, and the north wall reads as solid stone. Behind it is gate A, straight back to room 1 and out of the tower. A deliberate touch-search of the north wall finds it automatically, no roll. The circlet finds it instantly. This is the payoff for every player who has been taking sky-blindness seriously.",
+    "exits": "Rooms 17 and 19/20; north exit is gate A, behind the tapestry; gate C to east of room 17."
+  },
+  {
+    "number": 19,
+    "title": "Windy gallery",
+    "card": "A long gallery with three tall windows and the wind coming through them.",
+    "gm": "Window 3S. The giants sing in these halls and the sound carries.",
+    "exits": "Upper corridor; windows with chains."
+  },
+  {
+    "number": 20,
+    "title": "Upper room",
+    "card": "A window, a stair, a number.",
+    "gm": "Window 4N. The chain drops to 3N, which is room 8.",
+    "exits": "Upper corridor; stairs down to room 21; window 4N."
+  },
+  {
+    "number": 21,
+    "title": "Upper room",
+    "card": "A window, a stair, a number.",
+    "gm": "Window 5E. The chain drops to 4E, which is the study.",
+    "exits": "Stairs from room 20, down to room 22; window 5E."
+  },
+  {
+    "number": 22,
+    "title": "The Study",
+    "card": "A dozen heavy books on kastromancy. A hundred torn maps of this tower, no two alike.",
+    "gm": "The room that makes the adventure solvable. Never cut it. Anyone who reads gets, free: the numbers are a spell's notation, walking them casts it, and there is a 24th room that is not on any interior route. Erudite DS 10 gets more: the altar is on the roof, and the spell's purpose is binding the lake spirit. Window 4E.",
+    "exits": "Stairs up from room 14, down from room 21; window 4E."
+  },
+  {
+    "number": 23,
+    "title": "Two windows",
+    "card": "Two windows. One shows your boat, far below. The other shows the lake, and shadows moving wrong.",
+    "gm": "A character who walked 1 through 23 in order is now carrying a fist-sized spark as bright as a torch, and there is no 24th door. The only way up is out the window. Windows 3E and 5S.",
+    "exits": "Off the corridor by room 2; windows 3E and 5S."
+  },
+  {
+    "number": 24,
+    "title": "Rooftop Altar",
+    "card": "Wind, and the whole lake below you. Iron rods, a drift of grit, a low altar, and a chain over the edge.",
+    "gm": "There is no interior stair; the party has to go outside and climb. The last chain with a full spark is Brute or Skulker DS 10, and it is a good place for a pelican to take an interest. Bearing a full-sized spark to the altar completes Titardinal's master spell: lightning arcs up from the lake and strikes the bearer for d6 + 4 damage, ignoring armour. Tell them that before they step up. Survive it and they get one wish; phrase it, then give it to them straight. Die and the wish is granted anyway, to the dead character, so ask the player what it was. The price: after d3 wishes total the lake spirit and every undine die and the lake goes grey forever. Roll the d3 in the open, before the first wish, and let the table watch the number.",
+    "exits": "The roof. Reached by chain from the topmost windows."
+  }
+]

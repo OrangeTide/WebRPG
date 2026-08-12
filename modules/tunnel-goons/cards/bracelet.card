@@ -1,0 +1,14 @@
+name: Bracelet
+kind: treasure
+slots: 1
+effect: A month's wages on your wrist. Everyone notices it.
+art:
+   .------------.
+  /   *   *   *  \
+ /  .----------.  \
+|  /            \  |
+| |     (o)      | |
+|  \            /  |
+ \  `----------'  /
+  \              /
+   `------------'
