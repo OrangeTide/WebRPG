@@ -88,8 +88,20 @@ For general development:
     rustup target add x86_64-unknown-linux-musl
     ```
   - Add `wasm32-unknown-unknown` target: `rustup target add wasm32-unknown-unknown`
-  - Install cargo leptos: `cargo install cargo-leptos`
+  - Install cargo leptos, version 0.3.7 or newer:
+    `cargo install --locked cargo-leptos`
   - Install Diesel CLI tools: `cargo install diesel_cli --no-default-features --features sqlite`
+
+The cargo-leptos version matters, and an old one fails in a way that looks like
+an application bug rather than a build problem. With wasm-bindgen 0.2.108,
+cargo-leptos 0.3.5 emits a page that loads `/pkg/<name>_bg.wasm` while writing
+the file as `/pkg/<name>.wasm`. The request 404s, the module import fails, and
+`hydrate()` never runs, so the server renders pages correctly but nothing on
+them responds to a click. 0.3.7 passes an explicit `module_or_path` to the file
+it actually wrote.
+
+Use `--locked` when installing. Resolving cargo-leptos's dependencies afresh can
+pull crates that need a newer rustc than the toolchain this project builds with.
 
 ### For AI (Claude, Gemini, etc) and MCP tools
 
