@@ -141,6 +141,9 @@ panic = "abort"
 
 [package.metadata.leptos]
 output-name = "webrpg"
+# The crate has more than one bin target (see src/bin/), so cargo-leptos has to
+# be told which one is the server.
+bin-target = "webrpg"
 site-root = "target/site"
 site-pkg-dir = "pkg"
 style-file = "style/main.css"
