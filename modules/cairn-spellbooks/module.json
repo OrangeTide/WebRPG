@@ -1,0 +1,31 @@
+{
+  "id": "cairn-spellbooks",
+  "name": "Cairn Spellbooks",
+  "version": "1.0",
+  "kind": "reference",
+  "description": "216 spells as a d666 table, and one spellbook item card per spell. A spellbook takes an inventory slot and reading it casts the spell.",
+  "authors": ["Yochai Gal and contributors (Cairn)"],
+  "license": "Spell text from cairnrpg.com, CC BY-SA 4.0. This module's data files are CC BY-SA 4.0 to match.",
+  "overview": "Cairn treats magic as objects rather than as a class feature: a spellbook holds one spell, occupies one inventory slot, and casting is reading it. That travels well to any system where magic is an item, which is how Tunnel Goons handles it. Roll d666 for what a found spellbook contains, or deal the spellbook card straight to a character.",
+  "links": [
+    {
+      "label": "Cairn spellbooks (more spellbooks)",
+      "url": "https://cairnrpg.com/resources/more-spellbooks/"
+    },
+    {
+      "label": "Cairn Warden's Guide: spellbooks",
+      "url": "https://cairnrpg.com/second-edition/wardens-guide/spellbooks/"
+    }
+  ],
+  "files": {
+    "items": "items.json",
+    "tables": "tables.json"
+  },
+  "help": [
+    {
+      "slug": "cairn-spellbooks",
+      "title": "Cairn spellbooks",
+      "file": "cairn-spellbooks.md"
+    }
+  ]
+}

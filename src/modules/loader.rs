@@ -165,12 +165,18 @@ pub fn load_system(id: &str) -> Result<SystemModule, String> {
     })
 }
 
-/// Load an adventure module and the files it names.
+/// Load an adventure or reference module and the files it names.
+///
+/// Both kinds carry the same shape of content. They differ in who may read
+/// them: an adventure is GM material, a reference is open to the table.
 pub fn load_adventure(id: &str) -> Result<AdventureModule, String> {
     let dir = module_dir(id)?;
     let manifest = load_manifest(id)?;
-    if manifest.summary.kind != ModuleKind::Adventure {
-        return Err(format!("Module {id} is not an adventure module"));
+    if !matches!(
+        manifest.summary.kind,
+        ModuleKind::Adventure | ModuleKind::Reference
+    ) {
+        return Err(format!("Module {id} carries no adventure content"));
     }
 
     let bestiary: Vec<StatBlock> = match manifest.files.bestiary.as_deref() {

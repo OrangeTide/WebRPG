@@ -401,6 +401,16 @@ compiled in. See [modules/README.md](modules/README.md) for the pack format.
 - **Adventure modules** carry a bestiary, pregens, item cards, a room key,
   tables, and maps, and name the system they were written for. Installing one
   seeds creatures and maps.
+- **Reference modules** carry tables and item cards only. They are never
+  installed and every session sees them, so nothing secret belongs in one.
+
+Three modules ship with the repo: `tunnel-goons` (system), `sky-blind-spire`
+(adventure), and `cairn-spellbooks` (reference: 216 Cairn spells as a d666 table
+and one spellbook card per spell, generated from `spells.txt` by
+`scripts/build-cairn-spells.sh`).
+
+`d66` and `d666` roll as table dice: two or three d6 read as digits in order, so
+3, 1, 5 is entry 315 rather than one 666-sided die.
 
 Sessions record what they run in `sessions.system_module_id` and
 `sessions.adventure_module_id`. `GameContext::modules` holds the result, so the
@@ -408,9 +418,6 @@ client knows which roll model to present.
 
 Packs are read per request rather than cached, so editing a module's JSON takes
 effect without a restart. A pack that fails to parse is skipped with a log line.
-
-Two modules ship with the repo: `tunnel-goons` (the system) and
-`sky-blind-spire` (an adventure written for it).
 
 **Who sees what.** `get_adventure_module` returns the room key, bestiary, and
 tables, and refuses anyone but the session's GM. Players call

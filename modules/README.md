@@ -8,12 +8,13 @@ The server reads modules from `MODULES_DIR`, which defaults to this directory.
 Files are read per request rather than cached, so editing a pack takes effect
 without restarting.
 
-## Two kinds
+## Three kinds
 
 | Kind | Supplies | Bound to a session by |
 |------|----------|-----------------------|
 | `system` | Character sheet schema, creature schema, roll model | Installing it, which also seeds the sheet as an RPG template |
 | `adventure` | Bestiary, pregens, item cards, room key, tables, maps | Installing it, which seeds creatures and maps |
+| `reference` | Tables and item cards only | Nothing: always available to every session |
 
 An adventure names the system it was written for in `requires`. Installing it
 over a different system still works, and the install report says so.
@@ -104,11 +105,24 @@ uses:
   is there; if not, the map is created without a background and the install
   report says which ones need art.
 
+## Reference modules
+
+A reference module is lookup material: a spell list, a price list, a table of
+weather. It is never installed, every session sees it, and its tables and item
+cards appear alongside whatever is installed. It uses the same files as an
+adventure, but only `items` and `tables` are read.
+
+Because reference modules are open to the whole table, nothing secret belongs in
+one.
+
+`d66` and `d666` work as table dice: they roll two or three d6 and read the
+digits in order, so a roll of 3, 1, 5 is entry 315 rather than a 666-sided die.
+
 ## Who sees what
 
-The room key, bestiary, and tables come from a server function that refuses
-anyone but the session's GM. Players get pregens and item cards. Keep secrets
-in `gm`, not in `card`.
+The room key, bestiary, and tables of an *adventure* come from a server function
+that refuses anyone but the session's GM. Players get pregens and item cards.
+Keep secrets in `gm`, not in `card`.
 
 ## Licensing
 

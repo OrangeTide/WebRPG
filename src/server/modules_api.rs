@@ -127,6 +127,37 @@ pub async fn get_adventure_handouts(
     Ok(adventure)
 }
 
+/// Every reference module, in full.
+///
+/// Reference modules are lookup material with no GM secrets in them, so they
+/// need no install and are open to any member of the session.
+#[server]
+pub async fn list_reference_modules(
+    session_id: i32,
+) -> Result<Vec<AdventureModule>, ServerFnError> {
+    use crate::db;
+    use crate::modules::{ModuleKind, loader};
+    use crate::server::api::get_current_user;
+
+    let user = get_current_user()
+        .await?
+        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
+    let conn = &mut db::get_conn();
+    require_member(conn, session_id, user.id)?;
+
+    let mut out = Vec::new();
+    for summary in loader::list_summaries() {
+        if summary.kind != ModuleKind::Reference {
+            continue;
+        }
+        match loader::load_adventure(&summary.id) {
+            Ok(module) => out.push(module),
+            Err(e) => log::warn!("Skipping reference module {}: {e}", summary.id),
+        }
+    }
+    Ok(out)
+}
+
 /// Which modules a session is running, and the roll model that comes with them.
 #[server]
 pub async fn get_session_modules(session_id: i32) -> Result<SessionModules, ServerFnError> {
@@ -191,6 +222,9 @@ pub async fn install_module(
     match summary.kind {
         ModuleKind::System => install_system(conn, session_id, &module_id),
         ModuleKind::Adventure => install_adventure(conn, session_id, &module_id, user.id).await,
+        ModuleKind::Reference => Err(ServerFnError::new(
+            "Reference modules are always available and are not installed.",
+        )),
     }
 }
 

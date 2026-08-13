@@ -267,6 +267,16 @@ PREGEN_ITEMS=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM inventory_items WHERE sess
 check "Pregen gear dealt with slots ($PREGEN_ITEMS items)" \
     "$([ "$PREGEN_ITEMS" -gt 0 ] && echo 0 || echo 1)"
 
+REFERENCE_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url list_reference_modules)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}")
+check "Reference module available without installing" \
+    "$(echo "$REFERENCE_RESP" | grep -q '"id":"cairn-spellbooks"' && echo 0 || echo 1)"
+check "Reference module carries its spellbook cards" \
+    "$(echo "$REFERENCE_RESP" | grep -q 'Spellbook: Word of Pain' && echo 0 || echo 1)"
+
 ASSET_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/modules/tunnel-goons/assets/cards/torch.png")
 check "Serve module card art (200)" "$([ "$ASSET_CODE" = "200" ] && echo 0 || echo 1)"
 

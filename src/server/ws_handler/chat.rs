@@ -120,11 +120,32 @@ pub fn roll_check(
     Ok((summary, result))
 }
 
-/// Parse dice expressions like "2d6+3", "1d20", "4d8-2"
+/// Roll a digit-concatenation die: d66 is two d6 read as tens and units, d666
+/// is three. These index the lookup tables common in OSR material, where entry
+/// 315 means the dice came up 3, 1, 5.
+fn roll_digit_die(digits: u32) -> (Vec<i32>, i32) {
+    use rand::Rng;
+
+    let mut rng = rand::thread_rng();
+    let rolls: Vec<i32> = (0..digits).map(|_| rng.gen_range(1..=6)).collect();
+    let total = rolls.iter().fold(0, |acc, r| acc * 10 + r);
+    (rolls, total)
+}
+
+/// Parse dice expressions like "2d6+3", "1d20", "4d8-2".
+///
+/// `d66` and `d666` are read as digit dice rather than as one huge die, since
+/// that is what those notations mean on a table.
 pub fn parse_and_roll(expression: &str) -> Result<(Vec<i32>, i32), String> {
     use rand::Rng;
 
     let expr = expression.trim().to_lowercase();
+
+    match expr.as_str() {
+        "d66" | "1d66" => return Ok(roll_digit_die(2)),
+        "d666" | "1d666" => return Ok(roll_digit_die(3)),
+        _ => {}
+    }
 
     let (dice_part, modifier) = if let Some(pos) = expr.rfind('+') {
         let (d, m) = expr.split_at(pos);
@@ -171,4 +192,39 @@ pub fn parse_and_roll(expression: &str) -> Result<(Vec<i32>, i32), String> {
     let total: i32 = rolls.iter().sum::<i32>() + modifier;
 
     Ok((rolls, total))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_and_roll;
+
+    #[test]
+    fn digit_dice_read_as_table_entries() {
+        for expr in ["d666", "1d666"] {
+            let (rolls, total) = parse_and_roll(expr).expect("d666 should parse");
+            assert_eq!(rolls.len(), 3);
+            assert!(rolls.iter().all(|r| (1..=6).contains(r)));
+            // Every digit is 1-6, so the total is a valid table key.
+            assert_eq!(
+                total,
+                rolls[0] * 100 + rolls[1] * 10 + rolls[2],
+                "digits should read in order"
+            );
+            assert!((111..=666).contains(&total));
+        }
+
+        let (rolls, total) = parse_and_roll("d66").expect("d66 should parse");
+        assert_eq!(rolls.len(), 2);
+        assert!((11..=66).contains(&total));
+    }
+
+    #[test]
+    fn ordinary_dice_still_parse() {
+        let (rolls, total) = parse_and_roll("2d6+3").expect("2d6+3 should parse");
+        assert_eq!(rolls.len(), 2);
+        assert!((5..=15).contains(&total));
+
+        assert!(parse_and_roll("d20").is_ok());
+        assert!(parse_and_roll("nonsense").is_err());
+    }
 }

@@ -24,6 +24,12 @@ pub enum ModuleKind {
     System,
     /// Content: bestiary, pregens, items, rooms, tables, maps.
     Adventure,
+    /// Lookup material: tables and item cards, with no secrets in it.
+    ///
+    /// Reference modules are never installed and are visible to every member
+    /// of a session, so anything a player should not read does not belong in
+    /// one.
+    Reference,
 }
 
 /// A link the module browser offers, such as where to buy the rulebook.

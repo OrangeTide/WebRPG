@@ -32,6 +32,9 @@ pub fn ModulesPanel() -> impl IntoView {
 
     let (tab, set_tab) = signal(Tab::Library);
     let (status, set_status) = signal(String::new());
+    // Card and table lists run to hundreds of entries once a spell reference is
+    // present, so they need narrowing down.
+    let (filter, set_filter) = signal(String::new());
     // Bumped after an install so the content resources refetch.
     let installed_revision = RwSignal::new(0u32);
     // Who receives dealt cards and pregens.
@@ -85,6 +88,19 @@ pub fn ModulesPanel() -> impl IntoView {
                     None
                 }
             }
+        },
+    );
+
+    // Reference modules: lookup material, no install and no GM gate.
+    let reference = Resource::new(
+        move || (session_id.get(), installed_revision.get()),
+        |(sid, _)| async move {
+            if sid == 0 {
+                return Vec::new();
+            }
+            crate::server::modules_api::list_reference_modules(sid)
+                .await
+                .unwrap_or_default()
         },
     );
 
@@ -192,6 +208,16 @@ pub fn ModulesPanel() -> impl IntoView {
                 let text = status.get();
                 (!text.is_empty()).then(|| view! { <div class="modules-message">{text}</div> })
             }}
+
+            <Show when=move || matches!(tab.get(), Tab::Cards | Tab::Tables)>
+                <input
+                    class="modules-filter"
+                    type="text"
+                    placeholder="Filter by name or text"
+                    prop:value=filter
+                    on:input=move |ev| set_filter.set(event_target_value(&ev))
+                />
+            </Show>
 
             // Who gets pregens and dealt cards
             <Show when=move || matches!(tab.get(), Tab::Pregens | Tab::Cards)>
@@ -324,17 +350,43 @@ pub fn ModulesPanel() -> impl IntoView {
                         view! {
                             <Suspense fallback=|| ()>
                                 {move || {
-                                    let Some(Some(adv)) = adventure.get() else {
+                                    // The adventure's own gear, plus the item cards any
+                                    // reference module contributes, such as spellbooks.
+                                    let mut cards: Vec<(String, crate::modules::ItemDef)> = Vec::new();
+                                    if let Some(Some(adv)) = adventure.get() {
+                                        let id = adv.summary.id.clone();
+                                        cards
+                                            .extend(adv.items.iter().map(|i| (id.clone(), i.clone())));
+                                    }
+                                    for module in reference.get().unwrap_or_default() {
+                                        let id = module.summary.id.clone();
+                                        cards
+                                            .extend(
+                                                module.items.iter().map(|i| (id.clone(), i.clone())),
+                                            );
+                                    }
+
+                                    let needle = filter.get().trim().to_lowercase();
+                                    if !needle.is_empty() {
+                                        cards
+                                            .retain(|(_, i)| {
+                                                i.name.to_lowercase().contains(&needle)
+                                                    || i.bonus.to_lowercase().contains(&needle)
+                                                    || i.kind.to_lowercase().contains(&needle)
+                                            });
+                                    }
+
+                                    if cards.is_empty() {
                                         return view! {
-                                            <p class="modules-empty">"No adventure installed."</p>
+                                            <p class="modules-empty">"No item cards to show."</p>
                                         }
                                             .into_any();
-                                    };
-                                    let module_id = adv.summary.id.clone();
-                                    adv.items
+                                    }
+
+                                    cards
                                         .iter()
-                                        .map(|item| {
-                                            let art = crate::modules::asset_url(&module_id, &item.art);
+                                        .map(|(module_id, item)| {
+                                            let art = crate::modules::asset_url(module_id, &item.art);
                                             let name = item.name.clone();
                                             let description = item.note.clone();
                                             let kind = item.kind.clone();
@@ -489,6 +541,24 @@ pub fn ModulesPanel() -> impl IntoView {
                                     {
                                         tables.extend(adv.tables.iter().cloned());
                                     }
+                                    for module in reference.get().unwrap_or_default() {
+                                        tables.extend(module.tables.iter().cloned());
+                                    }
+
+                                    // A d666 spell table is 216 rows; narrow it first.
+                                    let needle = filter.get().trim().to_lowercase();
+                                    if !needle.is_empty() {
+                                        for table in &mut tables {
+                                            table
+                                                .entries
+                                                .retain(|e| {
+                                                    e.text.to_lowercase().contains(&needle)
+                                                        || e.key.to_lowercase().contains(&needle)
+                                                });
+                                        }
+                                        tables.retain(|t| !t.entries.is_empty());
+                                    }
+
                                     if tables.is_empty() {
                                         return view! {
                                             <p class="modules-empty">"No tables in the installed modules."</p>
@@ -577,14 +647,17 @@ fn ModuleCard(
     let kind = match summary.kind {
         ModuleKind::System => "SYSTEM",
         ModuleKind::Adventure => "ADVENTURE",
+        ModuleKind::Reference => "REFERENCE",
     };
+    // Reference modules are lookup material: always available, never installed.
+    let installable = summary.kind != ModuleKind::Reference;
 
     view! {
         <div class="module-entry module-card">
             <div class="module-entry-head">
                 <strong>{summary.name.clone()}</strong>
                 <span class="module-entry-tag">{kind}</span>
-                <Show when=move || is_gm.get()>
+                <Show when=move || is_gm.get() && installable>
                     {
                         let id = id.clone();
                         view! {
