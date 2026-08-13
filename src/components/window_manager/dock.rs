@@ -431,7 +431,8 @@ pub(super) fn Dock() -> impl IntoView {
                 }
                 style="cursor: pointer;"
             >
-                <span class="dock-tile-icon">{"\u{1f6e1}"}</span>
+                // 🛠️ hammer and wrench: this tile opens Settings.
+                <span class="dock-tile-icon">{"\u{1f6e0}\u{fe0f}"}</span>
                 <span class="dock-tile-label">"WebRPG"</span>
             </div>
 

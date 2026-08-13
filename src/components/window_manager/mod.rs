@@ -101,7 +101,7 @@ impl WindowId {
             WindowId::Terminal => "\u{1f4bb}",            // 💻 personal computer
             WindowId::FileBrowser => "\u{1f4c2}",         // 📂 open file folder
             WindowId::HelpViewer => "\u{1f4d6}",          // 📖 open book
-            WindowId::Modules => "\u{1f3b2}",             // 🎲 game die
+            WindowId::Modules => "\u{1f4e6}",             // 📦 package
             WindowId::CharacterEditor(_) => "\u{1f4dc}",  // 📜 scroll
             WindowId::FileBrowserExtra(_) => "\u{1f4c2}", // 📂 open file folder
         }

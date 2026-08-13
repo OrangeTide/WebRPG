@@ -3510,3 +3510,43 @@ h1, h2, h3, h4 {
     width: 100%;
     font-size: 0.78rem;
 }
+
+/* Installed-state cues in the module library */
+.module-card.installed {
+    border-color: var(--color-accent);
+}
+
+.module-installed-badge {
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    padding: 0.05em 0.4em;
+    border-radius: 3px;
+    background: var(--color-accent);
+    color: #fff;
+}
+
+.modules-status-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+}
+
+.modules-status-label {
+    min-width: 5em;
+    color: var(--color-text-dim);
+}
+
+.modules-status-value {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.modules-status-none {
+    color: var(--color-text-dim);
+    font-style: italic;
+}
+
+.btn-add:disabled {
+    opacity: 0.45;
+    cursor: default;
+}

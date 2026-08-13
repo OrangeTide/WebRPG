@@ -37,6 +37,8 @@ pub fn ModulesPanel() -> impl IntoView {
     let (filter, set_filter) = signal(String::new());
     // Bumped after an install so the content resources refetch.
     let installed_revision = RwSignal::new(0u32);
+    // Module id currently being installed, if any.
+    let installing = RwSignal::new(Option::<String>::None);
     // Who receives dealt cards and pregens.
     let (deal_to, set_deal_to) = signal(Option::<i32>::None);
 
@@ -118,9 +120,17 @@ pub fn ModulesPanel() -> impl IntoView {
 
     let install = move |module_id: String| {
         let sid = session_id.get();
+        // One install at a time. Installing is several writes, and a second
+        // click before the first returns interleaves them.
+        if installing.get().is_some() {
+            return;
+        }
+        installing.set(Some(module_id.clone()));
         set_status.set(format!("Installing {module_id}..."));
         leptos::task::spawn_local(async move {
-            match crate::server::modules_api::install_module(sid, module_id).await {
+            let result = crate::server::modules_api::install_module(sid, module_id).await;
+            installing.set(None);
+            match result {
                 Ok(report) => {
                     let mut parts = vec![format!("Installed {}", report.module_name)];
                     if report.creatures_added > 0 {
@@ -196,12 +206,26 @@ pub fn ModulesPanel() -> impl IntoView {
             <div class="modules-status">
                 {move || {
                     let m = modules.get();
-                    let system = m.system.map(|s| s.name).unwrap_or("no system".to_string());
-                    let adventure = m
-                        .adventure
-                        .map(|a| a.name)
-                        .unwrap_or("no adventure".to_string());
-                    format!("{system} - {adventure}")
+                    let system = m.system.map(|s| s.name);
+                    let adventure = m.adventure.map(|a| a.name);
+                    view! {
+                        <div class="modules-status-row">
+                            <span class="modules-status-label">"System"</span>
+                            <span class=move || {
+                                if system.is_some() { "modules-status-value" } else { "modules-status-none" }
+                            }>{system.clone().unwrap_or("not installed".to_string())}</span>
+                        </div>
+                        <div class="modules-status-row">
+                            <span class="modules-status-label">"Adventure"</span>
+                            <span class=move || {
+                                if adventure.is_some() {
+                                    "modules-status-value"
+                                } else {
+                                    "modules-status-none"
+                                }
+                            }>{adventure.clone().unwrap_or("not installed".to_string())}</span>
+                        </div>
+                    }
                 }}
             </div>
             {move || {
@@ -264,12 +288,25 @@ pub fn ModulesPanel() -> impl IntoView {
                                                 }
                                                     .into_any();
                                             }
+                                            // Which of these the session is already running.
+                                            let session_modules = modules.get();
+                                            let installed_ids: Vec<String> = [
+                                                session_modules.system.map(|s| s.id),
+                                                session_modules.adventure.map(|a| a.id),
+                                            ]
+                                                .into_iter()
+                                                .flatten()
+                                                .collect();
+
                                             list.into_iter()
                                                 .map(|summary| {
+                                                    let installed = installed_ids.contains(&summary.id);
                                                     view! {
                                                         <ModuleCard
                                                             summary=summary
                                                             is_gm=is_gm
+                                                            installed=installed
+                                                            installing=installing
                                                             on_install=Callback::new(move |id: String| install(id))
                                                         />
                                                     }
@@ -636,14 +673,22 @@ pub fn ModulesPanel() -> impl IntoView {
     }
 }
 
-/// One module in the library list, with what it is and who wrote it.
+/// One module in the library list, with what it is, who wrote it, and whether
+/// this session is running it.
 #[component]
 fn ModuleCard(
     summary: ModuleSummary,
     is_gm: RwSignal<bool>,
+    /// Whether the session is already running this module.
+    installed: bool,
+    /// Module id currently being installed, so the buttons can go quiet.
+    installing: RwSignal<Option<String>>,
     on_install: Callback<String>,
 ) -> impl IntoView {
     let id = summary.id.clone();
+    // Stored rather than captured directly so the label and disabled closures
+    // stay Copy, which the view macro needs to call them more than once.
+    let busy_id = StoredValue::new(summary.id.clone());
     let kind = match summary.kind {
         ModuleKind::System => "SYSTEM",
         ModuleKind::Adventure => "ADVENTURE",
@@ -652,17 +697,41 @@ fn ModuleCard(
     // Reference modules are lookup material: always available, never installed.
     let installable = summary.kind != ModuleKind::Reference;
 
+    // Reinstalling is worth keeping: it refreshes a template after the sheet
+    // JSON is edited, and puts back content that was deleted from the session.
+    let busy = move || installing.get().is_some();
+    let this_one_busy =
+        move || busy_id.with_value(|id| installing.get().as_deref() == Some(id.as_str()));
+    let label = move || {
+        if this_one_busy() {
+            "Installing..."
+        } else if installed {
+            "Reinstall"
+        } else {
+            "Install"
+        }
+    };
+
     view! {
-        <div class="module-entry module-card">
+        <div class="module-entry module-card" class:installed=installed>
             <div class="module-entry-head">
                 <strong>{summary.name.clone()}</strong>
                 <span class="module-entry-tag">{kind}</span>
+                {installed
+                    .then(|| view! { <span class="module-installed-badge">"INSTALLED"</span> })}
+                {(!installable)
+                    .then(|| view! { <span class="module-installed-badge">"ALWAYS ON"</span> })}
                 <Show when=move || is_gm.get() && installable>
                     {
                         let id = id.clone();
                         view! {
-                            <button class="btn-add" on:click=move |_| on_install.run(id.clone())>
-                                "Install"
+                            <button
+                                class="btn-add"
+                                class:busy=this_one_busy
+                                disabled=busy
+                                on:click=move |_| on_install.run(id.clone())
+                            >
+                                {label}
                             </button>
                         }
                     }
