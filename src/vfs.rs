@@ -738,6 +738,19 @@ fn scope_ids(filter: &DriveFilter) -> (Option<i32>, Option<i32>) {
     }
 }
 
+/// Escape the SQL `LIKE` metacharacters in a literal string.
+///
+/// Path components may legally contain `%` and `_`, and `_` is common in
+/// filenames. Unescaped, `LIKE '/my_dir/%'` also matches `/myXdir/`, which
+/// means a prefix query silently reaches into unrelated directories. Every
+/// prefix query pairs this with `.escape('\\')`.
+#[cfg(feature = "ssr")]
+pub fn like_escape(s: &str) -> String {
+    s.replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_")
+}
+
 /// Delete rows matching a drive scope and path.
 #[cfg(feature = "ssr")]
 fn scoped_delete_path(
@@ -778,14 +791,22 @@ fn scoped_delete_prefix(
             vfs_files::table
                 .filter(vfs_files::drive.eq(drive_str))
                 .filter(vfs_files::session_id.eq(*sid))
-                .filter(vfs_files::path.like(format!("{prefix}%"))),
+                .filter(
+                    vfs_files::path
+                        .like(format!("{}%", like_escape(prefix)))
+                        .escape('\\'),
+                ),
         )
         .execute(conn),
         DriveFilter::User(uid) => diesel::delete(
             vfs_files::table
                 .filter(vfs_files::drive.eq(drive_str))
                 .filter(vfs_files::user_id.eq(*uid))
-                .filter(vfs_files::path.like(format!("{prefix}%"))),
+                .filter(
+                    vfs_files::path
+                        .like(format!("{}%", like_escape(prefix)))
+                        .escape('\\'),
+                ),
         )
         .execute(conn),
     }
@@ -955,7 +976,11 @@ pub fn vfs_list(
     };
 
     let files: Vec<VfsFile> = scoped_query(drive.as_str(), &filter)
-        .filter(vfs_files::path.like(format!("{}%", prefix)))
+        .filter(
+            vfs_files::path
+                .like(format!("{}%", like_escape(&prefix)))
+                .escape('\\'),
+        )
         .order(vfs_files::path.asc())
         .load(conn)
         .map_err(|e| VfsError::DatabaseError(e.to_string()))?;
@@ -1404,7 +1429,11 @@ fn scoped_dir_is_empty(
 ) -> Result<bool, VfsError> {
     let prefix = format!("{}/", path);
     let children: i64 = scoped_query(drive.as_str(), filter)
-        .filter(vfs_files::path.like(format!("{prefix}%")))
+        .filter(
+            vfs_files::path
+                .like(format!("{}%", like_escape(&prefix)))
+                .escape('\\'),
+        )
         .count()
         .get_result(conn)
         .map_err(|e| VfsError::DatabaseError(e.to_string()))?;
@@ -1512,7 +1541,11 @@ pub fn vfs_rename(
 
         // Fetch all descendants
         let descendants: Vec<VfsFile> = scoped_query(drive_str, &filter)
-            .filter(vfs_files::path.like(format!("{}%", old_prefix)))
+            .filter(
+                vfs_files::path
+                    .like(format!("{}%", like_escape(&old_prefix)))
+                    .escape('\\'),
+            )
             .load(conn)
             .map_err(|e| VfsError::DatabaseError(e.to_string()))?;
 
@@ -2200,6 +2233,40 @@ mod tests {
                 vfs_stat(&mut conn, &scope, Drive::U, "/empty"),
                 Err(VfsError::NotFound(_))
             ));
+        }
+
+        #[test]
+        fn underscore_in_a_name_is_not_a_wildcard() {
+            let mut conn = test_db();
+            let scope = user_scope();
+            // `_` matches any character in SQL LIKE, so an unescaped prefix
+            // query for /a_b also reaches into /axb.
+            for dir in ["/a_b", "/axb"] {
+                vfs_mkdir(&mut conn, &scope, Drive::U, dir, 1, false).unwrap();
+                let file = format!("{dir}/f.txt");
+                vfs_write(
+                    &mut conn,
+                    &scope,
+                    Drive::U,
+                    &file,
+                    b"x",
+                    None,
+                    None,
+                    1,
+                    false,
+                )
+                .unwrap();
+            }
+
+            // Listing one directory must not show the other's contents.
+            let listed = vfs_list(&mut conn, &scope, Drive::U, "/a_b").unwrap();
+            assert_eq!(listed.len(), 1);
+            assert_eq!(listed[0].path, "/a_b/f.txt");
+
+            // Nor may deleting it take the other's contents with it.
+            vfs_delete_recursive(&mut conn, &scope, Drive::U, "/a_b").unwrap();
+            assert!(vfs_stat(&mut conn, &scope, Drive::U, "/axb/f.txt").is_ok());
+            assert!(vfs_stat(&mut conn, &scope, Drive::U, "/axb").is_ok());
         }
 
         #[test]

@@ -1515,7 +1515,13 @@ pub async fn list_media_tags(prefix: Option<String>) -> Result<Vec<String>, Serv
         .into_boxed();
 
     if let Some(ref p) = prefix {
-        query = query.filter(media_tags::tag.like(format!("{p}%")));
+        // The prefix is typed by a user, so `%` and `_` in it must match
+        // themselves rather than act as wildcards.
+        query = query.filter(
+            media_tags::tag
+                .like(format!("{}%", crate::vfs::like_escape(p)))
+                .escape('\\'),
+        );
     }
 
     let tags: Vec<String> = query
