@@ -2027,6 +2027,31 @@ pub async fn vfs_delete_file(
     Ok(())
 }
 
+/// Delete a file, or a directory and everything beneath it.
+///
+/// The file browser deletes folders this way, the way a file manager does.
+/// COMMAND.COM's RMDIR uses [`vfs_delete_file`] instead, which refuses a
+/// non-empty directory.
+#[server]
+pub async fn vfs_delete_tree(
+    drive: String,
+    path: String,
+    session_id: Option<i32>,
+) -> Result<(), ServerFnError> {
+    use crate::vfs;
+
+    let (mut conn, drive, scope, _user_id) = vfs_auth_scope(&drive, session_id).await?;
+    let conn = &mut conn;
+    let parsed = vfs::VfsPath::parse(&format!("{}:{}", drive.letter(), path))
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    vfs::vfs_delete_recursive(conn, &scope, drive, &parsed.path)
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    vfs_broadcast(session_id, &parsed.path, "delete");
+    Ok(())
+}
+
 /// Rename or move a file/directory within the same drive.
 #[server]
 pub async fn vfs_rename_file(

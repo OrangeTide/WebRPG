@@ -1477,7 +1477,9 @@ async fn delete_entry(
 
     let sid = path.drive.session_id(session_id);
 
-    crate::server::api::vfs_delete_file(path.drive.as_str().to_string(), path.path.clone(), sid)
+    // A file manager discards a folder with its contents; the terminal's RMDIR
+    // is the one that insists on an empty directory.
+    crate::server::api::vfs_delete_tree(path.drive.as_str().to_string(), path.path.clone(), sid)
         .await
         .map_err(|e| e.to_string())
 }

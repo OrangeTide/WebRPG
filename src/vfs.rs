@@ -765,7 +765,7 @@ fn scoped_delete_path(
 }
 
 /// Delete all entries whose path starts with the given prefix (e.g. `"/dir/"`).
-/// Used by [`vfs_delete`] for recursive directory removal.
+/// Used by [`vfs_delete_recursive`] for recursive directory removal.
 #[cfg(feature = "ssr")]
 fn scoped_delete_prefix(
     conn: &mut diesel::SqliteConnection,
@@ -1374,7 +1374,70 @@ pub fn vfs_delete(
 
     let filter = scope.scope_for_drive(drive)?;
 
-    // If directory, recursively delete all descendants first
+    // A directory has to be empty, the way rmdir(2) and RMDIR both work. The
+    // file browser deletes trees through vfs_delete_recursive instead, so that
+    // discarding a whole subtree is always something the caller asked for.
+    if entry.is_directory && !scoped_dir_is_empty(conn, drive, &filter, path)? {
+        return Err(VfsError::DirectoryNotEmpty(format!(
+            "{}:{}",
+            drive.letter(),
+            path
+        )));
+    }
+
+    let deleted = scoped_delete_path(conn, drive.as_str(), &filter, path)
+        .map_err(|e| VfsError::DatabaseError(e.to_string()))?;
+
+    if deleted == 0 {
+        return Err(VfsError::NotFound(format!("{}:{}", drive.letter(), path)));
+    }
+    Ok(())
+}
+
+/// Whether a directory has no entries under it.
+#[cfg(feature = "ssr")]
+fn scoped_dir_is_empty(
+    conn: &mut diesel::SqliteConnection,
+    drive: Drive,
+    filter: &DriveFilter,
+    path: &str,
+) -> Result<bool, VfsError> {
+    let prefix = format!("{}/", path);
+    let children: i64 = scoped_query(drive.as_str(), filter)
+        .filter(vfs_files::path.like(format!("{prefix}%")))
+        .count()
+        .get_result(conn)
+        .map_err(|e| VfsError::DatabaseError(e.to_string()))?;
+    Ok(children == 0)
+}
+
+/// Delete a file, or a directory and everything beneath it.
+///
+/// This is what a file manager does when you discard a folder. Callers that
+/// want the safer behaviour, where a non-empty directory is refused, want
+/// [`vfs_delete`].
+///
+/// Permission is checked on the directory itself, not on each descendant, so a
+/// caller able to delete a directory can discard what is inside it.
+#[cfg(feature = "ssr")]
+pub fn vfs_delete_recursive(
+    conn: &mut diesel::SqliteConnection,
+    scope: &VfsScope,
+    drive: Drive,
+    path: &str,
+) -> Result<(), VfsError> {
+    let entry = vfs_stat(conn, scope, drive, path)?;
+
+    if !check_permission(entry.mode, scope.is_gm, scope.is_player, MODE_OTHER_W) {
+        return Err(VfsError::PermissionDenied(format!(
+            "{}:{}",
+            drive.letter(),
+            path
+        )));
+    }
+
+    let filter = scope.scope_for_drive(drive)?;
+
     if entry.is_directory {
         let prefix = format!("{}/", path);
         scoped_delete_prefix(conn, drive.as_str(), &filter, &prefix)
@@ -2120,6 +2183,60 @@ mod tests {
                 vfs_delete(&mut conn, &scope, Drive::U, "/stuff"),
                 Err(VfsError::DirectoryNotEmpty(_))
             ));
+
+            // Refusing must not have deleted anything on the way.
+            assert!(vfs_stat(&mut conn, &scope, Drive::U, "/stuff/f.txt").is_ok());
+            assert!(vfs_stat(&mut conn, &scope, Drive::U, "/stuff").is_ok());
+        }
+
+        #[test]
+        fn delete_empty_dir_succeeds() {
+            let mut conn = test_db();
+            let scope = user_scope();
+            vfs_mkdir(&mut conn, &scope, Drive::U, "/empty", 1, false).unwrap();
+
+            vfs_delete(&mut conn, &scope, Drive::U, "/empty").unwrap();
+            assert!(matches!(
+                vfs_stat(&mut conn, &scope, Drive::U, "/empty"),
+                Err(VfsError::NotFound(_))
+            ));
+        }
+
+        #[test]
+        fn delete_recursive_removes_the_whole_tree() {
+            let mut conn = test_db();
+            let scope = user_scope();
+            vfs_mkdir(&mut conn, &scope, Drive::U, "/tree", 1, false).unwrap();
+            vfs_mkdir(&mut conn, &scope, Drive::U, "/tree/inner", 1, false).unwrap();
+            for path in ["/tree/a.txt", "/tree/inner/b.txt"] {
+                vfs_write(
+                    &mut conn,
+                    &scope,
+                    Drive::U,
+                    path,
+                    b"x",
+                    None,
+                    None,
+                    1,
+                    false,
+                )
+                .unwrap();
+            }
+            // A sibling that merely shares a name prefix must survive.
+            vfs_mkdir(&mut conn, &scope, Drive::U, "/treehouse", 1, false).unwrap();
+
+            vfs_delete_recursive(&mut conn, &scope, Drive::U, "/tree").unwrap();
+
+            for path in ["/tree", "/tree/a.txt", "/tree/inner", "/tree/inner/b.txt"] {
+                assert!(
+                    matches!(
+                        vfs_stat(&mut conn, &scope, Drive::U, path),
+                        Err(VfsError::NotFound(_))
+                    ),
+                    "{path} should be gone"
+                );
+            }
+            assert!(vfs_stat(&mut conn, &scope, Drive::U, "/treehouse").is_ok());
         }
 
         #[test]
