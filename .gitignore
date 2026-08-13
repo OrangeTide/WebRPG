@@ -3,6 +3,7 @@
 /.env
 /.agents
 database.db
+database.db.*.bak
 *.pem
 /testing
 /uploads
