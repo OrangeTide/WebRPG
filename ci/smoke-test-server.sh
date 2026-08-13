@@ -98,13 +98,29 @@ if [ -z "$SUFFIX" ]; then
 fi
 
 # Leptos hashes server function URLs per function, so a function's suffix is
-# not always the one signup got. Look each one up in the WASM, and fall back to
-# the signup suffix when the name is not found there.
+# not always the one signup got. Look each one up in the WASM.
+#
+# A missing name means the bundle is older than the function, and the checks
+# that follow would test nothing: an unknown /api/ path falls through to the
+# SPA handler, which answers 200 with HTML. Fail loudly instead.
 fn_url() {
     local name="$1" found
     found=$(strings target/site/pkg/webrpg.wasm 2>/dev/null \
         | grep -oP "(?<=/api/${name})\d+" | head -1)
-    printf '%s/api/%s%s' "$BASE" "$name" "${found:-$SUFFIX}"
+    if [ -z "$found" ]; then
+        echo "FAIL: server fn '$name' not found in the WASM bundle; rebuild with cargo leptos build" >&2
+        exit 1
+    fi
+    printf '%s/api/%s%s' "$BASE" "$name" "$found"
+}
+
+# A server function answered, rather than the SPA fallback returning a page.
+# Server functions reply with JSON; the fallback replies with HTML.
+not_html() {
+    case "$1" in
+    "<"*) return 1 ;;
+    *) return 0 ;;
+    esac
 }
 
 echo ""
@@ -283,6 +299,60 @@ check "Serve module card art (200)" "$([ "$ASSET_CODE" = "200" ] && echo 0 || ec
 ASSET_TRAVERSAL=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/modules/tunnel-goons/assets/../module.json")
 check "Module asset traversal refused" \
     "$([ "$ASSET_TRAVERSAL" != "200" ] && echo 0 || echo 1)"
+
+echo ""
+echo "=== Virtual file system ==="
+
+# U: is the per-user drive, so these need no session id.
+MKDIR_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url vfs_mkdir_dir)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data 'drive=U&path=/smoke')
+check "Create directory on U:" "$(not_html "$MKDIR_RESP" && echo 0 || echo 1)"
+
+# Put a file in it directly, so the check does not depend on how the write
+# endpoint encodes its bytes.
+SMOKE_UID=$(sqlite3 "$TMPDB" "SELECT id FROM users WHERE username = 'smoketest';")
+sqlite3 "$TMPDB" "
+INSERT INTO vfs_files (drive, session_id, user_id, path, is_directory, size_bytes,
+                       content_type, inline_data, modified_by, created_at, updated_at, mode)
+SELECT 'U', NULL, $SMOKE_UID, '/smoke/f.txt', 0, 1, 'text/plain', X'78', $SMOKE_UID,
+       strftime('%s','now'), strftime('%s','now'), mode
+FROM vfs_files WHERE drive = 'U' AND user_id = $SMOKE_UID AND path = '/smoke';"
+
+LIST_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url vfs_list_dir)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data 'drive=U&path=/smoke')
+check "List directory shows the file" \
+    "$(echo "$LIST_RESP" | grep -q '/smoke/f.txt' && echo 0 || echo 1)"
+
+# RMDIR semantics: a non-empty directory is refused, and nothing is removed.
+RMDIR_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url vfs_delete_file)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data 'drive=U&path=/smoke')
+check "Deleting a non-empty directory is refused" \
+    "$(echo "$RMDIR_RESP" | grep -qi 'not empty' && echo 0 || echo 1)"
+
+SURVIVED=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM vfs_files WHERE drive='U' AND user_id=$SMOKE_UID AND path LIKE '/smoke%';")
+check "Refused delete left the tree intact (2 rows)" \
+    "$([ "$SURVIVED" -eq 2 ] && echo 0 || echo 1)"
+
+# The file browser's delete: the folder and its contents go together.
+TREE_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url vfs_delete_tree)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data 'drive=U&path=/smoke')
+check "Recursive delete succeeds" "$(not_html "$TREE_RESP" && echo 0 || echo 1)"
+
+REMAINING=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM vfs_files WHERE drive='U' AND user_id=$SMOKE_UID AND path LIKE '/smoke%';")
+check "Recursive delete removed the whole tree" \
+    "$([ "$REMAINING" -eq 0 ] && echo 0 || echo 1)"
 
 echo ""
 echo "=== Game page ==="
