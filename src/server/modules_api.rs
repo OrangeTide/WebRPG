@@ -423,14 +423,22 @@ async fn install_adventure(
         .get_result(conn)
         .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
 
-        let _ = diesel::update(maps::table.find(map_id))
+        // NewMap carries no cell size or background, so the map is created and
+        // then adjusted. If that second step fails the map exists but is wrong,
+        // which the GM needs told rather than counted as a success.
+        match diesel::update(maps::table.find(map_id))
             .set((
                 maps::cell_size.eq(map_def.cell_size.clamp(10, 200)),
                 maps::background_url.eq(&background_url),
             ))
-            .execute(conn);
-
-        report.maps_added += 1;
+            .execute(conn)
+        {
+            Ok(_) => report.maps_added += 1,
+            Err(e) => report.warnings.push(format!(
+                "Map {} was created but its grid and background could not be set: {e}",
+                map_def.name
+            )),
+        }
     }
 
     diesel::update(sessions::table.find(session_id))
@@ -601,63 +609,70 @@ pub async fn create_character_from_pregen(
 
     let char_name = name.unwrap_or_else(|| pregen.name.clone());
 
-    diesel::insert_into(characters::table)
-        .values(&NewCharacter {
-            session_id,
-            user_id: user.id,
-            name: &char_name,
-            data_json: &data_str,
-        })
-        .execute(conn)
-        .map_err(|e| ServerFnError::new(format!("Failed to create character: {e}")))?;
-
-    let char_id: i32 = diesel::select(diesel::dsl::sql::<diesel::sql_types::Integer>(
-        "last_insert_rowid()",
-    ))
-    .get_result(conn)
-    .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
-
     let hp_max = data.get("hp_max").and_then(|v| v.as_i64()).unwrap_or(10) as i32;
-    diesel::insert_into(character_resources::table)
-        .values(&NewCharacterResource {
-            character_id: char_id,
-            name: "HP",
-            current_value: hp_max,
-            max_value: hp_max,
+
+    // The character, its HP, and its gear go in together or not at all. A
+    // half-created pregen is worse than a failure the player can retry:
+    // a sheet with no HP bar, or a goon missing the items its hooks assume.
+    let char_id = conn
+        .transaction::<i32, diesel::result::Error, _>(|conn| {
+            diesel::insert_into(characters::table)
+                .values(&NewCharacter {
+                    session_id,
+                    user_id: user.id,
+                    name: &char_name,
+                    data_json: &data_str,
+                })
+                .execute(conn)?;
+
+            let char_id: i32 = diesel::select(diesel::dsl::sql::<diesel::sql_types::Integer>(
+                "last_insert_rowid()",
+            ))
+            .get_result(conn)?;
+
+            diesel::insert_into(character_resources::table)
+                .values(&NewCharacterResource {
+                    character_id: char_id,
+                    name: "HP",
+                    current_value: hp_max,
+                    max_value: hp_max,
+                })
+                .execute(conn)?;
+
+            for item in &pregen.items {
+                let card = adventure
+                    .items
+                    .iter()
+                    .find(|i| i.name.eq_ignore_ascii_case(&item.name));
+                let slots = card.map(|c| c.slots).unwrap_or(1);
+                let kind = card.map(|c| c.kind.as_str()).unwrap_or("gear");
+                let uses = card.and_then(|c| c.uses);
+                let bonus = if item.bonus.is_empty() {
+                    card.map(|c| c.bonus.as_str()).unwrap_or("")
+                } else {
+                    item.bonus.as_str()
+                };
+
+                diesel::insert_into(inventory_items::table)
+                    .values(&NewInventoryItem {
+                        session_id,
+                        name: &item.name,
+                        description: card.map(|c| c.note.as_str()).unwrap_or(""),
+                        quantity: 1,
+                        is_party_item: false,
+                        owner_character_id: Some(char_id),
+                        slots,
+                        kind,
+                        bonus,
+                        uses_max: uses,
+                        uses_left: uses,
+                    })
+                    .execute(conn)?;
+            }
+
+            Ok(char_id)
         })
-        .execute(conn)
-        .map_err(|e| ServerFnError::new(format!("Failed to create resource: {e}")))?;
-
-    for item in &pregen.items {
-        let card = adventure
-            .items
-            .iter()
-            .find(|i| i.name.eq_ignore_ascii_case(&item.name));
-        let slots = card.map(|c| c.slots).unwrap_or(1);
-        let kind = card.map(|c| c.kind.as_str()).unwrap_or("gear");
-        let uses = card.and_then(|c| c.uses);
-        let bonus = if item.bonus.is_empty() {
-            card.map(|c| c.bonus.as_str()).unwrap_or("")
-        } else {
-            item.bonus.as_str()
-        };
-
-        let _ = diesel::insert_into(inventory_items::table)
-            .values(&NewInventoryItem {
-                session_id,
-                name: &item.name,
-                description: card.map(|c| c.note.as_str()).unwrap_or(""),
-                quantity: 1,
-                is_party_item: false,
-                owner_character_id: Some(char_id),
-                slots,
-                kind,
-                bonus,
-                uses_max: uses,
-                uses_left: uses,
-            })
-            .execute(conn);
-    }
+        .map_err(|e| ServerFnError::new(format!("Failed to create character: {e}")))?;
 
     Ok(CharacterInfo {
         id: char_id,
