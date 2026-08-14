@@ -23,7 +23,12 @@ diesel migration run
 
 echo ""
 echo "=== Building server ==="
-cargo build --features ssr 2>&1
+# LEPTOS_OUTPUT_NAME must be set while compiling, not just while running: the
+# hydration script baked into the server names the wasm file from it, and
+# without it the page asks the browser for <name>_bg.wasm, which cargo-leptos
+# does not produce. A plain `cargo build` here would leave target/debug/webrpg
+# unable to hydrate any page it serves afterwards.
+LEPTOS_OUTPUT_NAME=webrpg cargo build --features ssr 2>&1
 
 echo ""
 echo "=== Starting server on port $PORT ==="

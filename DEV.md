@@ -88,20 +88,40 @@ For general development:
     rustup target add x86_64-unknown-linux-musl
     ```
   - Add `wasm32-unknown-unknown` target: `rustup target add wasm32-unknown-unknown`
-  - Install cargo leptos, version 0.3.7 or newer:
-    `cargo install --locked cargo-leptos`
+  - Install cargo leptos: `cargo install --locked cargo-leptos`
   - Install Diesel CLI tools: `cargo install diesel_cli --no-default-features --features sqlite`
 
-The cargo-leptos version matters, and an old one fails in a way that looks like
-an application bug rather than a build problem. With wasm-bindgen 0.2.108,
-cargo-leptos 0.3.5 emits a page that loads `/pkg/<name>_bg.wasm` while writing
-the file as `/pkg/<name>.wasm`. The request 404s, the module import fails, and
-`hydrate()` never runs, so the server renders pages correctly but nothing on
-them responds to a click. 0.3.7 passes an explicit `module_or_path` to the file
-it actually wrote.
+Use `--locked` when installing cargo-leptos. Resolving its dependencies afresh
+can pull crates that need a newer rustc than the toolchain this project builds
+with.
 
-Use `--locked` when installing. Resolving cargo-leptos's dependencies afresh can
-pull crates that need a newer rustc than the toolchain this project builds with.
+### Always build the server through cargo-leptos
+
+`cargo leptos serve` and `cargo leptos build` set `LEPTOS_OUTPUT_NAME` while
+compiling, and Leptos reads it **at compile time** to write the hydration
+script that every page carries. A server built with a plain
+`cargo build --features ssr` bakes in the wrong wasm file name: the page asks
+the browser for `/pkg/webrpg_bg.wasm`, which cargo-leptos never produces, so
+the fetch 404s, `hydrate()` never runs, and nothing on the page responds to a
+click.
+
+This is worth recognising because of how it presents. Pages render correctly,
+the server answers every request, `curl` against the API succeeds, and logging
+in even sets its cookie, because the form posts without any JavaScript. Only
+the parts that need the client are dead, which reads as broken UI code rather
+than a build problem.
+
+`cargo check --features ssr` and `cargo build --features ssr` are fine for
+compiling and for CI. Just do not serve from a binary they produced. If you
+need to run `./target/debug/webrpg` directly, build it with `cargo leptos build`
+first, or set the variable yourself:
+
+```sh
+LEPTOS_OUTPUT_NAME=webrpg cargo build --features ssr
+```
+
+`ci/smoke-test-server.sh` sets it for the same reason: it builds the server
+itself and would otherwise leave a binary behind that cannot hydrate.
 
 ### For AI (Claude, Gemini, etc) and MCP tools
 
