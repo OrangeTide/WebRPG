@@ -113,6 +113,9 @@ impl WindowId {
         match self {
             WindowId::Map => Some("map-viewer"),
             WindowId::FileBrowser | WindowId::FileBrowserExtra(_) => Some("file-viewer"),
+            // Modules contribute their own help pages, so point at the system
+            // module's: it explains the rolls and the cards the window deals.
+            WindowId::Modules => Some("tunnel-goons"),
             _ => None,
         }
     }

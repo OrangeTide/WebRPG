@@ -16,14 +16,16 @@ WebSockets.
 
 - Grid maps with fog of war and background images
 - Token placement with drag-and-drop movement and HP tracking
-- Dice rolling with `NdN+M` notation
+- Dice rolling with `NdN+M` notation, plus `d66`/`d666` table dice
 - Template-driven character sheets with resource tracking
 - Creature stat blocks (GM only)
 - Chat with dice roll integration
 - Initiative tracking with turn order
-- Party inventory management
+- Party and per-character inventory with slot-based encumbrance
 - Media upload and content-addressable storage
 - Multi-window UI with draggable, resizable panels
+- Game modules: RPG systems and adventures loaded from disk as data, with
+  Tunnel Goons and The Sky-Blind Spire included
 
 ## Screenshots
 

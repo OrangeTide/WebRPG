@@ -146,10 +146,20 @@ cargo test --features ssr
 ```
 
 Unit tests are co-located in their source files using `#[cfg(test)]` modules.
-Current test coverage includes:
+Current coverage:
 
 - **`auth.rs`** — JWT claims subject parsing (`parse_claims_sub`)
 - **`components/initiative.rs`** — drag-and-drop reorder index calculation (`reorder_index`)
+- **`vfs.rs`** — the bulk of them: path parsing and normalisation, permissions,
+  quota, and the database operations against an in-memory SQLite, including
+  that delete refuses a non-empty directory while the recursive form does not,
+  and that a name containing `_` is not treated as a SQL wildcard
+- **`modules/mod.rs`** — module id validation and asset URL resolution
+- **`server/ws_handler/chat.rs`** — dice parsing, including `d66`/`d666`
+- **`server/module_assets.rs`** — which file types a module may serve
+
+Endpoints are covered separately by `ci/smoke-test-server.sh`, which exercises
+the server functions over HTTP against a throwaway database.
 
 See [TODO.md](TODO.md) for planned additional tests.
 
