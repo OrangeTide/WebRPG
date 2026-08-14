@@ -1,8 +1,19 @@
 # Cairn spellbooks
 
-216 spells, as a d666 table and as spellbook item cards. This is reference
-material: it is always available in the module window, it is never installed,
-and there is nothing secret in it.
+Spells as tables and as spellbook item cards. This is reference material: it is
+always available in the module window, it is never installed, and there is
+nothing secret in it.
+
+Two lists:
+
+- **Spellbooks (d100)** — the 100 core spells from the Cairn 2e Warden's Guide.
+  Use this one by default.
+- **More spellbooks (d666)** — 216 community-contributed spells, of uneven
+  quality. Worth having when you want a spell nobody at the table recognises,
+  but read what you roll before you hand it over.
+
+Every spell in either list has a card. Where a spell appears in both, the card
+carries the core wording.
 
 ## How Cairn treats magic
 
@@ -17,13 +28,14 @@ working, name the book, and take the consequence when you miss.
 
 ## Rolling for a spellbook
 
-The table is d666: roll three d6 and read them in order, so 3, 1, 5 is entry
-315. Every combination of digits 1 through 6 is a spell, which is why there are
-exactly 216 of them.
+Roll when the party finds a spellbook and you have not decided what is in it.
+The module window's Tables tab has a Roll button for each list; then share the
+line you rolled to chat.
 
-Roll it when the party finds a spellbook and you have not decided what is in
-it. The module window's Tables tab has a Roll button, then share the line you
-rolled to chat.
+The core list is a plain d100. The community list is d666: roll three d6 and
+read them in order, so 3, 1, 5 is entry 315. Every combination of digits 1
+through 6 is a spell, which is why there are exactly 216 of them. Typing `d666`
+or `d100` in chat rolls them too.
 
 ## Dealing a spellbook
 

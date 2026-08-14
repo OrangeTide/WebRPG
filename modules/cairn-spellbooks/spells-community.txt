@@ -1,4 +1,8 @@
-# Cairn spell list, d666. One spell per line: key|name|description
+# Cairn community spell list, d666. One spell per line: key|name|description
+#
+# Secondary list: community-contributed spells of uneven quality, kept for
+# variety and for rolling up an unfamiliar spellbook. The core list in
+# spells-core.txt is the primary one.
 #
 # Source: https://cairnrpg.com/resources/more-spellbooks/ (CC BY-SA 4.0).
 # Edit this file, then run scripts/build-cairn-spells.sh to regenerate
