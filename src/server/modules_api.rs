@@ -228,6 +228,67 @@ pub async fn install_module(
     }
 }
 
+/// Detach a module from a session. GM only.
+///
+/// This unbinds, it does not erase. Creatures and maps an adventure seeded stay
+/// where they are, because by the time anyone uninstalls, the GM has likely
+/// edited a stat block or placed tokens on a map, and throwing that away to
+/// undo a menu click is not a trade worth making. Delete what you no longer
+/// want from the Creatures and Map windows.
+#[server]
+pub async fn uninstall_module(session_id: i32, module_id: String) -> Result<String, ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::Session;
+    use crate::schema::sessions;
+    use crate::server::api::get_current_user;
+    use diesel::prelude::*;
+
+    let user = get_current_user()
+        .await?
+        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
+    let conn = &mut db::get_conn();
+    require_gm(conn, session_id, user.id)?;
+
+    let session: Session = sessions::table
+        .find(session_id)
+        .select(Session::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Session not found"))?;
+
+    if session.system_module_id.as_deref() == Some(module_id.as_str()) {
+        // The template goes with it: it is the module's sheet schema, and
+        // leaving it bound would keep character sheets on a system the session
+        // no longer runs. Character data itself is untouched.
+        diesel::update(sessions::table.find(session_id))
+            .set((
+                sessions::system_module_id.eq(None::<String>),
+                sessions::template_id.eq(None::<i32>),
+            ))
+            .execute(conn)
+            .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
+
+        return Ok(format!(
+            "Removed {module_id}. Characters keep their sheets, but no system is bound now."
+        ));
+    }
+
+    if session.adventure_module_id.as_deref() == Some(module_id.as_str()) {
+        diesel::update(sessions::table.find(session_id))
+            .set(sessions::adventure_module_id.eq(None::<String>))
+            .execute(conn)
+            .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
+
+        return Ok(format!(
+            "Removed {module_id}. Its creatures and maps stay in the session; \
+             delete them from the Creatures and Map windows if you want them gone."
+        ));
+    }
+
+    Err(ServerFnError::new(format!(
+        "{module_id} is not installed in this session"
+    )))
+}
+
 /// Seed a system module's sheet schema and bind the session to it.
 #[cfg(feature = "ssr")]
 fn install_system(

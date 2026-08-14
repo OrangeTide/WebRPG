@@ -32,6 +32,8 @@ pub fn ModulesPanel() -> impl IntoView {
 
     let (tab, set_tab) = signal(Tab::Library);
     let (status, set_status) = signal(String::new());
+    // Identifies the current message so a pending expiry only clears its own.
+    let status_seq = RwSignal::new(0u32);
     // Card and table lists run to hundreds of entries once a spell reference is
     // present, so they need narrowing down.
     let (filter, set_filter) = signal(String::new());
@@ -118,6 +120,37 @@ pub fn ModulesPanel() -> impl IntoView {
         },
     );
 
+    // Report the result of an action, then retire it.
+    //
+    // This window stays open all session, so a line like "Created Pennywhistle"
+    // would otherwise sit in the header long after it stopped being true.
+    let notify = move |message: String| {
+        let seq = status_seq.get_untracked().wrapping_add(1);
+        status_seq.set(seq);
+        set_status.set(message);
+        // Only the browser has a clock worth setting here; the server renders
+        // the panel once and never sees the message expire.
+        #[cfg(feature = "hydrate")]
+        {
+            leptos::prelude::set_timeout(
+                move || {
+                    // Only clear if nothing else has been said since.
+                    if status_seq.get_untracked() == seq {
+                        set_status.set(String::new());
+                    }
+                },
+                std::time::Duration::from_secs(8),
+            );
+        }
+    };
+
+    // Switching tabs is a change of subject; whatever was reported no longer
+    // relates to what is on screen.
+    let clear_status = move || {
+        status_seq.update(|s| *s = s.wrapping_add(1));
+        set_status.set(String::new());
+    };
+
     let install = move |module_id: String| {
         let sid = session_id.get();
         // One install at a time. Installing is several writes, and a second
@@ -126,7 +159,7 @@ pub fn ModulesPanel() -> impl IntoView {
             return;
         }
         installing.set(Some(module_id.clone()));
-        set_status.set(format!("Installing {module_id}..."));
+        notify(format!("Installing {module_id}..."));
         leptos::task::spawn_local(async move {
             let result = crate::server::modules_api::install_module(sid, module_id).await;
             installing.set(None);
@@ -140,14 +173,36 @@ pub fn ModulesPanel() -> impl IntoView {
                         parts.push(format!("{} maps", report.maps_added));
                     }
                     parts.extend(report.warnings.iter().cloned());
-                    set_status.set(parts.join(". "));
+                    notify(parts.join(". "));
 
                     if let Ok(m) = crate::server::modules_api::get_session_modules(sid).await {
                         modules.set(m);
                     }
                     installed_revision.update(|r| *r += 1);
                 }
-                Err(e) => set_status.set(format!("Install failed: {e}")),
+                Err(e) => notify(format!("Install failed: {e}")),
+            }
+        });
+    };
+
+    let uninstall = move |module_id: String| {
+        let sid = session_id.get();
+        if installing.get().is_some() {
+            return;
+        }
+        installing.set(Some(module_id.clone()));
+        leptos::task::spawn_local(async move {
+            let result = crate::server::modules_api::uninstall_module(sid, module_id).await;
+            installing.set(None);
+            match result {
+                Ok(message) => {
+                    notify(message);
+                    if let Ok(m) = crate::server::modules_api::get_session_modules(sid).await {
+                        modules.set(m);
+                    }
+                    installed_revision.update(|r| *r += 1);
+                }
+                Err(e) => notify(format!("Remove failed: {e}")),
             }
         });
     };
@@ -193,7 +248,10 @@ pub fn ModulesPanel() -> impl IntoView {
                                 <button
                                     class="modules-tab"
                                     class:active=move || tab.get() == t
-                                    on:click=move |_| set_tab.set(t)
+                                    on:click=move |_| {
+                                        clear_status();
+                                        set_tab.set(t);
+                                    }
                                 >
                                     {label}
                                 </button>
@@ -308,6 +366,7 @@ pub fn ModulesPanel() -> impl IntoView {
                                                             installed=installed
                                                             installing=installing
                                                             on_install=Callback::new(move |id: String| install(id))
+                                                            on_uninstall=Callback::new(move |id: String| uninstall(id))
                                                         />
                                                     }
                                                 })
@@ -346,7 +405,7 @@ pub fn ModulesPanel() -> impl IntoView {
                                                 let module_id = module_id.clone();
                                                 let pregen_id = pregen_id.clone();
                                                 let revision = ctx.character_revision;
-                                                set_status.set("Creating character...".to_string());
+                                                notify("Creating character...".to_string());
                                                 leptos::task::spawn_local(async move {
                                                     match crate::server::modules_api::create_character_from_pregen(
                                                             sid,
@@ -357,10 +416,10 @@ pub fn ModulesPanel() -> impl IntoView {
                                                         .await
                                                     {
                                                         Ok(c) => {
-                                                            set_status.set(format!("Created {}", c.name));
+                                                            notify(format!("Created {}", c.name));
                                                             revision.update(|r| *r += 1);
                                                         }
-                                                        Err(e) => set_status.set(format!("Failed: {e}")),
+                                                        Err(e) => notify(format!("Failed: {e}")),
                                                     }
                                                 });
                                             };
@@ -368,7 +427,7 @@ pub fn ModulesPanel() -> impl IntoView {
                                                 <div class="module-entry">
                                                     <div class="module-entry-head">
                                                         <strong>{p.name.clone()}</strong>
-                                                        <button class="btn-add" on:click=take>"Play this one"</button>
+                                                        <button class="module-btn" on:click=take>"Play this one"</button>
                                                     </div>
                                                     <div class="module-entry-body">{p.summary.clone()}</div>
                                                     {(!items.is_empty())
@@ -455,7 +514,7 @@ pub fn ModulesPanel() -> impl IntoView {
                                                         <span class="module-entry-tag">
                                                             {format!("{} - {} slot(s)", item.kind, item.slots)}
                                                         </span>
-                                                        <button class="btn-add" on:click=deal>"Deal"</button>
+                                                        <button class="module-btn" on:click=deal>"Deal"</button>
                                                     </div>
                                                     {art
                                                         .map(|url| {
@@ -501,11 +560,11 @@ pub fn ModulesPanel() -> impl IntoView {
                                                 <div class="module-entry room-entry">
                                                     <div class="module-entry-head">
                                                         <strong>{format!("{}. {}", room.number, room.title)}</strong>
-                                                        <button class="btn-add" on:click=deal_card>"Deal card"</button>
+                                                        <button class="module-btn" on:click=deal_card>"Deal card"</button>
                                                         {has_read_aloud
                                                             .then(|| {
                                                                 view! {
-                                                                    <button class="btn-add" on:click=read>"Read aloud"</button>
+                                                                    <button class="module-btn" on:click=read>"Read aloud"</button>
                                                                 }
                                                             })}
                                                     </div>
@@ -617,7 +676,7 @@ pub fn ModulesPanel() -> impl IntoView {
                                                                 let label = table.die.clone();
                                                                 move || {
                                                                     view! {
-                                                                        <button class="btn-add" on:click=roll>
+                                                                        <button class="module-btn" on:click=roll>
                                                                             {format!("Roll {label}")}
                                                                         </button>
                                                                     }
@@ -647,7 +706,7 @@ pub fn ModulesPanel() -> impl IntoView {
                                                                     <span class="module-table-key">{entry.key.clone()}</span>
                                                                     <span class="module-table-text">{entry.text.clone()}</span>
                                                                     <button
-                                                                        class="btn-add"
+                                                                        class="module-btn"
                                                                         title="Post this line to chat"
                                                                         on:click=share
                                                                     >
@@ -684,8 +743,10 @@ fn ModuleCard(
     /// Module id currently being installed, so the buttons can go quiet.
     installing: RwSignal<Option<String>>,
     on_install: Callback<String>,
+    on_uninstall: Callback<String>,
 ) -> impl IntoView {
     let id = summary.id.clone();
+    let remove_id = summary.id.clone();
     // Stored rather than captured directly so the label and disabled closures
     // stay Copy, which the view macro needs to call them more than once.
     let busy_id = StoredValue::new(summary.id.clone());
@@ -724,15 +785,29 @@ fn ModuleCard(
                 <Show when=move || is_gm.get() && installable>
                     {
                         let id = id.clone();
+                        let remove_id = remove_id.clone();
                         view! {
                             <button
-                                class="btn-add"
+                                class="module-btn"
                                 class:busy=this_one_busy
                                 disabled=busy
                                 on:click=move |_| on_install.run(id.clone())
                             >
                                 {label}
                             </button>
+                            {installed
+                                .then(|| {
+                                    view! {
+                                        <button
+                                            class="module-btn"
+                                            disabled=busy
+                                            title="Unbind this module. Seeded creatures and maps stay."
+                                            on:click=move |_| on_uninstall.run(remove_id.clone())
+                                        >
+                                            "Remove"
+                                        </button>
+                                    }
+                                })}
                         }
                     }
                 </Show>

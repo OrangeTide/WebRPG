@@ -288,6 +288,28 @@ PREGEN_ITEMS=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM inventory_items WHERE sess
 check "Pregen gear dealt with slots ($PREGEN_ITEMS items)" \
     "$([ "$PREGEN_ITEMS" -gt 0 ] && echo 0 || echo 1)"
 
+UNINSTALL_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url uninstall_module)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}&module_id=sky-blind-spire")
+check "Uninstall reports what it did" \
+    "$(echo "$UNINSTALL_RESP" | grep -q 'sky-blind-spire' && echo 0 || echo 1)"
+
+UNBOUND=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM sessions WHERE id = $SESSION_ID AND adventure_module_id IS NULL;")
+check "Uninstall unbinds the adventure" "$([ "$UNBOUND" -eq 1 ] && echo 0 || echo 1)"
+
+# Unbinding must not throw away work: a GM may have edited these stat blocks.
+KEPT=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM creatures WHERE session_id = $SESSION_ID;")
+check "Uninstall keeps seeded creatures ($KEPT)" "$([ "$KEPT" -gt 0 ] && echo 0 || echo 1)"
+
+# Put it back so the checks below still have an adventure to read.
+curl -s -b "$COOKIES" -o /dev/null \
+    -X POST "$(fn_url install_module)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}&module_id=sky-blind-spire"
+
 REFERENCE_RESP=$(curl -s -b "$COOKIES" \
     -X POST "$(fn_url list_reference_modules)" \
     -H 'Content-Type: application/x-www-form-urlencoded' \

@@ -3546,7 +3546,34 @@ h1, h2, h3, h4 {
     font-style: italic;
 }
 
-.btn-add:disabled {
+/* Labelled buttons inside the module window.
+ *
+ * These carry words ("Install", "Deal card", "Roll d6"), so they cannot borrow
+ * .btn-add, which is a 28px circle sized for a single "+" glyph: the label
+ * overflowed it. A plain rectangle takes a label without fuss. */
+.module-btn {
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1.4;
+    padding: 0.2em 0.6em;
+    white-space: nowrap;
+    border-radius: 3px;
+    background: var(--color-btn-bg);
+    border: 1px solid var(--color-btn-border);
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.module-btn:hover:not(:disabled) {
+    background: var(--color-btn-border);
+}
+
+.module-btn:disabled {
     opacity: 0.45;
     cursor: default;
+}
+
+/* Installing: hold the button's width steady while the label changes. */
+.module-btn.busy {
+    font-style: italic;
 }
