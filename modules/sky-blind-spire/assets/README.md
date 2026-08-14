@@ -7,9 +7,29 @@ That licence is not compatible with this repository's MIT-0 licence, so the
 module's art is not committed here. The maps still install; they come up as
 empty grids and the GM attaches the background.
 
-To complete the maps, download the one-page PDF and its art from
-<https://blog.trilemma.com/2016/04/the-sky-blind-spire.html> and drop the
-images in this directory under the names `maps.json` expects:
+To complete the maps, run:
+
+```sh
+scripts/fetch-spire-assets.sh
+```
+
+That downloads the one-page PDF from trilemma.com and renders it into this
+directory under the names `maps.json` expects. If you already have the images
+extracted somewhere, point it at them instead and it copies rather than
+downloads:
+
+```sh
+SPIRE_SOURCE=~/path/to/images scripts/fetch-spire-assets.sh
+```
+
+The rendered map is the whole adventure page, room key text and all, which
+suits the GM-only map it backs. Crop it yourself if you want the isometric
+drawing alone.
+
+Everything in this directory except this README is gitignored, so a fetch never
+ends up committed.
+
+The names `maps.json` expects:
 
 | File | Map |
 |------|-----|
