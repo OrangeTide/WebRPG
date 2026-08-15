@@ -149,10 +149,11 @@ pub async fn upload_media(
         .collect();
 
     // Add original filename as tag
-    if let Some(ref fname) = original_filename {
-        if !fname.is_empty() && !tag_list.iter().any(|t| t == fname) {
-            tag_list.push(fname.clone());
-        }
+    if let Some(ref fname) = original_filename
+        && !fname.is_empty()
+        && !tag_list.iter().any(|t| t == fname)
+    {
+        tag_list.push(fname.clone());
     }
 
     for tag in &tag_list {

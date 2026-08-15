@@ -492,21 +492,21 @@ pub fn FileBrowserPanel() -> impl IntoView {
         {
             let pane = active();
             let sel = pane.selected_items.get();
-            if let Some(item) = sel.first() {
-                if let Some((old_path, new_vfs)) = prompt_rename(item) {
-                    let sid = session_id.get();
-                    let sd = scratch_drives.get();
-                    let status = pane.status_line;
-                    let selected = pane.selected_items;
-                    leptos::task::spawn_local(async move {
-                        match rename_entry(&old_path, &new_vfs, sid, &sd).await {
-                            Ok(()) => {}
-                            Err(e) => status.set(format!("Rename failed: {e}")),
-                        }
-                        selected.set(Vec::new());
-                        vfs_rev.0.update(|r| *r += 1);
-                    });
-                }
+            if let Some(item) = sel.first()
+                && let Some((old_path, new_vfs)) = prompt_rename(item)
+            {
+                let sid = session_id.get();
+                let sd = scratch_drives.get();
+                let status = pane.status_line;
+                let selected = pane.selected_items;
+                leptos::task::spawn_local(async move {
+                    match rename_entry(&old_path, &new_vfs, sid, &sd).await {
+                        Ok(()) => {}
+                        Err(e) => status.set(format!("Rename failed: {e}")),
+                    }
+                    selected.set(Vec::new());
+                    vfs_rev.0.update(|r| *r += 1);
+                });
             }
         }
     };
@@ -773,8 +773,8 @@ pub fn FileBrowserPanel() -> impl IntoView {
                     // Context menu: Rename
                     let on_ctx_rename = move |_: leptos::ev::MouseEvent| {
                         #[cfg(feature = "hydrate")]
-                        if let Some(menu) = context_menu.get() {
-                            if let Some((old_path, new_vfs)) = prompt_rename(&menu.item) {
+                        if let Some(menu) = context_menu.get()
+                            && let Some((old_path, new_vfs)) = prompt_rename(&menu.item) {
                                 let sid = session_id.get();
                                 let sd = scratch_drives.get();
                                 let pane = active();
@@ -789,7 +789,6 @@ pub fn FileBrowserPanel() -> impl IntoView {
                                     vfs_rev.0.update(|r| *r += 1);
                                 });
                             }
-                        }
                         context_menu.set(None);
                     };
 
@@ -949,6 +948,10 @@ fn BrowserPaneView(
     let on_item_dblclick = move |item: BrowserItem| {
         if item.is_directory {
             navigate_to(BrowserView::Directory(item.full_path));
+            // Everything below is hydrate-only, so on the ssr target this
+            // return looks needless. It is not: without it the hydrate build
+            // falls through and reads item.full_path after it was moved.
+            #[allow(clippy::needless_return)]
             return;
         }
         #[cfg(feature = "hydrate")]
@@ -1537,10 +1540,10 @@ async fn scratch_rename(
     if entry.is_directory {
         // Ignore "Already exists" — target dir may have been created by a
         // previous partial rename or the caller.
-        if let Err(e) = sd.mkdir(&new_path.path).await {
-            if !e.contains("Already exists") {
-                return Err(e);
-            }
+        if let Err(e) = sd.mkdir(&new_path.path).await
+            && !e.contains("Already exists")
+        {
+            return Err(e);
         }
         let children = sd.list(&old_path.path).await?;
         for child in &children {

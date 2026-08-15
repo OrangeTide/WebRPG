@@ -947,12 +947,11 @@ pub fn GameWindow(
         #[cfg(feature = "hydrate")]
         {
             use wasm_bindgen::JsCast;
-            if let Some(target) = ev.target() {
-                if let Some(el) = target.dyn_ref::<web_sys::HtmlElement>() {
-                    if el.tag_name() == "BUTTON" {
-                        return;
-                    }
-                }
+            if let Some(target) = ev.target()
+                && let Some(el) = target.dyn_ref::<web_sys::HtmlElement>()
+                && el.tag_name() == "BUTTON"
+            {
+                return;
             }
         }
 
@@ -1015,24 +1014,24 @@ pub fn GameWindow(
     let is_flashing = RwSignal::new(false);
     #[cfg(feature = "hydrate")]
     {
-        if let WindowId::CharacterEditor(char_id) = id {
-            if let Some(game_ctx) = use_context::<crate::pages::game::GameContext>() {
-                Effect::new(move |_| {
-                    let notify = game_ctx.turn_notify.get();
-                    if let Some(ref entry) = notify {
-                        if entry.character_id == Some(char_id) {
-                            is_flashing.set(true);
-                            // Clear flash after animation completes (800ms)
-                            let _ = leptos::prelude::set_timeout(
-                                move || {
-                                    is_flashing.set(false);
-                                },
-                                std::time::Duration::from_millis(800),
-                            );
-                        }
-                    }
-                });
-            }
+        if let WindowId::CharacterEditor(char_id) = id
+            && let Some(game_ctx) = use_context::<crate::pages::game::GameContext>()
+        {
+            Effect::new(move |_| {
+                let notify = game_ctx.turn_notify.get();
+                if let Some(ref entry) = notify
+                    && entry.character_id == Some(char_id)
+                {
+                    is_flashing.set(true);
+                    // Clear flash after animation completes (800ms)
+                    leptos::prelude::set_timeout(
+                        move || {
+                            is_flashing.set(false);
+                        },
+                        std::time::Duration::from_millis(800),
+                    );
+                }
+            });
         }
     }
 

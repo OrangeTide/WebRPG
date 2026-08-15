@@ -488,12 +488,12 @@ pub fn vfs_fnmatch(pattern: &str, name: &str) -> bool {
         while ni < name.len() {
             if pi < pat.len() && pat[pi] == b'[' {
                 // Bracket expression
-                if let Some((matched, end)) = match_bracket(&pat[pi..], name[ni]) {
-                    if matched {
-                        pi += end;
-                        ni += 1;
-                        continue;
-                    }
+                if let Some((matched, end)) = match_bracket(&pat[pi..], name[ni])
+                    && matched
+                {
+                    pi += end;
+                    ni += 1;
+                    continue;
                 }
                 // No match in bracket — try star backtrack
                 if star_pi != usize::MAX {
@@ -510,9 +510,7 @@ pub fn vfs_fnmatch(pattern: &str, name: &str) -> bool {
                 star_pi = pi;
                 star_ni = ni;
                 pi += 1;
-            } else if pi < pat.len()
-                && name[ni].to_ascii_lowercase() == pat[pi].to_ascii_lowercase()
-            {
+            } else if pi < pat.len() && name[ni].eq_ignore_ascii_case(&pat[pi]) {
                 pi += 1;
                 ni += 1;
             } else if star_pi != usize::MAX {
@@ -793,6 +791,10 @@ fn scoped_delete_prefix(
 
 /// Update file content for a scoped path. Used by [`vfs_write`] for overwrites.
 #[cfg(feature = "ssr")]
+// These take a connection, a scope, a drive, a path, and the file's data and
+// metadata. Grouping them into a struct would only move the same fields
+// somewhere less obvious.
+#[allow(clippy::too_many_arguments)]
 fn scoped_update_file(
     conn: &mut diesel::SqliteConnection,
     drive_str: &str,
@@ -1135,10 +1137,10 @@ fn vfs_mkdir_p(
 
     // Ensure parent exists first (recursive)
     let vp = VfsPath::new(drive, path)?;
-    if let Some(parent) = vp.parent() {
-        if parent != "/" {
-            vfs_mkdir_p(conn, scope, drive, &parent, user_id)?;
-        }
+    if let Some(parent) = vp.parent()
+        && parent != "/"
+    {
+        vfs_mkdir_p(conn, scope, drive, &parent, user_id)?;
     }
 
     // Create this directory
@@ -1166,6 +1168,10 @@ fn vfs_mkdir_p(
 /// The root directory `/` is always implicit and never needs to exist
 /// as a row.
 #[cfg(feature = "ssr")]
+// These take a connection, a scope, a drive, a path, and the file's data and
+// metadata. Grouping them into a struct would only move the same fields
+// somewhere less obvious.
+#[allow(clippy::too_many_arguments)]
 pub fn vfs_write(
     conn: &mut diesel::SqliteConnection,
     scope: &VfsScope,
@@ -1206,14 +1212,14 @@ pub fn vfs_write(
     };
 
     // Permission check on overwrite
-    if let Some(ref entry) = existing {
-        if !check_permission(entry.mode, scope.is_gm, scope.is_player, MODE_OTHER_W) {
-            return Err(VfsError::PermissionDenied(format!(
-                "{}:{}",
-                drive.letter(),
-                path
-            )));
-        }
+    if let Some(ref entry) = existing
+        && !check_permission(entry.mode, scope.is_gm, scope.is_player, MODE_OTHER_W)
+    {
+        return Err(VfsError::PermissionDenied(format!(
+            "{}:{}",
+            drive.letter(),
+            path
+        )));
     }
 
     // Quota check — subtract old size when overwriting
@@ -1474,6 +1480,10 @@ pub fn vfs_rename(
 /// If `create_parents` is true, missing parent directories at the
 /// destination are automatically created.
 #[cfg(feature = "ssr")]
+// These take a connection, a scope, a drive, a path, and the file's data and
+// metadata. Grouping them into a struct would only move the same fields
+// somewhere less obvious.
+#[allow(clippy::too_many_arguments)]
 pub fn vfs_copy(
     conn: &mut diesel::SqliteConnection,
     src_scope: &VfsScope,
@@ -1522,6 +1532,10 @@ pub fn vfs_copy(
 /// that references existing CAS content by hash, without allocating or
 /// copying the file data.
 #[cfg(feature = "ssr")]
+// These take a connection, a scope, a drive, a path, and the file's data and
+// metadata. Grouping them into a struct would only move the same fields
+// somewhere less obvious.
+#[allow(clippy::too_many_arguments)]
 fn vfs_write_cas_ref(
     conn: &mut diesel::SqliteConnection,
     scope: &VfsScope,
