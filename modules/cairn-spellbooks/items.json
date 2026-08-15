@@ -576,8 +576,8 @@
     "note": "d666 225, community list. A spellbook takes one slot. Reading it casts the spell."
   },
   {
-    "id": "spellbook-doppleganger",
-    "name": "Spellbook: Doppleganger",
+    "id": "spellbook-doppelganger",
+    "name": "Spellbook: Doppelganger",
     "kind": "spellbook",
     "slots": 1,
     "bonus": "You spawn 1d6 decoy duplicates of someone you touch. Decoys are dispelled with a touch.",
@@ -720,6 +720,14 @@
     "note": "d666 252, community list. A spellbook takes one slot. Reading it casts the spell."
   },
   {
+    "id": "spellbook-fiery-missile",
+    "name": "Spellbook: Fiery Missile",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A bow you touch can fire flaming arrows (1d10 damage) for one minute.",
+    "note": "d666 255, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
     "id": "spellbook-filch",
     "name": "Spellbook: Filch",
     "kind": "spellbook",
@@ -742,14 +750,6 @@
     "slots": 1,
     "bonus": "An object you touch is imbued with a hidden flame-trap dealing 1d4+2 STR loss.",
     "note": "d666 254, community list. A spellbook takes one slot. Reading it casts the spell."
-  },
-  {
-    "id": "spellbook-firey-missile",
-    "name": "Spellbook: Firey Missile",
-    "kind": "spellbook",
-    "slots": 1,
-    "bonus": "A bow you touch can fire flaming arrows (1d10 damage) for one minute.",
-    "note": "d666 255, community list. A spellbook takes one slot. Reading it casts the spell."
   },
   {
     "id": "spellbook-fish-lung",
@@ -1472,20 +1472,20 @@
     "note": "d666 442, community list. A spellbook takes one slot. Reading it casts the spell."
   },
   {
-    "id": "spellbook-otherwordly-pet",
-    "name": "Spellbook: Otherwordly Pet",
-    "kind": "spellbook",
-    "slots": 1,
-    "bonus": "Summons an unintelligent extraplanar creature up to the size of a small dog. It holds no loyalty towards you or your allies.",
-    "note": "d666 443, community list. A spellbook takes one slot. Reading it casts the spell."
-  },
-  {
     "id": "spellbook-otherworldly-gate",
     "name": "Spellbook: Otherworldly Gate",
     "kind": "spellbook",
     "slots": 1,
     "bonus": "Opens a portal to another reality. It works in both directions.",
     "note": "d666 444, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-otherworldly-pet",
+    "name": "Spellbook: Otherworldly Pet",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Summons an unintelligent extraplanar creature up to the size of a small dog. It holds no loyalty towards you or your allies.",
+    "note": "d666 443, community list. A spellbook takes one slot. Reading it casts the spell."
   },
   {
     "id": "spellbook-pacify",
@@ -1672,6 +1672,14 @@
     "note": "d666 515, community list. A spellbook takes one slot. Reading it casts the spell."
   },
   {
+    "id": "spellbook-psychic-touch",
+    "name": "Spellbook: Psychic Touch",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You can hear target's surface thoughts, so long as you touch them.",
+    "note": "d666 524, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
     "id": "spellbook-psychokinesis",
     "name": "Spellbook: Psychokinesis",
     "kind": "spellbook",
@@ -1710,14 +1718,6 @@
     "slots": 1,
     "bonus": "Target creatures must make a DEX save or their attacks are impaired.",
     "note": "d666 523, community list. A spellbook takes one slot. Reading it casts the spell."
-  },
-  {
-    "id": "spellbook-pyschic-touch",
-    "name": "Spellbook: Pyschic Touch",
-    "kind": "spellbook",
-    "slots": 1,
-    "bonus": "You can hear target's surface thoughts, so long as you touch them.",
-    "note": "d666 524, community list. A spellbook takes one slot. Reading it casts the spell."
   },
   {
     "id": "spellbook-raise-dead",
@@ -1966,14 +1966,6 @@
     "slots": 1,
     "bonus": "You make minor repairs to a nonliving object.",
     "note": "d100 76. A spellbook takes one slot. Reading it casts the spell."
-  },
-  {
-    "id": "spellbook-skillfull-repair",
-    "name": "Spellbook: Skillfull Repair",
-    "kind": "spellbook",
-    "slots": 1,
-    "bonus": "You make minor repairs to a nonliving object.",
-    "note": "d666 561, community list. A spellbook takes one slot. Reading it casts the spell."
   },
   {
     "id": "spellbook-sky-raft",

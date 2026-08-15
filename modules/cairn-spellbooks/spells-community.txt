@@ -5,6 +5,9 @@
 # spells-core.txt is the primary one.
 #
 # Source: https://cairnrpg.com/resources/more-spellbooks/ (CC BY-SA 4.0).
+# Five obvious misspellings in the source are corrected here (Skillful,
+# Doppelganger, Fiery, Otherworldly, Psychic); the wording is otherwise as
+# published.
 # Edit this file, then run scripts/build-cairn-spells.sh to regenerate
 # tables.json and items.json.
 111|Adaptive Skin|Target can exist comfortably in hot or cold environments.
@@ -54,7 +57,7 @@
 223|Devil's Comedian|WIL save or target laughs uncontrollably, unable to take any action.
 224|Disaster Fluid|Anything in a 10ft square becomes slippery; DEX save to avoid slipping.
 225|Disrupt Scry|Future divinations of one creature or object are misled according to your will.
-226|Doppleganger|You spawn 1d6 decoy duplicates of someone you touch. Decoys are dispelled with a touch.
+226|Doppelganger|You spawn 1d6 decoy duplicates of someone you touch. Decoys are dispelled with a touch.
 231|Doubleskin|Target humanoid doubles in size.
 232|Dreampoison|Target is deprived after suffering a night of bad dreams.
 233|Dreamtalker|Sends a message to anyone currently asleep.
@@ -71,7 +74,7 @@
 252|Feline Dexterity|Target becomes limber, lithe and as fast as quicksilver.
 253|Find Virulence|Detects poison in any creature or object within 30ft.
 254|Fire Curse|An object you touch is imbued with a hidden flame-trap dealing 1d4+2 STR loss.
-255|Firey Missile|A bow you touch can fire flaming arrows (1d10 damage) for one minute.
+255|Fiery Missile|A bow you touch can fire flaming arrows (1d10 damage) for one minute.
 256|Fish Lung|A target can breathe underwater until they surface again.
 261|Fleetfooted|One creature moves at double speed.
 262|Flicker|Target randomly vanishes and reappears once at will.
@@ -135,7 +138,7 @@
 436|Opaque Cover|Details about your person become obscured and unmemorable.
 441|Orb of Ignus|You control a floating ball of fire (1d8 damage) for a short while.
 442|Orb of Immortality|Mundane attacks cannot harm anyone within a 10ft radius, or vice-versa.
-443|Otherwordly Pet|Summons an unintelligent extraplanar creature up to the size of a small dog. It holds no loyalty towards you or your allies.
+443|Otherworldly Pet|Summons an unintelligent extraplanar creature up to the size of a small dog. It holds no loyalty towards you or your allies.
 444|Otherworldly Gate|Opens a portal to another reality. It works in both directions.
 445|Paincurrent|An arc of electricity passes from your fingertips to a target you touch. They take 1d8 damage (1d12 if wearing metal armor).
 446|Passage|Creates a temporary path through wood, stone or brick.
@@ -160,7 +163,7 @@
 521|Puppeteer|You can throw your voice a great distance away.
 522|Purge Text|Mundane or magical writing vanishes at your touch.
 523|Pyramid of Passivity|Target creatures must make a DEX save or their attacks are impaired.
-524|Pyschic Touch|You can hear target's surface thoughts, so long as you touch them.
+524|Psychic Touch|You can hear target's surface thoughts, so long as you touch them.
 525|Rat-Tat-Tat|Loudly opens a locked or magically sealed door or chest.
 526|Ravenless Message|You send a short message 1 mile that anyone along its path can hear.
 531|Reject Unlife|Nearby undead are immobilized for 30 seconds or until you take another action.
@@ -181,7 +184,7 @@
 554|Simple Illusion|Creates a simple image with sound. A cursory investigation will reveal the illusory image.
 555|Sinister Flame|Target's palms are lined with flames (1d4+1 STR loss) for one minute.
 556|Sinister Polymorph|WIL save or target is transformed into a harmless animal.
-561|Skillfull Repair|You make minor repairs to a nonliving object.
+561|Skillful Repair|You make minor repairs to a nonliving object.
 562|Sky Raft|You summon a 3ft wide floating disk that holds up to 100lbs.
 563|Solar Portal|Sends an extraplanar message to all beings that wish to enter your plane. You have no choice which being answers and it holds no loyalty to you or your allies.
 564|Song of Repose|Target falls into a deep slumber.

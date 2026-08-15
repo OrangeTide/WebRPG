@@ -603,7 +603,7 @@
       },
       {
         "key": "226",
-        "text": "Doppleganger. You spawn 1d6 decoy duplicates of someone you touch. Decoys are dispelled with a touch."
+        "text": "Doppelganger. You spawn 1d6 decoy duplicates of someone you touch. Decoys are dispelled with a touch."
       },
       {
         "key": "231",
@@ -671,7 +671,7 @@
       },
       {
         "key": "255",
-        "text": "Firey Missile. A bow you touch can fire flaming arrows (1d10 damage) for one minute."
+        "text": "Fiery Missile. A bow you touch can fire flaming arrows (1d10 damage) for one minute."
       },
       {
         "key": "256",
@@ -927,7 +927,7 @@
       },
       {
         "key": "443",
-        "text": "Otherwordly Pet. Summons an unintelligent extraplanar creature up to the size of a small dog. It holds no loyalty towards you or your allies."
+        "text": "Otherworldly Pet. Summons an unintelligent extraplanar creature up to the size of a small dog. It holds no loyalty towards you or your allies."
       },
       {
         "key": "444",
@@ -1027,7 +1027,7 @@
       },
       {
         "key": "524",
-        "text": "Pyschic Touch. You can hear target's surface thoughts, so long as you touch them."
+        "text": "Psychic Touch. You can hear target's surface thoughts, so long as you touch them."
       },
       {
         "key": "525",
@@ -1111,7 +1111,7 @@
       },
       {
         "key": "561",
-        "text": "Skillfull Repair. You make minor repairs to a nonliving object."
+        "text": "Skillful Repair. You make minor repairs to a nonliving object."
       },
       {
         "key": "562",

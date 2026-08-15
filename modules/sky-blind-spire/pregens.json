@@ -19,12 +19,30 @@
       "notes": "Your cloak is grey. Ordinary. Your friends can still see you."
     },
     "items": [
-      { "name": "Hammer", "bonus": "+1 Brute when you swing it at something" },
-      { "name": "Black mallet", "bonus": "+1 Brute for breaking stone, doors, and idols" },
-      { "name": "Shield", "bonus": "+1 to hold a line, block a gap, or catch a falling friend" },
-      { "name": "Grey wool cloak", "bonus": "" },
-      { "name": "Rations", "bonus": "Two meals" },
-      { "name": "Rope, 50 ft", "bonus": "+1 to any climb" }
+      {
+        "name": "Hammer",
+        "bonus": "+1 Brute when you swing it at something"
+      },
+      {
+        "name": "Black mallet",
+        "bonus": "+1 Brute for breaking stone, doors, and idols"
+      },
+      {
+        "name": "Shield",
+        "bonus": "+1 to hold a line, block a gap, or catch a falling friend"
+      },
+      {
+        "name": "Grey wool cloak",
+        "bonus": ""
+      },
+      {
+        "name": "Rations",
+        "bonus": "Two meals"
+      },
+      {
+        "name": "Rope, 50 ft",
+        "bonus": "+1 to any climb"
+      }
     ]
   },
   {
@@ -47,12 +65,30 @@
       "notes": "You picked a blue cloak. One hour into the tower, everyone else stops being able to see it. From the neck down you are a rumour. Ask the referee what that gets you before you rely on it."
     },
     "items": [
-      { "name": "Lock picks", "bonus": "+1 Skulker on locks, latches, and gibbet cages" },
-      { "name": "Small mirror", "bonus": "+1 to look around a corner without being the thing that gets looked at" },
-      { "name": "Waterskin", "bonus": "+1 to endure heat, thirst, or a long climb" },
-      { "name": "Sky-blue cloak", "bonus": "Nobody sees it after the first hour" },
-      { "name": "Rations", "bonus": "Two meals" },
-      { "name": "Twin knives", "bonus": "+1 Brute or Skulker in a knife fight" }
+      {
+        "name": "Lock pick",
+        "bonus": "+1 Skulker on locks, latches, and gibbet cages"
+      },
+      {
+        "name": "Mirror",
+        "bonus": "+1 to look around a corner without being the thing that gets looked at"
+      },
+      {
+        "name": "Waterskin",
+        "bonus": "+1 to endure heat, thirst, or a long climb"
+      },
+      {
+        "name": "Sky-blue cloak",
+        "bonus": "Nobody sees it after the first hour"
+      },
+      {
+        "name": "Rations",
+        "bonus": "Two meals"
+      },
+      {
+        "name": "Twin knives",
+        "bonus": "+1 Brute or Skulker in a knife fight"
+      }
     ]
   },
   {
@@ -75,12 +111,30 @@
       "notes": "You know the word kastromancy: magic written in architecture. Walking a shape casts it."
     },
     "items": [
-      { "name": "Quill and ink", "bonus": "+1 Erudite to copy a map, a rune, or a room number" },
-      { "name": "Lantern", "bonus": "+1 to see anything that is not blue" },
-      { "name": "Compass", "bonus": "+1 Erudite to work out which way a window actually faces" },
-      { "name": "Dust-brown cloak", "bonus": "" },
-      { "name": "Rations", "bonus": "Two meals" },
-      { "name": "Slim book of kastromancy", "bonus": "+1 Erudite on the Spire's own magic" }
+      {
+        "name": "Quill and ink",
+        "bonus": "+1 Erudite to copy a map, a rune, or a room number"
+      },
+      {
+        "name": "Lantern",
+        "bonus": "+1 to see anything that is not blue"
+      },
+      {
+        "name": "Compass",
+        "bonus": "+1 Erudite to work out which way a window actually faces"
+      },
+      {
+        "name": "Dust-brown cloak",
+        "bonus": ""
+      },
+      {
+        "name": "Rations",
+        "bonus": "Two meals"
+      },
+      {
+        "name": "A spellbook",
+        "bonus": "Roll d6 on the caster table; it is an item, and it burns"
+      }
     ]
   },
   {
@@ -103,12 +157,30 @@
       "notes": "Rope plus hook is two items and two bonuses. Say which one you are using and why."
     },
     "items": [
-      { "name": "Rope, 50 ft", "bonus": "+1 to any climb, +1 to lower someone down a shaft" },
-      { "name": "Black mallet", "bonus": "+1 Brute for smashing" },
-      { "name": "Brass spyglass", "bonus": "+1 Erudite to read a distant window number or count giants" },
-      { "name": "Green cloak", "bonus": "" },
-      { "name": "Rations", "bonus": "Two meals" },
-      { "name": "Grappling hook", "bonus": "+1 to catch a chain from a window ledge" }
+      {
+        "name": "Rope, 50 ft",
+        "bonus": "+1 to any climb, +1 to lower someone down a shaft"
+      },
+      {
+        "name": "Black mallet",
+        "bonus": "+1 Brute for smashing"
+      },
+      {
+        "name": "Brass spyglass",
+        "bonus": "+1 Erudite to read a distant window number or count giants"
+      },
+      {
+        "name": "Green cloak",
+        "bonus": ""
+      },
+      {
+        "name": "Rations",
+        "bonus": "Two meals"
+      },
+      {
+        "name": "Grappling hook",
+        "bonus": "+1 to catch a chain from a window ledge"
+      }
     ]
   },
   {
@@ -131,12 +203,30 @@
       "notes": "Salt, buried teeth, and a spectral mentor who wants a favour. You are the party's superstition, and in this tower superstition is correct more often than not."
     },
     "items": [
-      { "name": "Tusk spear", "bonus": "+1 Brute, and long enough to keep a pelican at arm's length" },
-      { "name": "Shield", "bonus": "+1 to block, brace a door, or shelter someone" },
-      { "name": "Shovel", "bonus": "+1 Brute to dig, pry, or turn over a garbage heap" },
-      { "name": "Brown cloak", "bonus": "" },
-      { "name": "Rations", "bonus": "Two meals" },
-      { "name": "Bag of salt", "bonus": "" }
+      {
+        "name": "Tusk spear",
+        "bonus": "+1 Brute, and long enough to keep a pelican at arm's length"
+      },
+      {
+        "name": "Shield",
+        "bonus": "+1 to block, brace a door, or shelter someone"
+      },
+      {
+        "name": "Shovel",
+        "bonus": "+1 Brute to dig, pry, or turn over a garbage heap"
+      },
+      {
+        "name": "Brown cloak",
+        "bonus": ""
+      },
+      {
+        "name": "Rations",
+        "bonus": "Two meals"
+      },
+      {
+        "name": "Bag of salt",
+        "bonus": ""
+      }
     ]
   },
   {
@@ -159,12 +249,30 @@
       "notes": "Trusting hands over eyes is literally the correct strategy here. Once sky-blindness lands, a deliberate search by touch beats any amount of looking."
     },
     "items": [
-      { "name": "Torch", "bonus": "+1 to any Skulker roll made in the dark" },
-      { "name": "Rose incense", "bonus": "+1 Erudite to speak with something that is not alive" },
-      { "name": "Waterskin", "bonus": "+1 to endure heat, thirst, or a long climb" },
-      { "name": "Charcoal-grey cloak", "bonus": "" },
-      { "name": "Rations", "bonus": "Two meals" },
-      { "name": "Light crossbow", "bonus": "+1 Skulker at range" }
+      {
+        "name": "Torch",
+        "bonus": "+1 to any Skulker roll made in the dark"
+      },
+      {
+        "name": "Rose incense",
+        "bonus": "+1 Erudite to speak with something that is not alive"
+      },
+      {
+        "name": "Waterskin",
+        "bonus": "+1 to endure heat, thirst, or a long climb"
+      },
+      {
+        "name": "Charcoal-grey cloak",
+        "bonus": ""
+      },
+      {
+        "name": "Rations",
+        "bonus": "Two meals"
+      },
+      {
+        "name": "Light crossbow",
+        "bonus": "+1 Skulker at range; armour does not help"
+      }
     ]
   },
   {
@@ -184,15 +292,33 @@
       "profession": "Botany Priest. Blessed goat sheds, read smoke, kept the incense trade honest.",
       "war": "Joined the rebels. Set traps. Slept badly ever since.",
       "hook": "A spark of stolen starlight, carried to the top of a spell-shaped tower, grants a wish. You have one wish and you have had it for eleven years.",
-      "notes": "In Tunnel Goons, magic is just an Erudite roll plus the right item. Describe the working, name the item, take the consequence when you miss."
+      "notes": "A spellbook is not your only way to work magic. Anything you can name is: chalk, incense, a mirror, a held breath. Describe it, name it, and take the consequence when you miss."
     },
     "items": [
-      { "name": "Quill and ink", "bonus": "+1 Erudite to copy a rune or record a room order" },
-      { "name": "Rose incense", "bonus": "+1 Erudite to call, calm, or bargain with a spirit" },
-      { "name": "Bear trap", "bonus": "+1 to hold a doorway against something heavy" },
-      { "name": "Ash-white cloak", "bonus": "" },
-      { "name": "Rations", "bonus": "Two meals" },
-      { "name": "Chalk", "bonus": "+1 Erudite to mark rooms you've already walked" }
+      {
+        "name": "Quill and ink",
+        "bonus": "+1 Erudite to copy a rune or record a room order"
+      },
+      {
+        "name": "Rose incense",
+        "bonus": "+1 Erudite to call, calm, or bargain with a spirit"
+      },
+      {
+        "name": "Bear trap",
+        "bonus": "+1 to hold a doorway against something heavy"
+      },
+      {
+        "name": "Ash-white cloak",
+        "bonus": ""
+      },
+      {
+        "name": "Rations",
+        "bonus": "Two meals"
+      },
+      {
+        "name": "A spellbook",
+        "bonus": "Roll d6 on the caster table; it is an item, and it burns"
+      }
     ]
   },
   {

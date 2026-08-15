@@ -72,6 +72,37 @@ and tells you when you are over. The optional condition cards (fatigue, stress,
 scars) take a slot each and are Knave-style too; ignore them if you would rather
 not track that.
 
+## Borrowed rules this table uses
+
+None of these are in Tunnel Goons 1.2. They are borrowed, and borrowed rules
+are worth naming so nobody has to guess mid-fight.
+
+**Spellbooks**, from Cairn. A spellbook is an item holding one spell. It takes
+a slot, anyone who can read can use it, and reading it is Erudite + the book
+against a DS the referee sets: 8 for what the spell plainly says, 10 stretched,
+12 bent into something it was never for. A miss deals the difference as
+backlash, off HP. Reading the same book twice before a rest costs **Fatigue**.
+
+**Scrolls** are the lower tier: one spell, used up in the reading, so no lasting
+slot and no Fatigue. Scrolls are what a body or a nest turns up. A durable
+spellbook is a real find.
+
+**Fatigue** fills an inventory slot until you clear it, and nowhere in a dungeon
+is safe, so it clears only when you *make* somewhere safe: block a door so it
+will not open, then hold still for an hour. Iron spikes, a bear trap, a cut
+chain, a jammed shield all count.
+
+**Gear sacrifice.** When you would take damage, you may destroy one item that
+could plausibly have taken the blow and take none of it. The card is torn up.
+Any item can do this once if the fiction allows.
+
+**Gear tags**, each a whole rule on its own: *reach* is +1 to keep something at
+a distance or to trip and disarm; *cleaving* is one roll against two adjacent
+lesser foes at -2; *piercing* means armour absorbs nothing; *heavy* means two
+hands, two slots, and -1 in a cramped space; *defensive* means breaking it to
+cancel a hit also staggers whoever threw it, giving your allies +2 on their next
+roll against them; *silent* makes no sound and does not give away where you are.
+
 ## Damage, death, healing
 
 Damage comes off HP. At **0 HP you are dead**. You get lost HP back by spending

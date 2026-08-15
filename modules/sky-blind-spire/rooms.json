@@ -2,7 +2,7 @@
   {
     "number": 1,
     "title": "Unwelcoming Hall",
-    "card": "Iron gibbets on chains, and a body in each. A mote of cold light peels off the air and starts to orbit your head.",
+    "card": "Iron gibbets on chains, and a body in each. The number is cut into the floor stone, three feet across.",
     "read_aloud": "The door is off its hinges and the hall beyond is colder than the wind outside. Cages hang from the ceiling on chains, each with something in it that used to be a person. Cut into the floor stone, deep and neat and three feet across, is the number one.",
     "gm": "Titardinal hung the gibbets to frighten visitors off. The ceiling is far too high for the building's exterior. Everyone who steps in gets a spark; describe it clearly before the first hour is up, then take it away when the curse lands. Treasure: a ring of water breathing on one skeletal finger, found in the first ten minutes if anyone searches the cages. Conversion detail: a refuse chute opens in the high ceiling, and room 10's rug hides a pit that drops into it.",
     "exits": "Outside (front door); west door to room 2; gate A to room 18, behind the blue tapestry."
@@ -46,7 +46,7 @@
     "number": 7,
     "title": "The Fountain Room",
     "card": "A round hall under a dome. A stone font in the middle, still wet, the water moving without any wind.",
-    "gm": "Titardinal used this font to commune with the lake spirit and learn its weaknesses. Trigger: if anyone in the room carries a spark, d6 undines rise out of the water to reclaim it. They are made of water, so after the first hour the party cannot see them, and a still undine is nowhere at all. Treasure: a defender's blade and most of a suit of plate armour in the font. The undines will hand both over with no fight, in exchange for a solemn oath to destroy the altar. That oath is the adventure's real question; do not resolve it for the players.",
+    "gm": "Titardinal used this font to commune with the lake spirit and learn its weaknesses. Trigger: if anyone in the room carries a spark, d6 undines rise out of the water to reclaim it. They are made of water, so after the first hour the party cannot see them, and a still undine is nowhere at all. Treasure: a defender's blade and most of a suit of plate armour in the font. The undines will hand both over with no fight, in exchange for a solemn oath to destroy the altar. That oath is the adventure's real question; do not resolve it for the players. Have them speak before they swing: an undine that opens with a demand teaches the party what the sparks are, which nothing else on these floors does, and it makes handing one back a choice rather than a defeat. What they want is the spark, not the body; one that reaches you splashes it out and is content. They follow one room beyond the fountain and no further.",
     "exits": "Stair from room 6; north to room 8; gate B to the giants at room 16; window 5N."
   },
   {
@@ -66,7 +66,7 @@
   {
     "number": 10,
     "title": "The rug",
-    "card": "A plain floor with a rug across it.",
+    "card": "A plain floor. Something about the middle of it does not ring true underfoot.",
     "gm": "Conversion detail: the rug is blue, and covers a pit that drops into room 1's ceiling chute. Before the first hour it is a visible rug. After, it is not there at all, and the first person across falls.",
     "exits": "Room 9; stair north to room 11; corridor east to gate E."
   },
@@ -129,7 +129,7 @@
   {
     "number": 19,
     "title": "Windy gallery",
-    "card": "A long gallery with three tall windows and the wind coming through them.",
+    "card": "A long gallery. One tall window, and the wind coming through it.",
     "gm": "Window 3S. The giants sing in these halls and the sound carries.",
     "exits": "Upper corridor; windows with chains."
   },
@@ -150,22 +150,22 @@
   {
     "number": 22,
     "title": "The Study",
-    "card": "A dozen heavy books on kastromancy. A hundred torn maps of this tower, no two alike.",
-    "gm": "The room that makes the adventure solvable. Never cut it. Anyone who reads gets, free: the numbers are a spell's notation, walking them casts it, and there is a 24th room that is not on any interior route. Erudite DS 10 gets more: the altar is on the roof, and the spell's purpose is binding the lake spirit. Window 4E.",
+    "card": "A dozen heavy books on kastromancy, a shelf of thinner ones that are not about anything, and a hundred torn maps of this tower, no two alike.",
+    "gm": "The room that makes the adventure solvable. Never cut it. Anyone who reads gets, free: the numbers are a spell's notation, walking them casts it, and there is a 24th room that is not on any interior route. Erudite DS 10 gets more: the altar is on the roof, and the spell's purpose is binding the lake spirit. Window 4E. The shelf of thinner books is the spellbook deck: Titardinal's working library is the one place in the tower that plausibly holds usable magic. Deal the spellbook cards face up, minus the two the casters rolled at the start and any the party already has. A book is one slot, and that is the whole limit. One copy of each book exists: when one is destroyed, sacrificed, or left behind, take the card out for good. The six scrolls do not live here.",
     "exits": "Stairs up from room 14, down from room 21; window 4E."
   },
   {
     "number": 23,
     "title": "Two windows",
     "card": "Two windows. One shows your boat, far below. The other shows the lake, and shadows moving wrong.",
-    "gm": "A character who walked 1 through 23 in order is now carrying a fist-sized spark as bright as a torch, and there is no 24th door. The only way up is out the window. Windows 3E and 5S.",
+    "gm": "A character who walked 1 through 23 in order is now carrying a fist-sized spark as bright as a torch, and there is no 24th door. The only way up is out the window. Windows 3E and 5S. Room 23 holds both 3E and 5S, and that is the reading to use, because 5S is what makes the roof reachable: from a fifth-storey window one traverse round the outside puts a character at the foot of the roof chain. The roof chain hangs on the north face, so the alternatives are a traverse at DS 12, the potion of leaping from room 9, or a route back through room 7 that costs them the spark. Make the choice explicit and let them pick which price to pay.",
     "exits": "Off the corridor by room 2; windows 3E and 5S."
   },
   {
     "number": 24,
     "title": "Rooftop Altar",
     "card": "Wind, and the whole lake below you. Iron rods, a drift of grit, a low altar, and a chain over the edge.",
-    "gm": "There is no interior stair; the party has to go outside and climb. The last chain with a full spark is Brute or Skulker DS 10, and it is a good place for a pelican to take an interest. Bearing a full-sized spark to the altar completes Titardinal's master spell: lightning arcs up from the lake and strikes the bearer for d6 + 4 damage, ignoring armour. Tell them that before they step up. Survive it and they get one wish; phrase it, then give it to them straight. Die and the wish is granted anyway, to the dead character, so ask the player what it was. The price: after d3 wishes total the lake spirit and every undine die and the lake goes grey forever. Roll the d3 in the open, before the first wish, and let the table watch the number.",
+    "gm": "There is no interior stair; the party has to go outside and climb. The last chain with a full spark is Brute or Skulker DS 10, and it is a good place for a pelican to take an interest. Bearing a full-sized spark to the altar completes Titardinal's master spell: lightning arcs up from the lake and strikes the bearer for d6 + 4 damage, ignoring armour. Tell them that before they step up. Survive it and they get one wish; phrase it, then give it to them straight. Die and the wish is granted anyway, to the dead character, so ask the player what it was. The price: after d3 wishes total the lake spirit and every undine die and the lake goes grey forever. Roll the d3 in the open, before the first wish, and let the table watch the number. The last chain hangs on the north face, down to 5N.",
     "exits": "The roof. Reached by chain from the topmost windows."
   }
 ]

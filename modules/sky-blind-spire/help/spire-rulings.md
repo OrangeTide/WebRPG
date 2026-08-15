@@ -8,6 +8,18 @@ is on the [Tunnel Goons](help:tunnel-goons) page.
 
 One hour after you enter the tower you stop perceiving blue.
 
+**The curse is the circle, not the tower.** The teeth are buried in a ring
+around the crag, so it holds anywhere inside that ring and lifts once you walk
+out of it. You can see the goblins' sky-blue tarp perfectly well on the way in,
+and will not be able to find it from a window afterwards.
+
+**Everything inside is sky-blind, not just you.** The undines, the giants, and
+the goblin thieves are all in the ring. That is what makes a Ricalu cloak worth
+taking: wearing one hides you from anything in the tower, undines included.
+
+Killing the shaman does not lift it. The magic outlasts its caster by a day at
+least.
+
 This is not invisibility. Blue is **not reported**. Your brain fills the gap
 with whatever is around it, so a blue tapestry over a doorway reads as blank
 wall, and the wall looks perfectly ordinary. A thief in a blue cloak reads as
@@ -55,7 +67,14 @@ dangling to the window below it on the same face. Window 4N drops to 3N.
 | Down one chain | 8 |
 | Up one chain | 10 |
 | Carrying a silver sack | 12 |
+| Round to the next face | 12 |
 | In wind or rain | +2 |
+
+**No chain runs sideways.** They only go up and down, so getting from a window
+on one face to a window on another at the same height means working along the
+stonework, one face at a time, and a miss is a fall the whole way down. You
+will need this: the roof chain hangs on the north face, and the way up to it
+starts from a window that does not.
 
 Rope, a hook, or climbing gear gives +1. A miss going up is a fall between
 floors: 3 damage. A fall from a window to the ground is fatal.
