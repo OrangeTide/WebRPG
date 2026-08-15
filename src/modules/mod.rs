@@ -336,6 +336,8 @@ pub struct InstallReport {
     pub template_id: Option<i32>,
     pub creatures_added: usize,
     pub maps_added: usize,
+    /// Maps that were already present and have now been given the module's art.
+    pub maps_art_attached: usize,
     /// Maps created without art because the asset was not present.
     pub maps_missing_art: Vec<String>,
     /// Anything the GM should know, such as a missing asset directory.

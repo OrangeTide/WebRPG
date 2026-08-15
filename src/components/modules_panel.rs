@@ -172,6 +172,9 @@ pub fn ModulesPanel() -> impl IntoView {
                     if report.maps_added > 0 {
                         parts.push(format!("{} maps", report.maps_added));
                     }
+                    if report.maps_art_attached > 0 {
+                        parts.push(format!("art attached to {} maps", report.maps_art_attached));
+                    }
                     parts.extend(report.warnings.iter().cloned());
                     notify(parts.join(". "));
 

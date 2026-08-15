@@ -436,15 +436,43 @@ async fn install_adventure(
         }
     }
 
-    // Maps, skipping any this session already has by name.
-    let existing_maps: Vec<String> = maps::table
+    // Maps this session already has, by name, with whatever art they carry.
+    let existing_maps: Vec<(i32, String, Option<String>)> = maps::table
         .filter(maps::session_id.eq(session_id))
-        .select(maps::name)
+        .select((maps::id, maps::name, maps::background_url))
         .load(conn)
         .unwrap_or_default();
 
     for map_def in &adventure.maps {
-        if existing_maps.iter().any(|n| n == &map_def.name) {
+        // A map that is already here is left alone, with one exception: if it
+        // has no background and the module can now supply one, attach it. That
+        // is the case where the GM installed before dropping the art in, and
+        // reinstalling is the obvious thing to reach for. Art the GM chose
+        // themselves is never replaced.
+        if let Some((existing_id, _, background)) =
+            existing_maps.iter().find(|(_, n, _)| n == &map_def.name)
+        {
+            if background.is_none()
+                && let Some(asset) = map_def.asset.as_deref()
+            {
+                match ingest_asset(conn, module_id, asset, user_id).await {
+                    Ok(url) => {
+                        match diesel::update(maps::table.find(*existing_id))
+                            .set(maps::background_url.eq(Some(url)))
+                            .execute(conn)
+                        {
+                            Ok(_) => report.maps_art_attached += 1,
+                            Err(e) => report
+                                .warnings
+                                .push(format!("Could not attach art to {}: {e}", map_def.name)),
+                        }
+                    }
+                    Err(e) => {
+                        log::info!("Module {module_id} asset {asset} not installed: {e}");
+                        report.maps_missing_art.push(map_def.name.clone());
+                    }
+                }
+            }
             continue;
         }
 
