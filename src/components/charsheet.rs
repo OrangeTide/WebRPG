@@ -257,7 +257,7 @@ pub fn CharacterSelection() -> impl IntoView {
                                     }
                                     disabled=move || ctx.tokens.get().iter().any(|t| t.character_id == Some(cid))
                                     on:click={
-                                        let place = place_character.clone();
+                                        let place = place_character;
                                         let name = name_for_place.clone();
                                         let portrait = portrait_for_place.clone();
                                         move |_| place(cid, name.clone(), portrait.clone())

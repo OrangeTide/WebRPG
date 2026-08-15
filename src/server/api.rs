@@ -302,7 +302,7 @@ pub async fn create_map(
         return Err(ServerFnError::new("Only the GM can create maps"));
     }
 
-    let cell = cell_size.unwrap_or(40).max(10).min(200);
+    let cell = cell_size.unwrap_or(40).clamp(10, 200);
 
     let new_map = crate::models::db_models::NewMap {
         session_id,
@@ -1473,10 +1473,10 @@ pub async fn list_media(
             .unwrap_or_default();
 
         // Filter by tag if specified
-        if let Some(ref filter_tag) = tag {
-            if !tags.iter().any(|t| t == filter_tag) {
-                continue;
-            }
+        if let Some(ref filter_tag) = tag
+            && !tags.iter().any(|t| t == filter_tag)
+        {
+            continue;
         }
 
         // Filter by search term (matches against tags)
