@@ -41,6 +41,13 @@ Anything present here when the module is installed is ingested into media
 storage and attached to its map. Anything missing is reported in the install
 result, and the map is created without a background.
 
-The tower elevation is not Prescott's art. Build it from
-`player/handouts/tower-elevation.typ` in the session materials, or draw your
-own: four faces, one window per floor, chains between them, no room numbers.
+The tower elevation is not Prescott's art and is not on that page. It comes
+from the session materials, so name its source and the script renders it:
+
+```sh
+ELEVATION_SRC=~/materials/player/handouts/tower-elevation.typ \
+  scripts/fetch-spire-assets.sh
+```
+
+A built `.pdf` works there too. Failing either, draw your own: four faces, one
+window per floor, chains between them, no room numbers.

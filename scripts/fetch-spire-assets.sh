@@ -13,6 +13,10 @@
 #   otherwise                   download the one-page PDF from trilemma.com
 #                               and render its pages
 #
+# The players' tower elevation is not Prescott's art and is not on that page.
+# It comes from the session materials, so point ELEVATION_SRC at either the
+# built PDF or the Typst source and it is rendered alongside the rest.
+#
 # Requires curl and poppler-utils (pdftoppm). ImageMagick is used to trim the
 # rendered pages if it is available.
 #
@@ -36,10 +40,12 @@ Usage: $0
 
 Downloads the adventure's art into $ASSETS, which is gitignored.
 
-  SPIRE_SOURCE=<dir>  copy from a directory that already holds the images
-                      ($MAP_ART, $TOWERTOP_ART) instead of downloading
-  PDF_URL=<url>       override the source PDF
-  DPI=<n>             render resolution, default 200
+  SPIRE_SOURCE=<dir>   copy from a directory that already holds the images
+                       ($MAP_ART, $TOWERTOP_ART) instead of downloading
+  ELEVATION_SRC=<path> the players' tower elevation, as a .pdf or a .typ from
+                       the session materials; rendered to tower-elevation.png
+  PDF_URL=<url>        override the source PDF
+  DPI=<n>              render resolution, default 200
 
 $CREDIT
 EOF
@@ -56,6 +62,44 @@ if [ ! -d "$MODULE_DIR" ]; then
 fi
 
 mkdir -p "$ASSETS"
+
+# Render the players' tower elevation, if its source was named. A .typ is
+# compiled first; Typst needs the materials repo as its root, since the handout
+# imports the shared theme from two directories up.
+build_elevation() {
+    # Separate declarations: bash declares every name in a `local` list before
+    # assigning any of them, so pdf="$src" on one line reads an unset local.
+    local src="$1"
+    local out="$ASSETS/tower-elevation.png"
+    local pdf="$src"
+
+    if [ ! -f "$src" ]; then
+        echo "error: ELEVATION_SRC is not a file: $src" >&2
+        return 1
+    fi
+
+    if [ "${src##*.}" = "typ" ]; then
+        if ! command -v typst >/dev/null 2>&1; then
+            echo "error: typst not found; point ELEVATION_SRC at a built PDF instead" >&2
+            return 1
+        fi
+        local root
+        root=$(cd "$(dirname "$src")/../.." && pwd)
+        pdf="$(mktemp -d)/tower-elevation.pdf"
+        typst compile --root "$root" "$src" "$pdf" || return 1
+    fi
+
+    pdftoppm -png -r "${DPI:-200}" -singlefile "$pdf" "${out%.png}" || return 1
+    echo "wrote tower-elevation.png"
+}
+
+if [ -n "${ELEVATION_SRC:-}" ]; then
+    if ! command -v pdftoppm >/dev/null 2>&1; then
+        echo "error: pdftoppm not found (poppler-utils)" >&2
+        exit 1
+    fi
+    build_elevation "$ELEVATION_SRC" || exit 1
+fi
 
 # Copying from a local extract is exact, so prefer it when offered.
 if [ -n "${SPIRE_SOURCE:-}" ]; then
