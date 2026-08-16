@@ -472,6 +472,14 @@ pub fn ModulesPanel() -> impl IntoView {
                                                 i.name.to_lowercase().contains(&needle)
                                                     || i.bonus.to_lowercase().contains(&needle)
                                                     || i.kind.to_lowercase().contains(&needle)
+                                                    // Tags are rules, so they are
+                                                    // what people look up: "heavy"
+                                                    // should find the heavy weapons,
+                                                    // not prose mentioning weight.
+                                                    || i
+                                                        .tags
+                                                        .iter()
+                                                        .any(|t| t.to_lowercase().contains(&needle))
                                             });
                                     }
 
