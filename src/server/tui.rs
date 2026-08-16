@@ -339,7 +339,7 @@ fn gather_active_sessions(snap: &MetricsSnapshot) -> Vec<SessionRow> {
 
 fn gather_recent_sessions(snap: &MetricsSnapshot) -> Vec<SessionRow> {
     let mut recent: Vec<_> = snap.recent_sessions.iter().filter(|s| !s.active).collect();
-    recent.sort_by(|a, b| b.last_active.cmp(&a.last_active));
+    recent.sort_by_key(|s| std::cmp::Reverse(s.last_active));
     recent.truncate(5);
     recent
         .into_iter()

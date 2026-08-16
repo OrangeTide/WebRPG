@@ -1142,7 +1142,7 @@ fn BrowserPaneView(
             <div class="fb-status">
                 {move || {
                     if let Some((done, total)) = pane.progress.get() {
-                        let pct = if total > 0 { (done * 100) / total } else { 0 };
+                        let pct = (done * 100).checked_div(total).unwrap_or(0);
                         let width = if total > 0 { (done as f64 / total as f64) * 100.0 } else { 0.0 };
                         view! {
                             <div class="fb-progress">
