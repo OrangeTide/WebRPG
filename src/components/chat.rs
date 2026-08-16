@@ -20,8 +20,8 @@ fn is_dice_roll(input: &str) -> bool {
     if parts.len() != 2 {
         return false;
     }
-    let count_ok = parts[0].is_empty() || parts[0].parse::<i32>().map_or(false, |n| n >= 1);
-    let sides_ok = parts[1].parse::<i32>().map_or(false, |n| n >= 1);
+    let count_ok = parts[0].is_empty() || parts[0].parse::<i32>().is_ok_and(|n| n >= 1);
+    let sides_ok = parts[1].parse::<i32>().is_ok_and(|n| n >= 1);
     count_ok && sides_ok
 }
 
@@ -74,7 +74,6 @@ pub fn ChatPanel() -> impl IntoView {
     };
 
     let on_keydown = {
-        let on_submit = on_submit.clone();
         move |ev: leptos::ev::KeyboardEvent| {
             if ev.key() == "Enter" {
                 on_submit(ev.into());

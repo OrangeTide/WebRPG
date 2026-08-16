@@ -1,5 +1,5 @@
-/// Shared browser-side helpers for download, upload, and blob operations.
-/// Used by the file browser and terminal components.
+//! Shared browser-side helpers for download, upload, and blob operations.
+//! Used by the file browser and terminal components.
 
 #[cfg(feature = "hydrate")]
 use crate::vfs::Drive;

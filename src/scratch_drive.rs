@@ -341,9 +341,7 @@ impl ScratchDrive {
         Reflect::set(
             &obj,
             &"content_type".into(),
-            &content_type
-                .map(|s| JsValue::from_str(s))
-                .unwrap_or(JsValue::NULL),
+            &content_type.map(JsValue::from_str).unwrap_or(JsValue::NULL),
         )
         .unwrap();
         Reflect::set(
@@ -451,10 +449,10 @@ impl ScratchDrive {
     pub fn destroy(self) {
         let name = self.db.name();
         self.db.close();
-        if let Some(window) = web_sys::window() {
-            if let Ok(Some(factory)) = window.indexed_db() {
-                let _ = factory.delete_database(&name);
-            }
+        if let Some(window) = web_sys::window()
+            && let Ok(Some(factory)) = window.indexed_db()
+        {
+            let _ = factory.delete_database(&name);
         }
     }
 }

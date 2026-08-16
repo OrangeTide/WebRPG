@@ -421,7 +421,7 @@ fn CreatureEditor(
             stat_data.insert(field.name.clone(), json_val);
         }
 
-        let on_saved = on_saved.clone();
+        let on_saved = on_saved;
         leptos::task::spawn_local(async move {
             match crate::server::api::update_creature(
                 creature_id,

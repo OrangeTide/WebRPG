@@ -163,15 +163,14 @@ impl ServerMetrics {
 
     /// Mark a session as inactive in the cache.
     pub fn mark_session_inactive(&self, session_id: i32) {
-        if let Ok(mut inner) = self.inner.lock() {
-            if let Some(entry) = inner
+        if let Ok(mut inner) = self.inner.lock()
+            && let Some(entry) = inner
                 .session_cache
                 .iter_mut()
                 .find(|e| e.session_id == session_id)
-            {
-                entry.active = false;
-                entry.last_active = Instant::now();
-            }
+        {
+            entry.active = false;
+            entry.last_active = Instant::now();
         }
     }
 

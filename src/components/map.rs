@@ -166,13 +166,12 @@ pub fn MapCanvas() -> impl IntoView {
                     image_retry_pending.update_value(|s| {
                         s.insert(url_owned.clone());
                     });
-                    let handle = leptos::prelude::set_timeout(
+                    leptos::prelude::set_timeout(
                         move || {
                             set_image_load_counter.update(|c| *c += 1);
                         },
                         std::time::Duration::from_millis(150),
                     );
-                    let _ = handle;
                 }
             }
             return None;
@@ -223,7 +222,7 @@ pub fn MapCanvas() -> impl IntoView {
     // Watch for center-on-character requests from other components
     #[cfg(feature = "hydrate")]
     {
-        let canvas_ref_center = canvas_ref.clone();
+        let canvas_ref_center = canvas_ref;
         Effect::new(move |_| {
             let Some(char_id) = ctx.center_on_character.get() else {
                 return;
@@ -231,18 +230,18 @@ pub fn MapCanvas() -> impl IntoView {
             ctx.center_on_character.set(None);
             let tokens_data = tokens.get();
             let map_data = map.get();
-            if let Some(t) = tokens_data.iter().find(|t| t.character_id == Some(char_id)) {
-                if let Some(ref m) = map_data {
-                    let cell = m.cell_size as f64;
-                    let world_x = (t.x as f64 + 0.5) * cell;
-                    let world_y = (t.y as f64 + 0.5) * cell;
-                    if let Some(canvas) = canvas_ref_center.get() {
-                        let canvas_el: &web_sys::HtmlCanvasElement = canvas.as_ref();
-                        let cw = canvas_el.client_width() as f64;
-                        let ch = canvas_el.client_height() as f64;
-                        let zoom = view_zoom.get();
-                        view_offset.set((world_x - cw / zoom / 2.0, world_y - ch / zoom / 2.0));
-                    }
+            if let Some(t) = tokens_data.iter().find(|t| t.character_id == Some(char_id))
+                && let Some(ref m) = map_data
+            {
+                let cell = m.cell_size as f64;
+                let world_x = (t.x as f64 + 0.5) * cell;
+                let world_y = (t.y as f64 + 0.5) * cell;
+                if let Some(canvas) = canvas_ref_center.get() {
+                    let canvas_el: &web_sys::HtmlCanvasElement = canvas.as_ref();
+                    let cw = canvas_el.client_width() as f64;
+                    let ch = canvas_el.client_height() as f64;
+                    let zoom = view_zoom.get();
+                    view_offset.set((world_x - cw / zoom / 2.0, world_y - ch / zoom / 2.0));
                 }
             }
         });
@@ -251,7 +250,7 @@ pub fn MapCanvas() -> impl IntoView {
     // Center on token by label (from initiative "Find on Map")
     #[cfg(feature = "hydrate")]
     {
-        let canvas_ref_label = canvas_ref.clone();
+        let canvas_ref_label = canvas_ref;
         Effect::new(move |_| {
             let Some(label) = ctx.center_on_token_label.get() else {
                 return;
@@ -259,18 +258,18 @@ pub fn MapCanvas() -> impl IntoView {
             ctx.center_on_token_label.set(None);
             let tokens_data = tokens.get();
             let map_data = map.get();
-            if let Some(t) = tokens_data.iter().find(|t| t.label == label) {
-                if let Some(ref m) = map_data {
-                    let cell = m.cell_size as f64;
-                    let world_x = (t.x as f64 + 0.5) * cell;
-                    let world_y = (t.y as f64 + 0.5) * cell;
-                    if let Some(canvas) = canvas_ref_label.get() {
-                        let canvas_el: &web_sys::HtmlCanvasElement = canvas.as_ref();
-                        let cw = canvas_el.client_width() as f64;
-                        let ch = canvas_el.client_height() as f64;
-                        let zoom = view_zoom.get();
-                        view_offset.set((world_x - cw / zoom / 2.0, world_y - ch / zoom / 2.0));
-                    }
+            if let Some(t) = tokens_data.iter().find(|t| t.label == label)
+                && let Some(ref m) = map_data
+            {
+                let cell = m.cell_size as f64;
+                let world_x = (t.x as f64 + 0.5) * cell;
+                let world_y = (t.y as f64 + 0.5) * cell;
+                if let Some(canvas) = canvas_ref_label.get() {
+                    let canvas_el: &web_sys::HtmlCanvasElement = canvas.as_ref();
+                    let cw = canvas_el.client_width() as f64;
+                    let ch = canvas_el.client_height() as f64;
+                    let zoom = view_zoom.get();
+                    view_offset.set((world_x - cw / zoom / 2.0, world_y - ch / zoom / 2.0));
                 }
             }
         });
@@ -279,7 +278,7 @@ pub fn MapCanvas() -> impl IntoView {
     // Center on token by ID (from initiative "Find on Map")
     #[cfg(feature = "hydrate")]
     {
-        let canvas_ref_id = canvas_ref.clone();
+        let canvas_ref_id = canvas_ref;
         Effect::new(move |_| {
             let Some(tid) = ctx.center_on_token_id.get() else {
                 return;
@@ -287,18 +286,18 @@ pub fn MapCanvas() -> impl IntoView {
             ctx.center_on_token_id.set(None);
             let tokens_data = tokens.get();
             let map_data = map.get();
-            if let Some(t) = tokens_data.iter().find(|t| t.id == tid) {
-                if let Some(ref m) = map_data {
-                    let cell = m.cell_size as f64;
-                    let world_x = (t.x as f64 + 0.5) * cell;
-                    let world_y = (t.y as f64 + 0.5) * cell;
-                    if let Some(canvas) = canvas_ref_id.get() {
-                        let canvas_el: &web_sys::HtmlCanvasElement = canvas.as_ref();
-                        let cw = canvas_el.client_width() as f64;
-                        let ch = canvas_el.client_height() as f64;
-                        let zoom = view_zoom.get();
-                        view_offset.set((world_x - cw / zoom / 2.0, world_y - ch / zoom / 2.0));
-                    }
+            if let Some(t) = tokens_data.iter().find(|t| t.id == tid)
+                && let Some(ref m) = map_data
+            {
+                let cell = m.cell_size as f64;
+                let world_x = (t.x as f64 + 0.5) * cell;
+                let world_y = (t.y as f64 + 0.5) * cell;
+                if let Some(canvas) = canvas_ref_id.get() {
+                    let canvas_el: &web_sys::HtmlCanvasElement = canvas.as_ref();
+                    let cw = canvas_el.client_width() as f64;
+                    let ch = canvas_el.client_height() as f64;
+                    let zoom = view_zoom.get();
+                    view_offset.set((world_x - cw / zoom / 2.0, world_y - ch / zoom / 2.0));
                 }
             }
         });
@@ -316,7 +315,7 @@ pub fn MapCanvas() -> impl IntoView {
             let had_active = pings.iter().any(|(_, _, _, t)| now - t < 3000.0);
             if had_active {
                 // Schedule cleanup
-                let handle = leptos::prelude::set_timeout(
+                leptos::prelude::set_timeout(
                     move || {
                         let now = web_sys::js_sys::Date::now();
                         ctx.pings.update(|pings| {
@@ -325,7 +324,6 @@ pub fn MapCanvas() -> impl IntoView {
                     },
                     std::time::Duration::from_millis(100),
                 );
-                let _ = handle;
             }
         });
     }
@@ -339,14 +337,14 @@ pub fn MapCanvas() -> impl IntoView {
                 return;
             }
             // Schedule a tick to keep the animation rendering
-            let _ = leptos::prelude::set_timeout(
+            leptos::prelude::set_timeout(
                 move || {
                     let now = web_sys::js_sys::Date::now();
                     ctx.turn_star.update(|s| {
-                        if let Some((_, _, t)) = s {
-                            if now - *t >= 2000.0 {
-                                *s = None;
-                            }
+                        if let Some((_, _, t)) = s
+                            && now - *t >= 2000.0
+                        {
+                            *s = None;
                         }
                     });
                     // If still active, the update triggers re-render for animation
@@ -359,7 +357,7 @@ pub fn MapCanvas() -> impl IntoView {
     // Watch for canvas container resize → bump canvas_size_tick to trigger redraw
     #[cfg(feature = "hydrate")]
     {
-        let canvas_ref_resize = canvas_ref.clone();
+        let canvas_ref_resize = canvas_ref;
         Effect::new(move |_| {
             use wasm_bindgen::JsCast;
             let Some(canvas) = canvas_ref_resize.get() else {
@@ -461,14 +459,12 @@ pub fn MapCanvas() -> impl IntoView {
                     .ok();
 
                 // Draw background image if set
-                if let Some(ref bg_url) = m.background_url {
-                    if !bg_url.is_empty() {
-                        if let Some(bg_img) = get_or_load_image(bg_url) {
-                            let _ = ctx2d.draw_image_with_html_image_element_and_dw_and_dh(
-                                &bg_img, 0.0, 0.0, w, h,
-                            );
-                        }
-                    }
+                if let Some(ref bg_url) = m.background_url
+                    && !bg_url.is_empty()
+                    && let Some(bg_img) = get_or_load_image(bg_url)
+                {
+                    let _ = ctx2d
+                        .draw_image_with_html_image_element_and_dw_and_dh(&bg_img, 0.0, 0.0, w, h);
                 }
 
                 // Draw grid
@@ -601,27 +597,27 @@ pub fn MapCanvas() -> impl IntoView {
                     let _ = ctx2d.fill_text(&t.label, cx, cy);
 
                     // HP bar
-                    if let (Some(cur), Some(max)) = (t.current_hp, t.max_hp) {
-                        if max > 0 {
-                            let bar_w = radius * 1.6;
-                            let bar_h = 4.0 / zoom;
-                            let bar_x = cx - bar_w / 2.0;
-                            let bar_y = cy + radius + 3.0 / zoom;
+                    if let (Some(cur), Some(max)) = (t.current_hp, t.max_hp)
+                        && max > 0
+                    {
+                        let bar_w = radius * 1.6;
+                        let bar_h = 4.0 / zoom;
+                        let bar_x = cx - bar_w / 2.0;
+                        let bar_y = cy + radius + 3.0 / zoom;
 
-                            ctx2d.set_fill_style_str("#333333");
-                            ctx2d.fill_rect(bar_x, bar_y, bar_w, bar_h);
+                        ctx2d.set_fill_style_str("#333333");
+                        ctx2d.fill_rect(bar_x, bar_y, bar_w, bar_h);
 
-                            let ratio = (cur as f64 / max as f64).clamp(0.0, 1.0);
-                            let color = if ratio > 0.5 {
-                                "#22cc22"
-                            } else if ratio > 0.25 {
-                                "#cccc22"
-                            } else {
-                                "#cc2222"
-                            };
-                            ctx2d.set_fill_style_str(color);
-                            ctx2d.fill_rect(bar_x, bar_y, bar_w * ratio, bar_h);
-                        }
+                        let ratio = (cur as f64 / max as f64).clamp(0.0, 1.0);
+                        let color = if ratio > 0.5 {
+                            "#22cc22"
+                        } else if ratio > 0.25 {
+                            "#cccc22"
+                        } else {
+                            "#cc2222"
+                        };
+                        ctx2d.set_fill_style_str(color);
+                        ctx2d.fill_rect(bar_x, bar_y, bar_w * ratio, bar_h);
                     }
                     // Reset alpha after drawing hidden tokens
                     if !t.visible {
@@ -800,7 +796,6 @@ pub fn MapCanvas() -> impl IntoView {
     let on_mousedown = {
         #[cfg(feature = "hydrate")]
         {
-            let canvas_ref = canvas_ref.clone();
             move |ev: leptos::ev::MouseEvent| {
                 // Dismiss context menu on any click
                 token_context_menu.set(None);
@@ -997,7 +992,6 @@ pub fn MapCanvas() -> impl IntoView {
     let on_mousemove = {
         #[cfg(feature = "hydrate")]
         {
-            let canvas_ref = canvas_ref.clone();
             move |ev: leptos::ev::MouseEvent| {
                 let Some((sx, sy)) = canvas_coords(&canvas_ref, &ev) else {
                     return;
@@ -1084,37 +1078,37 @@ pub fn MapCanvas() -> impl IntoView {
                     }
                     MapTool::Ping => {}
                     MapTool::Rotate => {
-                        if dragging.get() {
-                            if let Some(anchor) = rotate_anchor_angle.get() {
-                                let map_data = map.get();
-                                let Some(m) = map_data else { return };
-                                let cell = m.cell_size as f64;
-                                let (cx, cy) = rotate_center.get();
-                                let current_angle = (wy - cy).atan2(wx - cx);
-                                let delta = current_angle - anchor;
-                                let cos_d = delta.cos();
-                                let sin_d = delta.sin();
-                                let initials = rotate_initial_state.get();
-                                let multi = initials.len() > 1;
-                                tokens.update(|ts| {
-                                    for t in ts.iter_mut() {
-                                        if let Some(&(_, init_rot, ix, iy)) =
-                                            initials.iter().find(|(id, ..)| *id == t.id)
-                                        {
-                                            if multi {
-                                                // Orbit position around group center
-                                                let rx = ix - cx;
-                                                let ry = iy - cy;
-                                                let new_wx = cx + rx * cos_d - ry * sin_d;
-                                                let new_wy = cy + rx * sin_d + ry * cos_d;
-                                                t.x = (new_wx / cell - 0.5) as f32;
-                                                t.y = (new_wy / cell - 0.5) as f32;
-                                            }
-                                            t.rotation = init_rot + delta as f32;
+                        if dragging.get()
+                            && let Some(anchor) = rotate_anchor_angle.get()
+                        {
+                            let map_data = map.get();
+                            let Some(m) = map_data else { return };
+                            let cell = m.cell_size as f64;
+                            let (cx, cy) = rotate_center.get();
+                            let current_angle = (wy - cy).atan2(wx - cx);
+                            let delta = current_angle - anchor;
+                            let cos_d = delta.cos();
+                            let sin_d = delta.sin();
+                            let initials = rotate_initial_state.get();
+                            let multi = initials.len() > 1;
+                            tokens.update(|ts| {
+                                for t in ts.iter_mut() {
+                                    if let Some(&(_, init_rot, ix, iy)) =
+                                        initials.iter().find(|(id, ..)| *id == t.id)
+                                    {
+                                        if multi {
+                                            // Orbit position around group center
+                                            let rx = ix - cx;
+                                            let ry = iy - cy;
+                                            let new_wx = cx + rx * cos_d - ry * sin_d;
+                                            let new_wy = cy + rx * sin_d + ry * cos_d;
+                                            t.x = (new_wx / cell - 0.5) as f32;
+                                            t.y = (new_wy / cell - 0.5) as f32;
                                         }
+                                        t.rotation = init_rot + delta as f32;
                                     }
-                                });
-                            }
+                                }
+                            });
                         }
                     }
                 }
@@ -1129,7 +1123,6 @@ pub fn MapCanvas() -> impl IntoView {
     let on_mouseup = {
         #[cfg(feature = "hydrate")]
         {
-            let canvas_ref = canvas_ref.clone();
             move |ev: leptos::ev::MouseEvent| {
                 // End panning
                 if panning.get() {
@@ -1241,7 +1234,6 @@ pub fn MapCanvas() -> impl IntoView {
     let on_wheel = {
         #[cfg(feature = "hydrate")]
         {
-            let canvas_ref = canvas_ref.clone();
             move |ev: leptos::ev::WheelEvent| {
                 ev.prevent_default();
                 let Some((sx, sy)) = ({
@@ -1482,9 +1474,9 @@ pub fn MapCanvas() -> impl IntoView {
                         // Estimate: assume ~72 DPI, 1 inch per grid square
                         // so cell_size ~72px. Clamp grid dimensions to reasonable range.
                         let dpi_estimate = 72;
-                        let grid_w = (w as i32 / dpi_estimate).max(5).min(200);
-                        let grid_h = (h as i32 / dpi_estimate).max(5).min(200);
-                        let cell = dpi_estimate.max(10).min(200);
+                        let grid_w = (w as i32 / dpi_estimate).clamp(5, 200);
+                        let grid_h = (h as i32 / dpi_estimate).clamp(5, 200);
+                        let cell = dpi_estimate.clamp(10, 200);
                         set_new_map_width.set(grid_w);
                         set_new_map_height.set(grid_h);
                         set_new_map_cell_size.set(cell);
@@ -1618,7 +1610,7 @@ pub fn MapCanvas() -> impl IntoView {
                             prop:value=move || new_map_width.get().to_string()
                             on:input=move |ev| {
                                 if let Ok(v) = event_target_value(&ev).parse::<i32>() {
-                                    set_new_map_width.set(v.max(1).min(200));
+                                    set_new_map_width.set(v.clamp(1, 200));
                                 }
                             }
                             min="1" max="200"
@@ -1631,7 +1623,7 @@ pub fn MapCanvas() -> impl IntoView {
                             prop:value=move || new_map_height.get().to_string()
                             on:input=move |ev| {
                                 if let Ok(v) = event_target_value(&ev).parse::<i32>() {
-                                    set_new_map_height.set(v.max(1).min(200));
+                                    set_new_map_height.set(v.clamp(1, 200));
                                 }
                             }
                             min="1" max="200"
@@ -1644,7 +1636,7 @@ pub fn MapCanvas() -> impl IntoView {
                             prop:value=move || new_map_cell_size.get().to_string()
                             on:input=move |ev| {
                                 if let Ok(v) = event_target_value(&ev).parse::<i32>() {
-                                    set_new_map_cell_size.set(v.max(10).min(200));
+                                    set_new_map_cell_size.set(v.clamp(10, 200));
                                 }
                             }
                             min="10" max="200"

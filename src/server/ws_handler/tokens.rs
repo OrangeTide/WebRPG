@@ -68,6 +68,8 @@ pub fn persist_token_position(token_id: i32, x: f32, y: f32) {
         .execute(conn);
 }
 
+// A token carries its position, size, colour, art, and what it is linked to.
+#[allow(clippy::too_many_arguments)]
 pub fn place_token(
     session_id: i32,
     label: &str,
@@ -320,7 +322,7 @@ fn find_open_position(
         // For ring r, we check all positions at distance r in each direction
         let offsets: Vec<(f32, f32)> = {
             let mut pts = Vec::new();
-            let ri = ring as i32;
+            let ri = ring;
             // Top edge: from (−r+1, −r) to (r, −r) — starts at 12:00
             for dx in (-ri + 1)..=ri {
                 pts.push((dx as f32 * sf, -r * sf));

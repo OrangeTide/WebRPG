@@ -65,12 +65,11 @@ fn load_term_theme() -> TermTheme {
 
 #[cfg(feature = "hydrate")]
 fn save_term_theme(theme: TermTheme) {
-    if let Some(window) = web_sys::window() {
-        if let Ok(Some(storage)) = window.local_storage() {
-            if let Ok(json) = serde_json::to_string(&theme) {
-                let _ = storage.set_item(TERM_THEME_KEY, &json);
-            }
-        }
+    if let Some(window) = web_sys::window()
+        && let Ok(Some(storage)) = window.local_storage()
+        && let Ok(json) = serde_json::to_string(&theme)
+    {
+        let _ = storage.set_item(TERM_THEME_KEY, &json);
     }
 }
 
@@ -146,9 +145,9 @@ fn shell_split(input: &str) -> Vec<String> {
     let mut tokens = Vec::new();
     let mut current = String::new();
     let mut in_quotes = false;
-    let mut chars = input.chars();
+    let chars = input.chars();
 
-    while let Some(c) = chars.next() {
+    for c in chars {
         match c {
             '"' => in_quotes = !in_quotes,
             ' ' | '\t' if !in_quotes => {
@@ -481,7 +480,7 @@ async fn cmd_dir(
                 }
                 line.push_str(&format!("{:<18}", display));
                 total_files += 1;
-                total_bytes += entry.size_bytes as i64;
+                total_bytes += entry.size_bytes;
             }
             if !line.is_empty() {
                 output.push(line);
@@ -499,14 +498,14 @@ async fn cmd_dir(
                 let ts = format_timestamp(entry.updated_at);
                 output.push(format!("{} {:<20} {:>10}  {}", icon, name, size_str, ts));
                 total_files += 1;
-                total_bytes += entry.size_bytes as i64;
+                total_bytes += entry.size_bytes;
             }
         }
 
         output.push(format!(
             "        {} file(s)    {} bytes",
             total_files,
-            format_size(total_bytes as i64)
+            format_size(total_bytes)
         ));
 
         return output;
@@ -565,7 +564,7 @@ async fn cmd_dir(
             }
             line.push_str(&format!("{:<18}", display));
             total_files += 1;
-            total_bytes += entry.size_bytes as i64;
+            total_bytes += entry.size_bytes;
         }
         if !line.is_empty() {
             output.push(line);
@@ -583,14 +582,14 @@ async fn cmd_dir(
             let ts = format_timestamp(entry.updated_at);
             output.push(format!("{} {:<20} {:>10}  {}", icon, name, size_str, ts));
             total_files += 1;
-            total_bytes += entry.size_bytes as i64;
+            total_bytes += entry.size_bytes;
         }
     }
 
     output.push(format!(
         "        {} file(s)    {} bytes",
         total_files,
-        format_size(total_bytes as i64)
+        format_size(total_bytes)
     ));
 
     output
@@ -1627,7 +1626,7 @@ pub fn TerminalPanel() -> impl IntoView {
         if cmd.len() == 2 && cmd.ends_with(':') && cmd.as_bytes()[0].is_ascii_alphabetic() {
             let mut cd_result = Vec::new();
             shell.update_value(|s| {
-                cd_result = cmd_cd(s, &[cmd.clone()]);
+                cd_result = cmd_cd(s, std::slice::from_ref(&cmd));
             });
             output.update(|lines| {
                 for line in cd_result {
@@ -1704,7 +1703,6 @@ pub fn TerminalPanel() -> impl IntoView {
                 }
             });
             shell.with_value(|s| set_prompt.set(s.prompt()));
-            return;
         }
 
         // Async commands — spawn
@@ -1820,7 +1818,7 @@ pub fn TerminalPanel() -> impl IntoView {
     };
 
     view! {
-        <div class="terminal-panel" style=move || theme_style() on:click=move |_| {
+        <div class="terminal-panel" style=theme_style on:click=move |_| {
             if let Some(el) = input_ref.get() {
                 let _ = el.focus();
             }

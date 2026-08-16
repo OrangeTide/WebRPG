@@ -183,7 +183,7 @@ pub fn parse_and_roll(expression: &str) -> Result<(Vec<i32>, i32), String> {
         .parse()
         .map_err(|_| format!("Invalid dice sides in '{expression}'"))?;
 
-    if count < 1 || count > 100 || sides < 1 || sides > 1000 {
+    if !(1..=100).contains(&count) || !(1..=1000).contains(&sides) {
         return Err("Dice values out of range".to_string());
     }
 
