@@ -99,8 +99,15 @@ guidelines, and commit message conventions.
 
 ## License
 
-This project is licensed under [MIT-0](LICENSE) — a permissive license with no
+The software is licensed under [MIT-0](LICENSE) — a permissive license with no
 attribution requirement.
+
+The game modules in [`modules/`](modules/) are not. They carry other people's
+work under licenses that do impose conditions, and two of them cannot be
+relicensed: the Sky-Blind Spire module is non-commercial (CC BY-NC 3.0), and the
+Cairn spell lists are share-alike (CC BY-SA 4.0). See
+[modules/LICENSING.md](modules/LICENSING.md) for what each module takes, from
+whom, and what follows from it.
 
 ## Testing
 

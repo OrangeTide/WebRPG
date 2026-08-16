@@ -51,8 +51,12 @@ this tower.
 
 ## Credits
 
-The Sky-Blind Spire (c) 2016 Michael Prescott, CC BY-NC 3.0,
-<https://blog.trilemma.com/2016/04/the-sky-blind-spire.html>.
+The Sky-Blind Spire (c) 2016 Michael Prescott, licensed
+[CC BY-NC 3.0](https://creativecommons.org/licenses/by-nc/3.0/), from
+<https://blog.trilemma.com/2016/04/the-sky-blind-spire.html>. What you are
+reading is an adaptation of it: restated for Tunnel Goons, rewritten for play at
+a virtual table, with rulings and two NPCs added. Non-commercial use only.
 
-Tunnel Goons by Nate Treme, Highland Paranormal Society.
-Get the rulebook at <https://natetreme.itch.io/tunnelgoons>.
+Tunnel Goons by Nate Treme, Highland Paranormal Society, under a Creative
+Commons 4.0 International licence. Get the rulebook at
+<https://natetreme.itch.io/tunnelgoons>.

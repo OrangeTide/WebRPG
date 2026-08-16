@@ -466,6 +466,14 @@ tables, and refuses anyone but the session's GM. Players call
 `get_adventure_handouts`, which returns only pregens and item cards. Anything
 secret belongs in a room's `gm` field, never in its `card`.
 
+**Licensing.** The repository is MIT-0; `modules/` is not. Bundled modules carry
+third-party content whose licences impose conditions MIT-0 disclaims, including
+one non-commercial and one share-alike work, so a module cannot be assumed to
+inherit the repository's terms. Each `module.json` states its own licence and
+what was changed, and [modules/LICENSING.md](modules/LICENSING.md) collects the
+detail. A new module that reproduces someone else's wording needs the same:
+author, licence, link, and a note of what was altered.
+
 **Module art.** Files in a module's `assets/` are served by
 `GET /api/modules/{module_id}/assets/{path}` straight off disk, for image types
 only, with traversal refused in `modules::loader::asset_path`. An item card

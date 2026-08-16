@@ -58,7 +58,16 @@ different places. Pick your answers up front:
 
 ## Credits
 
-Spell text from [cairnrpg.com](https://cairnrpg.com/resources/more-spellbooks/),
-licensed CC BY-SA 4.0. Cairn is by Yochai Gal. The spell list draws on work by
-Chris McDowall, Mike Evans, Goblin Punch's GLOG, and the SRDs credited on that
-page.
+Cairn is by Yochai Gal and contributors, and its text is licensed
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The core
+hundred come from the
+[Warden's Guide](https://cairnrpg.com/second-edition/wardens-guide/spellbooks/)
+and the larger list from
+[More Spellbooks](https://cairnrpg.com/resources/more-spellbooks/), which
+credits Chris McDowall, Mike Evans, Goblin Punch's GLOG, and several SRDs as
+its own sources.
+
+Changed here: the two lists are kept separate as a d100 and a d666 table, five
+misspellings in the community list are corrected, and the cards are
+deduplicated by name. Share-alike applies, so anything built on this stays
+CC BY-SA 4.0.
