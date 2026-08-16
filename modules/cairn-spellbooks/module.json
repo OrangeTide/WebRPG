@@ -4,8 +4,10 @@
   "version": "1.0",
   "kind": "reference",
   "description": "The 100 core Cairn spells as a d100 table, a larger community list as d666, and one spellbook item card per spell. A spellbook takes an inventory slot and reading it casts the spell.",
-  "authors": ["Yochai Gal and contributors (Cairn)"],
-  "license": "Spell text from cairnrpg.com, CC BY-SA 4.0. This module's data files are CC BY-SA 4.0 to match.",
+  "authors": [
+    "Yochai Gal and contributors (Cairn)"
+  ],
+  "license": "Spell text from Cairn by Yochai Gal and contributors, CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Changed here: the two lists are kept separate as d100 and d666 tables, five misspellings corrected, and cards deduplicated by name. These data files are CC BY-SA 4.0, as ShareAlike requires. See modules/LICENSING.md.",
   "overview": "Cairn treats magic as objects rather than as a class feature: a spellbook holds one spell, occupies one inventory slot, and casting is reading it. That travels well to any system where magic is an item, which is how Tunnel Goons handles it. Roll d100 on the core list for what a found spellbook contains, or deal the spellbook card straight to a character. The d666 community list is there when you want something the table will not recognise; it is uneven, so read what you roll before handing it over.",
   "links": [
     {

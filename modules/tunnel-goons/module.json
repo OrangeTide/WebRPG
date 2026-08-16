@@ -4,8 +4,10 @@
   "version": "1.2",
   "kind": "system",
   "description": "Rules-light dungeon crawling on one roll: 2d6 + ability + 1 per helpful item, meet or beat the Difficulty Score. Dangerous actions deal the difference as damage, in whichever direction the roll went.",
-  "authors": ["Nate Treme, Highland Paranormal Society"],
-  "license": "Tunnel Goons is by Nate Treme. Players should get the rulebook from the author. These data files are PUBLIC DOMAIN (CC0-1.0).",
+  "authors": [
+    "Nate Treme, Highland Paranormal Society"
+  ],
+  "license": "Tunnel Goons (c) Nate Treme, Highland Paranormal Society, under a Creative Commons 4.0 International licence. This module transcribes its roll model, difficulty ladder, and three character-creation tables as data; the sheet schema and help page are written for this software. See modules/LICENSING.md.",
   "links": [
     {
       "label": "Get the Tunnel Goons rulebook (itch.io)",

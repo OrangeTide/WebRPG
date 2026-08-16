@@ -7,6 +7,10 @@ Get the rulebook from the author:
 [natetreme.itch.io/tunnelgoons](https://natetreme.itch.io/tunnelgoons). The
 SRD is at [tunnelgoons.com/srd](https://tunnelgoons.com/srd).
 
+Tunnel Goons is released under a Creative Commons 4.0 International licence,
+which is why this module can carry its tables. The rules summarised here are
+Nate Treme's; the borrowed rules further down are not.
+
 ## The only roll
 
 **2d6 + ability + 1 per helpful item.** Meet or beat the Difficulty Score the
