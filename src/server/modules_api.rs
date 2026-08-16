@@ -736,6 +736,7 @@ pub async fn create_character_from_pregen(
                 let slots = card.map(|c| c.slots).unwrap_or(1);
                 let kind = card.map(|c| c.kind.as_str()).unwrap_or("gear");
                 let uses = card.and_then(|c| c.uses);
+                let tags = card.map(|c| c.tags.join(",")).unwrap_or_default();
                 let bonus = if item.bonus.is_empty() {
                     card.map(|c| c.bonus.as_str()).unwrap_or("")
                 } else {
@@ -755,6 +756,7 @@ pub async fn create_character_from_pregen(
                         bonus,
                         uses_max: uses,
                         uses_left: uses,
+                        tags: &tags,
                     })
                     .execute(conn)?;
             }

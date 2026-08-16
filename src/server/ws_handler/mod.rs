@@ -669,15 +669,18 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 bonus,
                 slots,
                 uses,
+                tags,
                 owner_character_id,
             } => {
                 if let Some(session_id) = current_session {
+                    let tag_list = tags.join(",");
                     let card = inventory::ItemCard {
                         kind: &kind,
                         bonus: &bonus,
                         slots: slots.unwrap_or(1),
                         uses,
                         owner_character_id,
+                        tags: &tag_list,
                     };
                     match inventory::add_inventory_item(
                         session_id,

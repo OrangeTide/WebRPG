@@ -3577,3 +3577,22 @@ h1, h2, h3, h4 {
 .module-btn.busy {
     font-style: italic;
 }
+
+/* Gear tags: each one is a rule, so they read as small labels rather than
+ * prose, and the same chip appears on a dealt card and in the inventory. */
+.inv-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+    margin-top: 0.2rem;
+}
+
+.gear-tag {
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.05em 0.4em;
+    border-radius: 2px;
+    border: 1px solid var(--color-btn-border);
+    color: var(--color-text-muted);
+}

@@ -81,6 +81,7 @@ diesel::table! {
         bonus -> Text,
         uses_max -> Nullable<Integer>,
         uses_left -> Nullable<Integer>,
+        tags -> Text,
     }
 }
 

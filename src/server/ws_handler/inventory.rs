@@ -11,6 +11,8 @@ pub struct ItemCard<'a> {
     pub slots: i32,
     pub uses: Option<i32>,
     pub owner_character_id: Option<i32>,
+    /// Comma-separated gear tags, which is how the column stores them.
+    pub tags: &'a str,
 }
 
 pub fn add_inventory_item(
@@ -40,6 +42,7 @@ pub fn add_inventory_item(
         bonus: card.bonus,
         uses_max: card.uses,
         uses_left: card.uses,
+        tags: card.tags,
     };
 
     diesel::insert_into(inventory_items::table)
@@ -159,6 +162,13 @@ pub fn load_inventory(session_id: i32) -> Vec<InventoryItemInfo> {
             bonus: item.bonus,
             uses_max: item.uses_max,
             uses_left: item.uses_left,
+            tags: item
+                .tags
+                .split(',')
+                .map(str::trim)
+                .filter(|t| !t.is_empty())
+                .map(str::to_string)
+                .collect(),
         })
         .collect()
 }

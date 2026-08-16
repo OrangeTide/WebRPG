@@ -95,6 +95,7 @@ pub fn InventoryPanel() -> impl IntoView {
                     bonus: bonus.clone(),
                     slots: Some(slots),
                     uses: None,
+                    tags: Vec::new(),
                     owner_character_id,
                 });
             }
@@ -241,6 +242,18 @@ pub fn InventoryPanel() -> impl IntoView {
                                     <span class="inv-kind">{item.kind.to_uppercase()}</span>
                                 </div>
 
+                                {(!item.tags.is_empty())
+                                    .then(|| {
+                                        let tags = item.tags.clone();
+                                        view! {
+                                            <div class="inv-tags">
+                                                {tags
+                                                    .into_iter()
+                                                    .map(|t| view! { <span class="gear-tag">{t}</span> })
+                                                    .collect_view()}
+                                            </div>
+                                        }
+                                    })}
                                 {(!item.bonus.is_empty())
                                     .then(|| view! { <div class="inv-bonus">{item.bonus.clone()}</div> })}
                                 {(!item.description.is_empty())

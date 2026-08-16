@@ -102,6 +102,9 @@ pub enum ClientMessage {
         /// Uses for a consumable, filled to full when dealt.
         #[serde(default)]
         uses: Option<i32>,
+        /// Gear tags the card carries, such as piercing or heavy.
+        #[serde(default)]
+        tags: Vec<String>,
         /// Character carrying it. `None` leaves it with the party.
         #[serde(default)]
         owner_character_id: Option<i32>,

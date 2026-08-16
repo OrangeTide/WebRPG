@@ -179,6 +179,10 @@ pub struct ItemDef {
     /// Tick boxes for something with a limited number of uses.
     #[serde(default)]
     pub uses: Option<i32>,
+    /// Gear tags, each one a rule the system module's help defines: reach,
+    /// cleaving, piercing, heavy, defensive, silent, fragile.
+    #[serde(default)]
+    pub tags: Vec<String>,
     /// Card art, as a path under the module's `assets/`. Prefix it with
     /// `other-module:` to use art another module ships, which is how an
     /// adventure borrows the system module's card deck.

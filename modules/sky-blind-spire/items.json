@@ -70,19 +70,22 @@
     "id": "tusk-spear",
     "name": "Tusk spear",
     "kind": "weapon",
+    "tags": ["reach"],
     "bonus": "+1 Brute, and long enough to keep a pelican at arm's length."
   },
   {
     "id": "shield",
     "name": "Shield",
     "kind": "armour",
+    "tags": ["defensive"],
+    "art": "tunnel-goons:cards/helmet.png",
     "bonus": "+1 to block, brace a door, or shelter someone."
   },
   {
     "id": "torch",
-    "art": "tunnel-goons:cards/torch.png",
     "name": "Torch",
     "kind": "gear",
+    "art": "tunnel-goons:cards/torch.png",
     "bonus": "+1 Skulker in the dark.",
     "note": "It burns out when the referee says so."
   },
@@ -121,10 +124,40 @@
   },
   {
     "id": "knife",
-    "art": "tunnel-goons:cards/shortsword.png",
     "name": "Knife",
     "kind": "weapon",
+    "art": "tunnel-goons:cards/shortsword.png",
     "bonus": "+1 in a close fight. Everyone has one."
+  },
+  {
+    "id": "twin-knives",
+    "name": "Twin knives",
+    "kind": "weapon",
+    "art": "tunnel-goons:cards/shortsword.png",
+    "bonus": "+1 Brute or Skulker in a knife fight. Name which before you roll."
+  },
+  {
+    "id": "light-crossbow",
+    "name": "Light crossbow",
+    "kind": "weapon",
+    "tags": ["piercing"],
+    "art": "tunnel-goons:cards/shortbow.png",
+    "bonus": "+1 Skulker at range.",
+    "note": "One bolt, then a moment spent winding. Armour does not help."
+  },
+  {
+    "id": "brass-spyglass",
+    "name": "Brass spyglass",
+    "kind": "gear",
+    "bonus": "+1 Erudite to read a distant window number or count giants."
+  },
+  {
+    "id": "bag-of-salt",
+    "name": "Bag of salt",
+    "kind": "consumable",
+    "uses": 3,
+    "bonus": "+1 against anything made of water, and it hates being thrown.",
+    "note": "Also preserves fish, and marks a floor you have already crossed."
   },
   {
     "id": "grappling-hook",
@@ -146,60 +179,29 @@
     "bonus": "Burns, or makes a floor treacherous. Pick one."
   },
   {
-    "id": "brass-spyglass",
-    "name": "Brass spyglass",
-    "kind": "gear",
-    "bonus": "+1 Erudite to read a distant window number or count giants."
-  },
-  {
-    "id": "twin-knives",
-    "art": "tunnel-goons:cards/shortsword.png",
-    "name": "Twin knives",
-    "kind": "weapon",
-    "bonus": "+1 Brute or Skulker in a knife fight."
-  },
-  {
-    "id": "light-crossbow",
-    "art": "tunnel-goons:cards/shortbow.png",
-    "name": "Light crossbow",
-    "kind": "weapon",
-    "bonus": "+1 Skulker at range."
-  },
-  {
-    "id": "book-of-kastromancy",
-    "name": "Slim book of kastromancy",
-    "kind": "gear",
-    "bonus": "+1 Erudite on the Spire's own magic."
-  },
-  {
-    "id": "bag-of-salt",
-    "name": "Bag of salt",
-    "kind": "gear",
-    "bonus": "Superstition, made portable."
-  },
-  {
     "id": "ring-of-water-breathing",
-    "art": "tunnel-goons:cards/ring.png",
     "name": "Ring of water breathing",
     "kind": "treasure",
+    "art": "tunnel-goons:cards/ring.png",
     "bonus": "Breathe water indefinitely.",
     "note": "Room 1, on a skeletal finger. Drowning stops being one of the ways this tower can kill you."
   },
   {
     "id": "defenders-blade",
-    "art": "tunnel-goons:cards/shortsword.png",
     "name": "Defender's blade",
     "kind": "weapon",
+    "art": "tunnel-goons:cards/shortsword.png",
     "bonus": "+1 Brute, and +1 again when you are fighting for someone else.",
     "note": "Room 7, in the font."
   },
   {
     "id": "plate-armour",
-    "art": "tunnel-goons:cards/chestplate.png",
     "name": "Plate armour",
     "kind": "armour",
     "slots": 3,
-    "bonus": "Absorbs 2 damage. -1 Skulker.",
+    "tags": ["defensive"],
+    "art": "tunnel-goons:cards/chestplate.png",
+    "bonus": "Absorbs 2 damage. -1 Skulker. Break one piece a hit, three times.",
     "note": "Room 7. Most of a suit. The rest is still in the fountain."
   },
   {
@@ -212,10 +214,10 @@
   },
   {
     "id": "potion-of-leaping",
-    "art": "tunnel-goons:cards/potion.png",
     "name": "Potion of leaping",
     "kind": "consumable",
     "uses": 1,
+    "art": "tunnel-goons:cards/potion.png",
     "bonus": "One enormous jump. Window to window, or roof to boat.",
     "note": "Room 9, under the jawbone."
   },
@@ -223,17 +225,18 @@
     "id": "circlet-of-clear-sight",
     "name": "Circlet of clear sight",
     "kind": "treasure",
+    "art": "tunnel-goons:cards/bracelet.png",
     "bonus": "The wearer sees blue.",
     "note": "Rooms 16-17, in a silver sack. Sky-blindness does not touch you. Nobody else will believe what you describe."
   },
   {
     "id": "sack-of-silver",
-    "art": "tunnel-goons:cards/coin-pouch.png",
     "name": "Sack of silver",
     "kind": "treasure",
     "slots": 4,
+    "art": "tunnel-goons:cards/coin-pouch.png",
     "bonus": "A year's wages.",
-    "note": "Two hands, or a strap, and a bad climb. Climbing a chain with one is DS 12."
+    "note": "Two hands, or a strap, and a bad climb."
   },
   {
     "id": "silver-drinking-bowl",
@@ -263,6 +266,265 @@
     "kind": "gear",
     "bonus": "Shows three rooms in the correct order.",
     "note": "Which three is the referee's business."
+  },
+  {
+    "id": "sword",
+    "name": "Sword",
+    "kind": "weapon",
+    "art": "tunnel-goons:cards/shortsword.png",
+    "bonus": "+1 Brute in a fight.",
+    "note": "Nothing else, and nothing less."
+  },
+  {
+    "id": "spear",
+    "name": "Spear",
+    "kind": "weapon",
+    "tags": ["reach"],
+    "bonus": "+1 Brute, and you reach them a step before they reach you."
+  },
+  {
+    "id": "maul",
+    "name": "Maul",
+    "kind": "weapon",
+    "slots": 2,
+    "tags": ["heavy", "cleaving"],
+    "bonus": "+1 Brute, and it goes through what a sword stops at.",
+    "note": "One swing, then you are wide open."
+  },
+  {
+    "id": "mace",
+    "name": "Mace",
+    "kind": "weapon",
+    "bonus": "+1 Brute, and armour does less for the one you hit."
+  },
+  {
+    "id": "quarterstaff",
+    "name": "Quarterstaff",
+    "kind": "weapon",
+    "slots": 2,
+    "tags": ["reach", "heavy"],
+    "bonus": "+1 Brute at arm's length, and +1 to hold a doorway alone.",
+    "note": "Also a pole, a pry bar, and a depth gauge."
+  },
+  {
+    "id": "hand-axe",
+    "name": "Hand axe",
+    "kind": "weapon",
+    "bonus": "+1 Brute in reach or thrown. Splits a shutter as well as a shield."
+  },
+  {
+    "id": "sling",
+    "name": "Sling",
+    "kind": "weapon",
+    "bonus": "+1 Skulker at range.",
+    "note": "The ammunition is the floor."
+  },
+  {
+    "id": "bow-and-quiver",
+    "name": "Bow and quiver",
+    "kind": "weapon",
+    "slots": 2,
+    "tags": ["heavy"],
+    "art": "tunnel-goons:cards/shortbow.png",
+    "bonus": "+1 Skulker at any range you can see across."
+  },
+  {
+    "id": "crossbow",
+    "name": "Crossbow",
+    "kind": "weapon",
+    "slots": 2,
+    "tags": ["heavy", "piercing"],
+    "art": "tunnel-goons:cards/shortbow.png",
+    "bonus": "+1 Skulker at range.",
+    "note": "One shot, then a long moment spent winding it."
+  },
+  {
+    "id": "mail-shirt",
+    "name": "Mail shirt",
+    "kind": "armour",
+    "slots": 2,
+    "tags": ["defensive"],
+    "art": "tunnel-goons:cards/chestplate.png",
+    "bonus": "Absorbs 2 damage. -1 Skulker."
+  },
+  {
+    "id": "leather-armour",
+    "name": "Leather armour",
+    "kind": "armour",
+    "tags": ["defensive"],
+    "bonus": "Absorbs 1 damage."
+  },
+  {
+    "id": "padded-jacket",
+    "name": "Padded jacket",
+    "kind": "armour",
+    "tags": ["defensive", "silent"],
+    "bonus": "Absorbs 1 damage.",
+    "note": "Quiet, and nobody looks twice at it."
+  },
+  {
+    "id": "net",
+    "name": "Net",
+    "kind": "snare",
+    "bonus": "Entangles up to four who stand close. Brute DS 10 to get out."
+  },
+  {
+    "id": "bola",
+    "name": "Bola",
+    "kind": "snare",
+    "bonus": "Thrown, Skulker DS 8. Whatever it takes is slowed, not stopped."
+  },
+  {
+    "id": "caltrops",
+    "name": "Caltrops",
+    "kind": "snare",
+    "uses": 1,
+    "bonus": "Scatter a patch. Anything crossing it slows and bleeds.",
+    "note": "Picking them back up is its own job."
+  },
+  {
+    "id": "thieves-tools",
+    "name": "Thieves' tools",
+    "kind": "gear",
+    "bonus": "+1 Skulker on locks, and on any trap you have already found."
+  },
+  {
+    "id": "healers-kit",
+    "name": "Healer's kit",
+    "kind": "gear",
+    "uses": 3,
+    "bonus": "+1 Erudite to treat a wound, and 1 HP back if the roll lands.",
+    "note": "A wound treated once is not treated again."
+  },
+  {
+    "id": "field-prayers",
+    "name": "Field-prayers",
+    "kind": "gear",
+    "bonus": "+1 Erudite to steady someone who is about to break.",
+    "note": "A book of them, much rained on."
+  },
+  {
+    "id": "holy-token",
+    "name": "Holy token",
+    "kind": "gear",
+    "bonus": "+1 to hold your nerve against the dead.",
+    "note": "Worn smooth by one thumb."
+  },
+  {
+    "id": "spell-components",
+    "name": "Spell components",
+    "kind": "focus",
+    "uses": 2,
+    "bonus": "Anchors a spell that lingers: the effect stays after the book shuts."
+  },
+  {
+    "id": "wand-of-city-glass",
+    "name": "Wand of city-glass",
+    "kind": "focus",
+    "bonus": "Once a day, read a spellbook a second time and take no Fatigue.",
+    "note": "Glass cut from a wall that was a street. It hums near spellbooks."
+  },
+  {
+    "id": "hooked-chain",
+    "name": "Hooked chain",
+    "kind": "weapon",
+    "tags": ["reach"],
+    "bonus": "+1 to trip, disarm, or drag something off a ledge.",
+    "note": "Cut from a window chain by someone who was in a hurry."
+  },
+  {
+    "id": "executioners-blade",
+    "name": "Executioner's blade",
+    "kind": "weapon",
+    "slots": 2,
+    "tags": ["heavy", "cleaving"],
+    "bonus": "+1 Brute, and +1 again against anything larger than you."
+  },
+  {
+    "id": "bone-dagger",
+    "name": "Bone dagger",
+    "kind": "weapon",
+    "tags": ["silent", "fragile"],
+    "bonus": "+2 against someone who has not seen you, armour no help.",
+    "note": "Roll 6 or less on the dice and it snaps off in the wound."
+  },
+  {
+    "id": "rusted-ringmail",
+    "name": "Rusted ringmail",
+    "kind": "armour",
+    "slots": 2,
+    "tags": ["defensive"],
+    "bonus": "Absorbs 1 damage.",
+    "note": "Break it to cancel one hit outright. It was going to fail anyway."
+  },
+  {
+    "id": "tower-shield",
+    "name": "Tower shield",
+    "kind": "armour",
+    "slots": 2,
+    "tags": ["defensive"],
+    "bonus": "+2 when you do nothing but take cover behind it."
+  },
+  {
+    "id": "flask-of-acid",
+    "name": "Flask of acid",
+    "kind": "consumable",
+    "uses": 1,
+    "tags": ["piercing"],
+    "bonus": "Eats through a lock, a hinge, or a suit of armour. No roll."
+  },
+  {
+    "id": "pouch-of-grave-dust",
+    "name": "Pouch of grave-dust",
+    "kind": "consumable",
+    "uses": 3,
+    "bonus": "Thrown in the eyes: blinded, and the next ally to strike gets +2."
+  },
+  {
+    "id": "iron-spikes-and-hammer",
+    "name": "Iron spikes and hammer",
+    "kind": "gear",
+    "slots": 2,
+    "bonus": "Seals a door well enough to rest behind it.",
+    "note": "The only way this tower gives anybody a night's sleep."
+  },
+  {
+    "id": "pocket-hourglass",
+    "name": "Pocket hourglass",
+    "kind": "treasure",
+    "uses": 1,
+    "bonus": "Stops one tick of one of the referee's clocks.",
+    "note": "Sand that has run out and gone back up again."
+  },
+  {
+    "id": "corpse-tooth",
+    "name": "Corpse tooth",
+    "kind": "focus",
+    "uses": 3,
+    "bonus": "Erudite DS 10 to ask a dead body one question. Yes or no.",
+    "note": "It answers in your own voice, which is the worst part."
+  },
+  {
+    "id": "wolf-skin-cloak",
+    "name": "Wolf-skin cloak",
+    "kind": "gear",
+    "bonus": "+1 Skulker in cold, wind, or weather. Counts as your cloak."
+  },
+  {
+    "id": "unsettling-idol",
+    "name": "Unsettling idol",
+    "kind": "treasure",
+    "slots": 2,
+    "bonus": "A month's wages to the right buyer.",
+    "note": "Nobody rests well in the room where it is sitting."
+  },
+  {
+    "id": "vial-of-black-blood",
+    "name": "Vial of black blood",
+    "kind": "consumable",
+    "uses": 1,
+    "bonus": "Restores 4 HP at once.",
+    "note": "Roll 2d6. On 6 or less something about you changes and stays changed."
   },
   {
     "id": "cracked-hand-mirror",

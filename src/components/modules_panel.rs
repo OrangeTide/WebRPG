@@ -492,6 +492,7 @@ pub fn ModulesPanel() -> impl IntoView {
                                             let bonus = item.bonus.clone();
                                             let slots = item.slots;
                                             let uses = item.uses;
+                                            let tags = item.tags.clone();
                                             let deal = move |_| {
                                                 let owner = deal_to.get();
                                                 send.with_value(|f| {
@@ -505,6 +506,7 @@ pub fn ModulesPanel() -> impl IntoView {
                                                             bonus: bonus.clone(),
                                                             slots: Some(slots),
                                                             uses,
+                                                            tags: tags.clone(),
                                                             owner_character_id: owner,
                                                         });
                                                     }
@@ -523,6 +525,20 @@ pub fn ModulesPanel() -> impl IntoView {
                                                         .map(|url| {
                                                             view! {
                                                                 <img class="module-card-art" src=url alt=item.name.clone() />
+                                                            }
+                                                        })}
+                                                    {(!item.tags.is_empty())
+                                                        .then({
+                                                            let tags = item.tags.clone();
+                                                            move || {
+                                                                view! {
+                                                                    <div class="inv-tags">
+                                                                        {tags
+                                                                            .into_iter()
+                                                                            .map(|t| view! { <span class="gear-tag">{t}</span> })
+                                                                            .collect_view()}
+                                                                    </div>
+                                                                }
                                                             }
                                                         })}
                                                     <div class="module-entry-body">{item.bonus.clone()}</div>

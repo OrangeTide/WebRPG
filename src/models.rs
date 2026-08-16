@@ -174,6 +174,9 @@ pub struct InventoryItemInfo {
     pub uses_max: Option<i32>,
     #[serde(default)]
     pub uses_left: Option<i32>,
+    /// Gear tags, defined by the system module (reach, piercing, heavy, ...).
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 fn default_slots() -> i32 {
@@ -490,6 +493,7 @@ pub mod db_models {
         pub bonus: &'a str,
         pub uses_max: Option<i32>,
         pub uses_left: Option<i32>,
+        pub tags: &'a str,
     }
 
     #[derive(Debug, Insertable)]
@@ -519,6 +523,7 @@ pub mod db_models {
         pub bonus: String,
         pub uses_max: Option<i32>,
         pub uses_left: Option<i32>,
+        pub tags: String,
     }
 
     #[derive(Debug, Queryable, Selectable)]
