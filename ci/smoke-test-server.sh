@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Smoke test: start the server, verify key endpoints, then shut down.
-# Requires: cargo-leptos, sqlite3, curl, a test image in testing/
+# Requires: cargo-leptos, sqlite3, curl. The test image is ci/fixtures/.
 set -euo pipefail
 
 PORT=3199
@@ -176,10 +176,13 @@ check "WS endpoint exists (not 404)" "$([ "$WS_CODE" != "404" ] && echo 0 || ech
 echo ""
 echo "=== Media upload + serve ==="
 
-# Find a test image
-TEST_IMAGE=$(find testing/ -name '*.jpg' | head -1)
-if [ -z "$TEST_IMAGE" ]; then
-    echo "SKIP: no test images in testing/"
+# A committed fixture rather than whatever happens to be in testing/, which is
+# gitignored: on a clean checkout that directory does not exist, and under
+# `set -o pipefail` a failing find took the whole script down at this point
+# rather than skipping the section.
+TEST_IMAGE=ci/fixtures/smoke-test.jpg
+if [ ! -f "$TEST_IMAGE" ]; then
+    echo "SKIP: no test image at $TEST_IMAGE"
 else
     UPLOAD_RESP=$(curl -s -b "$COOKIES" \
         -X POST "$BASE/api/media/upload" \
