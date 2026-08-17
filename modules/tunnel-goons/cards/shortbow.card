@@ -1,0 +1,17 @@
+name: Shortbow
+kind: weapon
+slots: 1
+effect: +1 Skulker at range.
+note: Useless in a corridor full of friends.
+art:
+      .--.
+       |  \
+       |   \
+       |    |
+       |     |
+((=====+======|>
+       |     |
+       |    |
+       |   /
+       |  /
+     `---'

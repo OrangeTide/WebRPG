@@ -257,7 +257,7 @@ pub fn CharacterSelection() -> impl IntoView {
                                     }
                                     disabled=move || ctx.tokens.get().iter().any(|t| t.character_id == Some(cid))
                                     on:click={
-                                        let place = place_character.clone();
+                                        let place = place_character;
                                         let name = name_for_place.clone();
                                         let portrait = portrait_for_place.clone();
                                         move |_| place(cid, name.clone(), portrait.clone())
@@ -529,6 +529,12 @@ fn CharacterEditor(character: CharacterInfo, template: Option<TemplateInfo>) -> 
                     </button>
                 }
             }
+
+            // Check roller, when the session runs a system module that has one
+            <crate::components::check_roller::CheckRoller
+                character_id=char_id
+                data=data.clone()
+            />
 
             // Ability Scores (compact grid)
             {(!ability_scores.is_empty()).then(|| {

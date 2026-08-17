@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Smoke test: start the server, verify key endpoints, then shut down.
-# Requires: cargo-leptos, sqlite3, curl, a test image in testing/
+# Requires: cargo-leptos, sqlite3, curl. The test image is ci/fixtures/.
 set -euo pipefail
 
 PORT=3199
@@ -23,7 +23,12 @@ diesel migration run
 
 echo ""
 echo "=== Building server ==="
-cargo build --features ssr 2>&1
+# LEPTOS_OUTPUT_NAME must be set while compiling, not just while running: the
+# hydration script baked into the server names the wasm file from it, and
+# without it the page asks the browser for <name>_bg.wasm, which cargo-leptos
+# does not produce. A plain `cargo build` here would leave target/debug/webrpg
+# unable to hydrate any page it serves afterwards.
+LEPTOS_OUTPUT_NAME=webrpg cargo build --features ssr 2>&1
 
 echo ""
 echo "=== Starting server on port $PORT ==="
@@ -97,6 +102,32 @@ if [ -z "$SUFFIX" ]; then
     exit 1
 fi
 
+# Leptos hashes server function URLs per function, so a function's suffix is
+# not always the one signup got. Look each one up in the WASM.
+#
+# A missing name means the bundle is older than the function, and the checks
+# that follow would test nothing: an unknown /api/ path falls through to the
+# SPA handler, which answers 200 with HTML. Fail loudly instead.
+fn_url() {
+    local name="$1" found
+    found=$(strings target/site/pkg/webrpg.wasm 2>/dev/null \
+        | grep -oP "(?<=/api/${name})\d+" | head -1)
+    if [ -z "$found" ]; then
+        echo "FAIL: server fn '$name' not found in the WASM bundle; rebuild with cargo leptos build" >&2
+        exit 1
+    fi
+    printf '%s/api/%s%s' "$BASE" "$name" "$found"
+}
+
+# A server function answered, rather than the SPA fallback returning a page.
+# Server functions reply with JSON; the fallback replies with HTML.
+not_html() {
+    case "$1" in
+    "<"*) return 1 ;;
+    *) return 0 ;;
+    esac
+}
+
 echo ""
 echo "=== Auth (suffix: $SUFFIX) ==="
 
@@ -145,10 +176,13 @@ check "WS endpoint exists (not 404)" "$([ "$WS_CODE" != "404" ] && echo 0 || ech
 echo ""
 echo "=== Media upload + serve ==="
 
-# Find a test image
-TEST_IMAGE=$(find testing/ -name '*.jpg' | head -1)
-if [ -z "$TEST_IMAGE" ]; then
-    echo "SKIP: no test images in testing/"
+# A committed fixture rather than whatever happens to be in testing/, which is
+# gitignored: on a clean checkout that directory does not exist, and under
+# `set -o pipefail` a failing find took the whole script down at this point
+# rather than skipping the section.
+TEST_IMAGE=ci/fixtures/smoke-test.jpg
+if [ ! -f "$TEST_IMAGE" ]; then
+    echo "SKIP: no test image at $TEST_IMAGE"
 else
     UPLOAD_RESP=$(curl -s -b "$COOKIES" \
         -X POST "$BASE/api/media/upload" \
@@ -202,6 +236,155 @@ BAD_FORMAT_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/media/not-a-
 check "Invalid hash format returns 400" "$([ "$BAD_FORMAT_CODE" = "400" ] && echo 0 || echo 1)"
 
 echo ""
+echo "=== Game modules ==="
+
+MODULES_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url list_modules)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' --data '')
+check "list_modules finds the system module" \
+    "$(echo "$MODULES_RESP" | grep -q '"id":"tunnel-goons"' && echo 0 || echo 1)"
+check "list_modules finds the adventure module" \
+    "$(echo "$MODULES_RESP" | grep -q '"id":"sky-blind-spire"' && echo 0 || echo 1)"
+
+INSTALL_SYS=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url install_module)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}&module_id=tunnel-goons")
+check "Install system module" \
+    "$(echo "$INSTALL_SYS" | grep -q '"template_id"' && echo 0 || echo 1)"
+
+INSTALL_ADV=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url install_module)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}&module_id=sky-blind-spire")
+check "Install adventure module" \
+    "$(echo "$INSTALL_ADV" | grep -q '"creatures_added"' && echo 0 || echo 1)"
+
+CREATURE_COUNT=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM creatures WHERE session_id = $SESSION_ID;")
+check "Adventure seeded creatures ($CREATURE_COUNT)" \
+    "$([ "$CREATURE_COUNT" -gt 0 ] && echo 0 || echo 1)"
+
+MODULE_BINDING=$(sqlite3 "$TMPDB" "SELECT system_module_id || ',' || adventure_module_id FROM sessions WHERE id = $SESSION_ID;")
+check "Session bound to both modules" \
+    "$([ "$MODULE_BINDING" = "tunnel-goons,sky-blind-spire" ] && echo 0 || echo 1)"
+
+SESSION_MODULES=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url get_session_modules)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}")
+check "get_session_modules returns the roll model" \
+    "$(echo "$SESSION_MODULES" | grep -q '"dice":"2d6"' && echo 0 || echo 1)"
+
+PREGEN_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url create_character_from_pregen)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}&module_id=sky-blind-spire&pregen_id=grog-the-smasher")
+check "Create character from pregen" \
+    "$(echo "$PREGEN_RESP" | grep -q 'Grog the Smasher' && echo 0 || echo 1)"
+
+PREGEN_ITEMS=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM inventory_items WHERE session_id = $SESSION_ID AND owner_character_id IS NOT NULL;")
+check "Pregen gear dealt with slots ($PREGEN_ITEMS items)" \
+    "$([ "$PREGEN_ITEMS" -gt 0 ] && echo 0 || echo 1)"
+
+UNINSTALL_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url uninstall_module)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}&module_id=sky-blind-spire")
+check "Uninstall reports what it did" \
+    "$(echo "$UNINSTALL_RESP" | grep -q 'sky-blind-spire' && echo 0 || echo 1)"
+
+UNBOUND=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM sessions WHERE id = $SESSION_ID AND adventure_module_id IS NULL;")
+check "Uninstall unbinds the adventure" "$([ "$UNBOUND" -eq 1 ] && echo 0 || echo 1)"
+
+# Unbinding must not throw away work: a GM may have edited these stat blocks.
+KEPT=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM creatures WHERE session_id = $SESSION_ID;")
+check "Uninstall keeps seeded creatures ($KEPT)" "$([ "$KEPT" -gt 0 ] && echo 0 || echo 1)"
+
+# Put it back so the checks below still have an adventure to read.
+curl -s -b "$COOKIES" -o /dev/null \
+    -X POST "$(fn_url install_module)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}&module_id=sky-blind-spire"
+
+REFERENCE_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url list_reference_modules)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}")
+check "Reference module available without installing" \
+    "$(echo "$REFERENCE_RESP" | grep -q '"id":"cairn-spellbooks"' && echo 0 || echo 1)"
+check "Reference module carries its spellbook cards" \
+    "$(echo "$REFERENCE_RESP" | grep -q 'Spellbook: Word of Pain' && echo 0 || echo 1)"
+
+ASSET_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/modules/tunnel-goons/assets/cards/torch.png")
+check "Serve module card art (200)" "$([ "$ASSET_CODE" = "200" ] && echo 0 || echo 1)"
+
+ASSET_TRAVERSAL=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/modules/tunnel-goons/assets/../module.json")
+check "Module asset traversal refused" \
+    "$([ "$ASSET_TRAVERSAL" != "200" ] && echo 0 || echo 1)"
+
+echo ""
+echo "=== Virtual file system ==="
+
+# U: is the per-user drive, so these need no session id.
+MKDIR_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url vfs_mkdir_dir)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data 'drive=U&path=/smoke')
+check "Create directory on U:" "$(not_html "$MKDIR_RESP" && echo 0 || echo 1)"
+
+# Put a file in it directly, so the check does not depend on how the write
+# endpoint encodes its bytes.
+SMOKE_UID=$(sqlite3 "$TMPDB" "SELECT id FROM users WHERE username = 'smoketest';")
+sqlite3 "$TMPDB" "
+INSERT INTO vfs_files (drive, session_id, user_id, path, is_directory, size_bytes,
+                       content_type, inline_data, modified_by, created_at, updated_at, mode)
+SELECT 'U', NULL, $SMOKE_UID, '/smoke/f.txt', 0, 1, 'text/plain', X'78', $SMOKE_UID,
+       strftime('%s','now'), strftime('%s','now'), mode
+FROM vfs_files WHERE drive = 'U' AND user_id = $SMOKE_UID AND path = '/smoke';"
+
+LIST_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url vfs_list_dir)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data 'drive=U&path=/smoke')
+check "List directory shows the file" \
+    "$(echo "$LIST_RESP" | grep -q '/smoke/f.txt' && echo 0 || echo 1)"
+
+# RMDIR semantics: a non-empty directory is refused, and nothing is removed.
+RMDIR_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url vfs_delete_file)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data 'drive=U&path=/smoke')
+check "Deleting a non-empty directory is refused" \
+    "$(echo "$RMDIR_RESP" | grep -qi 'not empty' && echo 0 || echo 1)"
+
+SURVIVED=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM vfs_files WHERE drive='U' AND user_id=$SMOKE_UID AND path LIKE '/smoke%';")
+check "Refused delete left the tree intact (2 rows)" \
+    "$([ "$SURVIVED" -eq 2 ] && echo 0 || echo 1)"
+
+# The file browser's delete: the folder and its contents go together.
+TREE_RESP=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url vfs_delete_tree)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data 'drive=U&path=/smoke')
+check "Recursive delete succeeds" "$(not_html "$TREE_RESP" && echo 0 || echo 1)"
+
+REMAINING=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM vfs_files WHERE drive='U' AND user_id=$SMOKE_UID AND path LIKE '/smoke%';")
+check "Recursive delete removed the whole tree" \
+    "$([ "$REMAINING" -eq 0 ] && echo 0 || echo 1)"
+
+echo ""
 echo "=== Game page ==="
 # Create a map so the game page has something to render
 sqlite3 "$TMPDB" "INSERT INTO maps (session_id, name, width, height, cell_size) VALUES ($SESSION_ID, 'Test Map', 20, 15, 40);"
@@ -211,7 +394,10 @@ check "Game page loads (200)" "$([ "$GAME_CODE" = "200" ] && echo 0 || echo 1)"
 
 GAME_HTML=$(curl -s -b "$COOKIES" "$BASE/game/$SESSION_ID")
 check "Game page has map container" "$(echo "$GAME_HTML" | grep -q 'map-container' && echo 0 || echo 1)"
-check "Game page has Set Background button" "$(echo "$GAME_HTML" | grep -q 'Set Background' && echo 0 || echo 1)"
+# "Set Background" moved inside the map settings dropdown, and the map
+# management buttons are GM-gated, so neither is in server-rendered HTML.
+# The tool palette is always rendered, so check for that instead.
+check "Game page has map tool palette" "$(echo "$GAME_HTML" | grep -q 'map-tool-palette' && echo 0 || echo 1)"
 check "Game page has chat panel" "$(echo "$GAME_HTML" | grep -q 'chat-panel' && echo 0 || echo 1)"
 check "Game page has character sheet" "$(echo "$GAME_HTML" | grep -q 'character-sheet-panel' && echo 0 || echo 1)"
 check "Game page has CSS link" "$(echo "$GAME_HTML" | grep -q 'webrpg.css' && echo 0 || echo 1)"

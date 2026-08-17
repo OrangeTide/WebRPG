@@ -1,0 +1,15 @@
+name: Backpack
+kind: gear
+slots: 0
+effect: Holds the rest of it. Costs nothing to carry.
+note: Lose the pack and the referee will ask what was in your hands.
+art:
+    .---------.
+   /  _______  \
+  |  |   *   |  |
+  |  |_______|  |
+ .-'-----------'-.
+|  .-----------.  |
+|  |     *     |  |
+|  |___________|  |
+|_________________|

@@ -1,0 +1,36 @@
+{
+  "dice": "2d6",
+  "summary": "2d6 + ability + 1 per helpful item, meet or beat the DS. Dangerous actions deal the difference as damage, either way.",
+  "abilities": [
+    {
+      "name": "brute",
+      "label": "Brute",
+      "help": "Smacking things, feats of strength, hauling, enduring, resisting poison."
+    },
+    {
+      "name": "skulker",
+      "label": "Skulker",
+      "help": "Sneaking, aiming, balancing, climbing, dodging."
+    },
+    {
+      "name": "erudite",
+      "label": "Erudite",
+      "help": "Reading, perceiving, speaking, remembering. Magic is Erudite plus the right item."
+    }
+  ],
+  "difficulties": [
+    { "label": "Easy", "value": 8 },
+    { "label": "Moderate", "value": 10 },
+    { "label": "Hard", "value": 12 }
+  ],
+  "item_bonus": 1,
+  "margin_is_damage": true,
+  "monster_ds_is_hp": true,
+  "inventory": {
+    "capacity_field": "inventory",
+    "default_slots": 1,
+    "over_capacity_penalty": -1,
+    "penalty_applies_to": ["brute", "skulker"],
+    "note": "Carry more items than your Inventory Score and every Brute and Skulker roll takes -1. Loot is heavy. That is the point."
+  }
+}

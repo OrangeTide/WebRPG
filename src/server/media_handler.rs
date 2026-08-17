@@ -12,7 +12,8 @@ use crate::schema::*;
 
 const MAX_FILE_SIZE: usize = 20 * 1024 * 1024; // 20 MB
 
-fn media_dir() -> PathBuf {
+/// Root of the content-addressable media store.
+pub fn media_dir() -> PathBuf {
     PathBuf::from(std::env::var("MEDIA_DIR").unwrap_or_else(|_| "uploads/media".to_string()))
 }
 
@@ -149,10 +150,11 @@ pub async fn upload_media(
         .collect();
 
     // Add original filename as tag
-    if let Some(ref fname) = original_filename {
-        if !fname.is_empty() && !tag_list.iter().any(|t| t == fname) {
-            tag_list.push(fname.clone());
-        }
+    if let Some(ref fname) = original_filename
+        && !fname.is_empty()
+        && !tag_list.iter().any(|t| t == fname)
+    {
+        tag_list.push(fname.clone());
     }
 
     for tag in &tag_list {

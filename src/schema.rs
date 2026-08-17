@@ -76,6 +76,12 @@ diesel::table! {
         quantity -> Integer,
         owner_character_id -> Nullable<Integer>,
         is_party_item -> Bool,
+        slots -> Integer,
+        kind -> Text,
+        bonus -> Text,
+        uses_max -> Nullable<Integer>,
+        uses_left -> Nullable<Integer>,
+        tags -> Text,
     }
 }
 
@@ -138,6 +144,8 @@ diesel::table! {
         template_id -> Nullable<Integer>,
         active -> Bool,
         created_at -> Timestamp,
+        system_module_id -> Nullable<Text>,
+        adventure_module_id -> Nullable<Text>,
     }
 }
 

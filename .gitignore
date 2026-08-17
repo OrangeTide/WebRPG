@@ -3,7 +3,15 @@
 /.env
 /.agents
 database.db
+database.db.*.bak
 *.pem
 /testing
 /uploads
 todo
+
+# Generated card renders
+REF/inv-cards/png/
+
+# Adventure art is fetched, not committed (see scripts/fetch-spire-assets.sh)
+modules/sky-blind-spire/assets/*
+!modules/sky-blind-spire/assets/README.md

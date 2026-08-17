@@ -43,7 +43,7 @@ pub(super) fn SettingsDialog(#[prop(into)] on_close: Callback<()>) -> impl IntoV
                         defaults
                             .iter()
                             .find(|w| w.id == *id)
-                            .map_or(false, |w| !w.minimized)
+                            .is_some_and(|w| !w.minimized)
                     }
                 };
                 (*id, RwSignal::new(checked))
@@ -81,11 +81,10 @@ pub(super) fn SettingsDialog(#[prop(into)] on_close: Callback<()>) -> impl IntoV
     view! {
         <div class="settings-backdrop" on:click=move |ev: leptos::ev::MouseEvent| {
             // Only close when clicking the backdrop itself, not children
-            if let (Some(target), Some(current)) = (ev.target(), ev.current_target()) {
-                if target == current {
+            if let (Some(target), Some(current)) = (ev.target(), ev.current_target())
+                && target == current {
                     on_close.run(());
                 }
-            }
         }>
             <div class="settings-dialog">
                 <div class="settings-title">

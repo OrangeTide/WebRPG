@@ -1,0 +1,14 @@
+name: Scar
+kind: condition
+slots: 1
+effect: Permanent. Takes up a slot for good.
+note: Optional. What you brought back instead of dying.
+art:
+   *  *  *  *
+  *  \--|--/  *
+ *  __|__/__  *
+*  / /| | |\ \  *
+* /__|_|__|__\  *
+ *   | | | |   *
+  *  |_|_|_|  *
+   *  *  *  *

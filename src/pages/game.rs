@@ -142,6 +142,9 @@ pub struct GameContext {
     pub active_initiative_token_id: RwSignal<Option<i32>>,
     /// Initiative round number (increments each time the turn wraps to the top).
     pub initiative_round: RwSignal<u32>,
+    /// Modules this session runs, and the roll model that comes with them.
+    /// Empty until the fetch after join completes.
+    pub modules: RwSignal<crate::server::modules_api::SessionModules>,
     /// Decremented for each locally-created message to avoid ID collisions with DB rows.
     next_local_id: std::sync::Arc<std::sync::atomic::AtomicI32>,
 }
@@ -313,37 +316,36 @@ impl GameContext {
                 self.active_initiative_token_id
                     .set(new_current.as_ref().and_then(|e| e.token_id));
 
-                if changed {
-                    if let Some(ref entry) = new_current {
-                        // Increment round when turn wraps to the first entry
-                        let entries_ref = self.initiative.get_untracked();
-                        if let Some(new_idx) = entries_ref.iter().position(|e| e.is_current_turn) {
-                            if new_idx == 0 && old_current.is_some() {
-                                self.initiative_round.update(|r| *r += 1);
-                            }
-                        }
+                if changed && let Some(ref entry) = new_current {
+                    // Increment round when turn wraps to the first entry
+                    let entries_ref = self.initiative.get_untracked();
+                    if let Some(new_idx) = entries_ref.iter().position(|e| e.is_current_turn)
+                        && new_idx == 0
+                        && old_current.is_some()
+                    {
+                        self.initiative_round.update(|r| *r += 1);
+                    }
 
-                        self.turn_notify.set(Some(entry.clone()));
+                    self.turn_notify.set(Some(entry.clone()));
 
-                        // Compute star position and auto-center on active token
-                        if let Some(tid) = entry.token_id {
-                            let tokens = self.tokens.get_untracked();
-                            let map = self.map.get_untracked();
-                            if let (Some(t), Some(m)) =
-                                (tokens.iter().find(|t| t.id == tid), map.as_ref())
-                            {
-                                let cell = m.cell_size as f64;
-                                let wx = (t.x as f64 + 0.5) * cell;
-                                let wy = (t.y as f64 + 0.5) * cell;
-                                #[cfg(feature = "hydrate")]
-                                let now = web_sys::js_sys::Date::now();
-                                #[cfg(not(feature = "hydrate"))]
-                                let now = 0.0;
-                                self.turn_star.set(Some((wx, wy, now)));
-                            }
-                            // Auto-center map on the active token
-                            self.center_on_token_id.set(Some(tid));
+                    // Compute star position and auto-center on active token
+                    if let Some(tid) = entry.token_id {
+                        let tokens = self.tokens.get_untracked();
+                        let map = self.map.get_untracked();
+                        if let (Some(t), Some(m)) =
+                            (tokens.iter().find(|t| t.id == tid), map.as_ref())
+                        {
+                            let cell = m.cell_size as f64;
+                            let wx = (t.x as f64 + 0.5) * cell;
+                            let wy = (t.y as f64 + 0.5) * cell;
+                            #[cfg(feature = "hydrate")]
+                            let now = web_sys::js_sys::Date::now();
+                            #[cfg(not(feature = "hydrate"))]
+                            let now = 0.0;
+                            self.turn_star.set(Some((wx, wy, now)));
                         }
+                        // Auto-center map on the active token
+                        self.center_on_token_id.set(Some(tid));
                     }
                 }
             }
@@ -494,6 +496,7 @@ pub fn GamePage() -> impl IntoView {
         turn_star: RwSignal::new(None),
         active_initiative_token_id: RwSignal::new(None),
         initiative_round: RwSignal::new(1),
+        modules: RwSignal::new(Default::default()),
         next_local_id: std::sync::Arc::new(std::sync::atomic::AtomicI32::new(-1)),
     };
 
@@ -569,6 +572,16 @@ pub fn GamePage() -> impl IntoView {
             session_id_w.set(sid);
 
             let ctx = ctx_ws.clone();
+
+            // Which modules this session runs. Needed before the first roll,
+            // but not worth blocking the connection on.
+            let modules_signal = ctx.modules;
+            leptos::task::spawn_local(async move {
+                match crate::server::modules_api::get_session_modules(sid).await {
+                    Ok(m) => modules_signal.set(m),
+                    Err(e) => log::warn!("Failed to load session modules: {e}"),
+                }
+            });
 
             leptos::task::spawn_local(async move {
                 ctx.loading.set(Some(LoadingState::AUTHENTICATING));
@@ -775,6 +788,9 @@ pub fn GamePage() -> impl IntoView {
                 </GameWindow>
                 <GameWindow id=WindowId::HelpViewer>
                     <HelpViewerPanel />
+                </GameWindow>
+                <GameWindow id=WindowId::Modules>
+                    <crate::components::modules_panel::ModulesPanel />
                 </GameWindow>
                 <DynamicCharacterWindows />
                 <DynamicFileBrowserWindows />

@@ -16,14 +16,16 @@ WebSockets.
 
 - Grid maps with fog of war and background images
 - Token placement with drag-and-drop movement and HP tracking
-- Dice rolling with `NdN+M` notation
+- Dice rolling with `NdN+M` notation, plus `d66`/`d666` table dice
 - Template-driven character sheets with resource tracking
 - Creature stat blocks (GM only)
 - Chat with dice roll integration
 - Initiative tracking with turn order
-- Party inventory management
+- Party and per-character inventory with slot-based encumbrance
 - Media upload and content-addressable storage
 - Multi-window UI with draggable, resizable panels
+- Game modules: RPG systems and adventures loaded from disk as data, with
+  Tunnel Goons and The Sky-Blind Spire included
 
 ## Screenshots
 
@@ -97,8 +99,15 @@ guidelines, and commit message conventions.
 
 ## License
 
-This project is licensed under [MIT-0](LICENSE) — a permissive license with no
+The software is licensed under [MIT-0](LICENSE) — a permissive license with no
 attribution requirement.
+
+The game modules in [`modules/`](modules/) are not. They carry other people's
+work under licenses that do impose conditions, and two of them cannot be
+relicensed: the Sky-Blind Spire module is non-commercial (CC BY-NC 3.0), and the
+Cairn spell lists are share-alike (CC BY-SA 4.0). See
+[modules/LICENSING.md](modules/LICENSING.md) for what each module takes, from
+whom, and what follows from it.
 
 ## Testing
 

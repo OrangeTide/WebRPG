@@ -5,9 +5,11 @@ use crate::ws::session::SESSION_MANAGER;
 use super::inventory::load_inventory;
 use super::tokens::resolve_facing_color;
 
-pub fn load_map_with_tokens(
-    map_id: i32,
-) -> Result<(MapInfo, Vec<TokenInfo>, Vec<(i32, i32)>), String> {
+/// A map with everything drawn on it: its tokens, and the revealed fog cells
+/// as (x, y) pairs.
+pub type MapWithTokens = (MapInfo, Vec<TokenInfo>, Vec<(i32, i32)>);
+
+pub fn load_map_with_tokens(map_id: i32) -> Result<MapWithTokens, String> {
     use crate::db;
     use crate::models::db_models::*;
     use crate::schema::*;

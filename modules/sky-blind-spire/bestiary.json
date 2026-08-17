@@ -1,0 +1,100 @@
+[
+  {
+    "id": "ricalu-goblin",
+    "name": "Ricalu goblin",
+    "ds": 7,
+    "notes": "Knife or sling. Fight in groups; treat three of them as a single DS 9 mob.",
+    "tags": ["goblins"]
+  },
+  {
+    "id": "ricalu-thief",
+    "name": "Ricalu thief in a blue cloak",
+    "ds": 8,
+    "notes": "Unseeable from the neck down once sky-blindness lands, so attacking one is DS 12. Wants to run, not fight. Caught, will trade the first six rooms in order for their life, and mean it.",
+    "tags": ["goblins"]
+  },
+  {
+    "id": "ricalu-shaman",
+    "name": "Ricalu shaman",
+    "ds": 10,
+    "notes": "Buried the teeth in a ring around the crag that laid the curse. Can lift it, and will not do so cheaply.",
+    "tags": ["goblins"]
+  },
+  {
+    "id": "undine",
+    "name": "Undine",
+    "ds": 10,
+    "notes": "Made of water. Unseeable when still, DS 12 to hit. Only ever attacks over sparks. Will trade the defender's blade and the plate armour for a solemn oath to destroy the altar.",
+    "tags": ["lake", "room-7"]
+  },
+  {
+    "id": "muck-fly",
+    "name": "Muck-fly",
+    "ds": 8,
+    "notes": "d6 of them, up from the garbage heap at the bottom of the cone. Pin a character and dissolve them slowly.",
+    "tags": ["room-15"]
+  },
+  {
+    "id": "reanimated-dead",
+    "name": "Reanimated dead",
+    "ds": 8,
+    "notes": "Only in room 13, and only while the idols stand.",
+    "tags": ["room-13"]
+  },
+  {
+    "id": "hungry-spirit",
+    "name": "Hungry spirit",
+    "ds": 0,
+    "notes": "Not fought. Anyone who sleeps or drops below 4 HP in room 13 resists possession with Erudite DS 10, or spends a scene taking orders from something hungry.",
+    "tags": ["room-13", "not-fought"]
+  },
+  {
+    "id": "spectral-mentor",
+    "name": "Spectral mentor",
+    "ds": 12,
+    "notes": "Titardinal's teacher, called by praying at the idols. Immune to anything mundane, prefers conversation, lightning if refused. Explains the numbers, the sparks, and the altar honestly, because the truth serves him. Will not mention that finishing the spell kills the lake.",
+    "tags": ["room-13", "npc"]
+  },
+  {
+    "id": "dire-pelican",
+    "name": "Dire pelican",
+    "ds": 12,
+    "notes": "Seven of them roost in room 9 and fish the lake all day. Relentless and vindictive if disturbed. Beat its DS by 4 or more and it swallows a halved character, or an item, whole.",
+    "tags": ["room-9"]
+  },
+  {
+    "id": "giant-affa-isho",
+    "name": "Giant (Affa or Isho)",
+    "ds": 11,
+    "notes": "Club. Inseparable twins who feud incessantly, and either can be turned against the other with very little effort.",
+    "tags": ["giants", "room-16"]
+  },
+  {
+    "id": "giant-sossa",
+    "name": "Sossa, the feared giant",
+    "ds": 12,
+    "notes": "Drinks molten lead and spits it: 4 damage at range, ignoring armour.",
+    "tags": ["giants", "room-16"]
+  },
+  {
+    "id": "giant-faroch",
+    "name": "Faroch, the giants' leader",
+    "ds": 13,
+    "notes": "Armoured. Wants the tower held and the hoard intact. Will negotiate before he will fight, and the way out from behind the blue tapestry is worth a sack of silver to him.",
+    "tags": ["giants", "room-16"]
+  },
+  {
+    "id": "squeaks",
+    "name": "Squeaks, the turncoat goblin",
+    "ds": 6,
+    "notes": "Rusty kitchen knife, blue cloak. Caught in a gibbet in room 1 or hiding in a cell off room 2; his crew left him behind after he ate their lunch. Freed, he guides the party and genuinely knows rooms 1 through 6 in order. Terrified of the pelicans, and will take one shiny thing and run if the party gets distracted.",
+    "tags": ["npc"]
+  },
+  {
+    "id": "lady-beatrice",
+    "name": "Lady Beatrice, the sky-blind knight",
+    "ds": 10,
+    "notes": "Plate armour absorbs 2 damage, greatsword. The armoured figure the module's map draws on the stairs of room 13. She came in yesterday, went sky-blind, and has spent a day fighting things she cannot see, some of which were real. Erudite DS 8 to talk her down; befriended, she takes the front rank against the giants without being asked.",
+    "tags": ["npc", "room-13"]
+  }
+]

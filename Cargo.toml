@@ -12,6 +12,13 @@ keywords = ["webserver", "vtt"]
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+# Admin helper. It calls auth::hash_password, which only exists on the server,
+# so it must not be built for the hydrate target.
+[[bin]]
+name = "hash-password"
+path = "src/bin/hash-password.rs"
+required-features = ["ssr"]
+
 [dependencies]
 leptos = { version = "0.8" }
 leptos_router = { version = "0.8" }
@@ -141,6 +148,9 @@ panic = "abort"
 
 [package.metadata.leptos]
 output-name = "webrpg"
+# The crate has more than one bin target (see src/bin/), so cargo-leptos has to
+# be told which one is the server.
+bin-target = "webrpg"
 site-root = "target/site"
 site-pkg-dir = "pkg"
 style-file = "style/main.css"

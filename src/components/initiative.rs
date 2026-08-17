@@ -13,15 +13,15 @@ fn insertion_index_from_y(list_el: &web_sys::HtmlElement, y: f64) -> usize {
     let total = children.length();
     let mut entry_idx = 0usize;
     for i in 0..total {
-        if let Some(child) = children.item(i) {
-            if child.class_list().contains("init-entry") {
-                let rect = child.get_bounding_client_rect();
-                let mid = rect.top() + rect.height() / 2.0;
-                if y < mid {
-                    return entry_idx;
-                }
-                entry_idx += 1;
+        if let Some(child) = children.item(i)
+            && child.class_list().contains("init-entry")
+        {
+            let rect = child.get_bounding_client_rect();
+            let mid = rect.top() + rect.height() / 2.0;
+            if y < mid {
+                return entry_idx;
             }
+            entry_idx += 1;
         }
     }
     entry_idx
@@ -292,15 +292,14 @@ pub fn InitiativeTracker() -> impl IntoView {
                                     if drag_from.get() == Some(idx) {
                                         cls.push_str(" dragging");
                                     }
-                                    if let Some((hi, above)) = drop_highlight() {
-                                        if hi == idx {
+                                    if let Some((hi, above)) = drop_highlight()
+                                        && hi == idx {
                                             if above {
                                                 cls.push_str(" drop-above");
                                             } else {
                                                 cls.push_str(" drop-below");
                                             }
                                         }
-                                    }
                                     cls
                                 }
                                 draggable="true"

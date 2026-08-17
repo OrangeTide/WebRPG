@@ -62,10 +62,10 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
 
     let send_task = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
-            if let Ok(json) = serde_json::to_string(&msg) {
-                if ws_sender.send(Message::Text(json.into())).await.is_err() {
-                    break;
-                }
+            if let Ok(json) = serde_json::to_string(&msg)
+                && ws_sender.send(Message::Text(json.into())).await.is_err()
+            {
+                break;
             }
         }
     });
@@ -665,14 +665,30 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 description,
                 quantity,
                 is_party_item,
+                kind,
+                bonus,
+                slots,
+                uses,
+                tags,
+                owner_character_id,
             } => {
                 if let Some(session_id) = current_session {
+                    let tag_list = tags.join(",");
+                    let card = inventory::ItemCard {
+                        kind: &kind,
+                        bonus: &bonus,
+                        slots: slots.unwrap_or(1),
+                        uses,
+                        owner_character_id,
+                        tags: &tag_list,
+                    };
                     match inventory::add_inventory_item(
                         session_id,
                         &name,
                         &description,
                         quantity,
-                        is_party_item,
+                        is_party_item && owner_character_id.is_none(),
+                        card,
                     ) {
                         Ok(items) => {
                             SESSION_MANAGER.broadcast(
@@ -719,6 +735,75 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                         &ServerMessage::InventoryUpdated { items },
                         None,
                     );
+                }
+            }
+
+            ClientMessage::SetInventoryItemUses { item_id, uses_left } => {
+                if let Some(session_id) = current_session {
+                    inventory::set_inventory_item_uses(item_id, uses_left);
+                    let items = inventory::load_inventory(session_id);
+                    SESSION_MANAGER.broadcast(
+                        session_id,
+                        &ServerMessage::InventoryUpdated { items },
+                        None,
+                    );
+                }
+            }
+
+            ClientMessage::AssignInventoryItem {
+                item_id,
+                character_id,
+            } => {
+                if let Some(session_id) = current_session {
+                    inventory::assign_inventory_item(item_id, character_id);
+                    let items = inventory::load_inventory(session_id);
+                    SESSION_MANAGER.broadcast(
+                        session_id,
+                        &ServerMessage::InventoryUpdated { items },
+                        None,
+                    );
+                }
+            }
+
+            ClientMessage::RollCheck {
+                label,
+                ability,
+                ability_mod,
+                bonuses,
+                ds,
+                dangerous,
+                dice,
+            } => {
+                if let Some(session_id) = current_session {
+                    match chat::roll_check(
+                        &label,
+                        &dice,
+                        &ability,
+                        ability_mod,
+                        &bonuses,
+                        ds,
+                        dangerous,
+                    ) {
+                        Ok((summary, result)) => {
+                            let result_json = serde_json::to_string(&result).unwrap_or_default();
+                            let msg = chat::save_chat_message(
+                                session_id,
+                                user_id,
+                                &username,
+                                &summary,
+                                true,
+                                Some(&result_json),
+                            );
+                            SESSION_MANAGER.broadcast(
+                                session_id,
+                                &ServerMessage::ChatBroadcast { message: msg },
+                                None,
+                            );
+                        }
+                        Err(e) => {
+                            let _ = tx.send(ServerMessage::Error { message: e });
+                        }
+                    }
                 }
             }
 

@@ -34,6 +34,10 @@ async fn main() {
             "/api/media/{hash}",
             axum::routing::get(webrpg::server::media_handler::serve_media),
         )
+        .route(
+            "/api/modules/{module_id}/assets/{*asset}",
+            axum::routing::get(webrpg::server::module_assets::serve_module_asset),
+        )
         .leptos_routes(&leptos_options, routes, {
             let leptos_options = leptos_options.clone();
             move || shell(leptos_options.clone())
@@ -154,23 +158,22 @@ async fn require_https_for_auth(
     use axum::response::IntoResponse;
 
     let path = req.uri().path();
-    if path.starts_with("/login") {
-        if let Some(proto) = req.headers().get("x-forwarded-proto") {
-            if proto.as_bytes() != b"https" {
-                let host = req
-                    .headers()
-                    .get(axum::http::header::HOST)
-                    .and_then(|h| h.to_str().ok())
-                    .unwrap_or("localhost");
-                let pq = req
-                    .uri()
-                    .path_and_query()
-                    .map(|pq| pq.as_str())
-                    .unwrap_or("/login");
-                let url = format!("https://{host}{pq}");
-                return axum::response::Redirect::temporary(&url).into_response();
-            }
-        }
+    if path.starts_with("/login")
+        && let Some(proto) = req.headers().get("x-forwarded-proto")
+        && proto.as_bytes() != b"https"
+    {
+        let host = req
+            .headers()
+            .get(axum::http::header::HOST)
+            .and_then(|h| h.to_str().ok())
+            .unwrap_or("localhost");
+        let pq = req
+            .uri()
+            .path_and_query()
+            .map(|pq| pq.as_str())
+            .unwrap_or("/login");
+        let url = format!("https://{host}{pq}");
+        return axum::response::Redirect::temporary(&url).into_response();
     }
     next.run(req).await
 }

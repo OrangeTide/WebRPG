@@ -44,8 +44,10 @@ src/
 │   ├── chat.rs             # Chat panel with dice rolling
 │   ├── charsheet.rs        # Template-driven character sheet editor
 │   ├── creatures.rs        # GM creature stat block CRUD
-│   ├── inventory.rs        # Party inventory management
+│   ├── inventory.rs        # Party/character inventory with slot cards
 │   ├── initiative.rs       # Initiative tracker with turn order
+│   ├── check_roller.rs     # Module-driven check roller (dice + ability vs DS)
+│   ├── modules_panel.rs    # Module browser, pregens, item cards, room key
 │   ├── media_browser.rs    # Media upload/browse/search modal
 │   ├── file_browser.rs     # NeXTSTEP-style graphical file browser (Finder)
 │   ├── terminal.rs         # DOS-style COMMAND.COM terminal emulator
@@ -54,8 +56,13 @@ src/
 ├── server/
 │   ├── mod.rs            # Module declarations
 │   ├── api.rs            # Leptos server functions (sessions, characters, templates)
+│   ├── modules_api.rs    # Game module browse/install server functions
 │   ├── media_handler.rs  # Media upload/serve endpoints (CAS)
+│   ├── module_assets.rs  # Serves art a game module ships
 │   └── ws_handler.rs     # WebSocket upgrade + authentication
+├── modules/
+│   ├── mod.rs            # Game module types (shared by both targets)
+│   └── loader.rs         # Reads module packs off disk (server only)
 ├── vfs.rs            # Virtual file system abstraction (drive dispatch)
 ├── scratch_drive.rs  # Client-side IndexedDB scratch drives (A:/B:)
 └── ws/
@@ -63,6 +70,7 @@ src/
     ├── messages.rs       # WebSocket message type definitions
     └── session.rs        # Server-side session state manager
 migrations/               # Diesel SQL migrations
+modules/                  # Game module packs (data, not code)
 ```
 
 ## Build Prerequisites
@@ -80,8 +88,40 @@ For general development:
     rustup target add x86_64-unknown-linux-musl
     ```
   - Add `wasm32-unknown-unknown` target: `rustup target add wasm32-unknown-unknown`
-  - Install cargo leptos: `cargo install cargo-leptos`
+  - Install cargo leptos: `cargo install --locked cargo-leptos`
   - Install Diesel CLI tools: `cargo install diesel_cli --no-default-features --features sqlite`
+
+Use `--locked` when installing cargo-leptos. Resolving its dependencies afresh
+can pull crates that need a newer rustc than the toolchain this project builds
+with.
+
+### Always build the server through cargo-leptos
+
+`cargo leptos serve` and `cargo leptos build` set `LEPTOS_OUTPUT_NAME` while
+compiling, and Leptos reads it **at compile time** to write the hydration
+script that every page carries. A server built with a plain
+`cargo build --features ssr` bakes in the wrong wasm file name: the page asks
+the browser for `/pkg/webrpg_bg.wasm`, which cargo-leptos never produces, so
+the fetch 404s, `hydrate()` never runs, and nothing on the page responds to a
+click.
+
+This is worth recognising because of how it presents. Pages render correctly,
+the server answers every request, `curl` against the API succeeds, and logging
+in even sets its cookie, because the form posts without any JavaScript. Only
+the parts that need the client are dead, which reads as broken UI code rather
+than a build problem.
+
+`cargo check --features ssr` and `cargo build --features ssr` are fine for
+compiling and for CI. Just do not serve from a binary they produced. If you
+need to run `./target/debug/webrpg` directly, build it with `cargo leptos build`
+first, or set the variable yourself:
+
+```sh
+LEPTOS_OUTPUT_NAME=webrpg cargo build --features ssr
+```
+
+`ci/smoke-test-server.sh` sets it for the same reason: it builds the server
+itself and would otherwise leave a binary behind that cannot hydrate.
 
 ### For AI (Claude, Gemini, etc) and MCP tools
 
@@ -106,10 +146,20 @@ cargo test --features ssr
 ```
 
 Unit tests are co-located in their source files using `#[cfg(test)]` modules.
-Current test coverage includes:
+Current coverage:
 
 - **`auth.rs`** — JWT claims subject parsing (`parse_claims_sub`)
 - **`components/initiative.rs`** — drag-and-drop reorder index calculation (`reorder_index`)
+- **`vfs.rs`** — the bulk of them: path parsing and normalisation, permissions,
+  quota, and the database operations against an in-memory SQLite, including
+  that delete refuses a non-empty directory while the recursive form does not,
+  and that a name containing `_` is not treated as a SQL wildcard
+- **`modules/mod.rs`** — module id validation and asset URL resolution
+- **`server/ws_handler/chat.rs`** — dice parsing, including `d66`/`d666`
+- **`server/module_assets.rs`** — which file types a module may serve
+
+Endpoints are covered separately by `ci/smoke-test-server.sh`, which exercises
+the server functions over HTTP against a throwaway database.
 
 See [TODO.md](TODO.md) for planned additional tests.
 
@@ -377,6 +427,96 @@ files in the `help/` directory. Each file covers one topic with a slug-based
 filename (e.g. `file-viewer.md`, `command-com.md`). Cross-references use
 `[link text](help:topic-slug)` syntax.
 
+Installed game modules contribute help pages too, resolved by slug after the
+`help/` directory is checked, so a module's `help:tunnel-goons` link works
+without the server shipping that file.
+
+### Game Modules
+
+A game module is a directory of JSON under `MODULES_DIR` (default `modules/`)
+that supplies either an RPG system or an adventure. Nothing about a module is
+compiled in. See [modules/README.md](modules/README.md) for the pack format.
+
+- **System modules** carry the character sheet schema, the creature schema, and
+  a roll model (`rules.json`). Installing one seeds its sheet as an
+  `rpg_templates` row and points the session at it.
+- **Adventure modules** carry a bestiary, pregens, item cards, a room key,
+  tables, and maps, and name the system they were written for. Installing one
+  seeds creatures and maps.
+- **Reference modules** carry tables and item cards only. They are never
+  installed and every session sees them, so nothing secret belongs in one.
+
+Three modules ship with the repo: `tunnel-goons` (system), `sky-blind-spire`
+(adventure), and `cairn-spellbooks` (reference: 216 Cairn spells as a d666 table
+and one spellbook card per spell, generated from `spells.txt` by
+`scripts/build-cairn-spells.sh`).
+
+`d66` and `d666` roll as table dice: two or three d6 read as digits in order, so
+3, 1, 5 is entry 315 rather than one 666-sided die.
+
+Sessions record what they run in `sessions.system_module_id` and
+`sessions.adventure_module_id`. `GameContext::modules` holds the result, so the
+client knows which roll model to present.
+
+Packs are read per request rather than cached, so editing a module's JSON takes
+effect without a restart. A pack that fails to parse is skipped with a log line.
+
+**Who sees what.** `get_adventure_module` returns the room key, bestiary, and
+tables, and refuses anyone but the session's GM. Players call
+`get_adventure_handouts`, which returns only pregens and item cards. Anything
+secret belongs in a room's `gm` field, never in its `card`.
+
+**Licensing.** The repository is MIT-0; `modules/` is not. Bundled modules carry
+third-party content whose licences impose conditions MIT-0 disclaims, including
+one non-commercial and one share-alike work, so a module cannot be assumed to
+inherit the repository's terms. Each `module.json` states its own licence and
+what was changed, and [modules/LICENSING.md](modules/LICENSING.md) collects the
+detail. A new module that reproduces someone else's wording needs the same:
+author, licence, link, and a note of what was altered.
+
+**Module art.** Files in a module's `assets/` are served by
+`GET /api/modules/{module_id}/assets/{path}` straight off disk, for image types
+only, with traversal refused in `modules::loader::asset_path`. An item card
+names its art as `cards/torch.png`, or `other-module:cards/torch.png` to borrow
+another module's deck. Map art named in `maps.json` is instead ingested into
+media storage at install time, since maps carry a stored background URL.
+
+The Tunnel Goons card deck is generated from ASCII sources:
+
+```sh
+scripts/ascii-cards-to-png.sh     # modules/tunnel-goons/cards/*.card -> assets/cards/*.png
+```
+
+### Check Roller
+
+Systems built on "roll dice, add an ability, add what is helping, compare to a
+difficulty" cannot be expressed by the `NdN+M` chat parser, which knows nothing
+about abilities, items, or the margin. `ClientMessage::RollCheck` carries the
+ability, the bonuses the player ticked, an optional DS, and whether the action
+was dangerous; the server rolls, computes the margin, and broadcasts the result
+as a chat message with structured JSON in `dice_result`.
+
+Which items help is a judgement call, not a lookup, so the player picks them.
+The DS is optional because players usually have not been told it.
+
+The roller appears on the character sheet only when the session runs a system
+module. It comes from `rules.json`, so a system with different abilities or a
+different die needs no code change.
+
+### Inventory Slots
+
+`inventory_items` carries `slots`, `kind`, `bonus`, `uses_max`, and `uses_left`,
+and items can be owned by a character or held by the party. The inventory window
+totals slots per character against the capacity field the system module names,
+and warns when a character is over it.
+
+The rules stay data: the penalty for being over capacity, and which abilities it
+applies to, come from `rules.inventory`, and the check roller applies it.
+
+Movement and positioning are deliberately not enforced anywhere. Tunnel Goons
+has no skirmish system, and the map is a shared pointing device rather than a
+rules engine.
+
 ## CI / CD
 
 ### Pull Requests
@@ -504,6 +644,11 @@ replaces any global planning document.
 - Write a clear description of what the PR does and why.
 - If the PR changes the database schema, include a migration with both `up.sql`
   and `down.sql`. The `down.sql` must actually undo the change (not be a no-op).
+  Diesel CLI regenerates `src/schema.rs` on every `diesel migration run`, so
+  commit the regenerated file. Hand edits to it do not survive: corrections live
+  in `src/schema.patch`, which `diesel.toml` applies after generation. That is
+  where the `size_bytes -> BigInt` fix lives, since SQLite reports those columns
+  as INTEGER while the code uses `i64`.
 - If the PR adds new endpoints or server functions, add corresponding checks to
   the smoke test script.
 - Update `DEV.md` if the change affects architecture, build steps, or

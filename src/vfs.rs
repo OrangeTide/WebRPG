@@ -488,12 +488,12 @@ pub fn vfs_fnmatch(pattern: &str, name: &str) -> bool {
         while ni < name.len() {
             if pi < pat.len() && pat[pi] == b'[' {
                 // Bracket expression
-                if let Some((matched, end)) = match_bracket(&pat[pi..], name[ni]) {
-                    if matched {
-                        pi += end;
-                        ni += 1;
-                        continue;
-                    }
+                if let Some((matched, end)) = match_bracket(&pat[pi..], name[ni])
+                    && matched
+                {
+                    pi += end;
+                    ni += 1;
+                    continue;
                 }
                 // No match in bracket — try star backtrack
                 if star_pi != usize::MAX {
@@ -510,9 +510,7 @@ pub fn vfs_fnmatch(pattern: &str, name: &str) -> bool {
                 star_pi = pi;
                 star_ni = ni;
                 pi += 1;
-            } else if pi < pat.len()
-                && name[ni].to_ascii_lowercase() == pat[pi].to_ascii_lowercase()
-            {
+            } else if pi < pat.len() && name[ni].eq_ignore_ascii_case(&pat[pi]) {
                 pi += 1;
                 ni += 1;
             } else if star_pi != usize::MAX {
@@ -738,6 +736,19 @@ fn scope_ids(filter: &DriveFilter) -> (Option<i32>, Option<i32>) {
     }
 }
 
+/// Escape the SQL `LIKE` metacharacters in a literal string.
+///
+/// Path components may legally contain `%` and `_`, and `_` is common in
+/// filenames. Unescaped, `LIKE '/my_dir/%'` also matches `/myXdir/`, which
+/// means a prefix query silently reaches into unrelated directories. Every
+/// prefix query pairs this with `.escape('\\')`.
+#[cfg(feature = "ssr")]
+pub fn like_escape(s: &str) -> String {
+    s.replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_")
+}
+
 /// Delete rows matching a drive scope and path.
 #[cfg(feature = "ssr")]
 fn scoped_delete_path(
@@ -765,7 +776,7 @@ fn scoped_delete_path(
 }
 
 /// Delete all entries whose path starts with the given prefix (e.g. `"/dir/"`).
-/// Used by [`vfs_delete`] for recursive directory removal.
+/// Used by [`vfs_delete_recursive`] for recursive directory removal.
 #[cfg(feature = "ssr")]
 fn scoped_delete_prefix(
     conn: &mut diesel::SqliteConnection,
@@ -778,14 +789,22 @@ fn scoped_delete_prefix(
             vfs_files::table
                 .filter(vfs_files::drive.eq(drive_str))
                 .filter(vfs_files::session_id.eq(*sid))
-                .filter(vfs_files::path.like(format!("{prefix}%"))),
+                .filter(
+                    vfs_files::path
+                        .like(format!("{}%", like_escape(prefix)))
+                        .escape('\\'),
+                ),
         )
         .execute(conn),
         DriveFilter::User(uid) => diesel::delete(
             vfs_files::table
                 .filter(vfs_files::drive.eq(drive_str))
                 .filter(vfs_files::user_id.eq(*uid))
-                .filter(vfs_files::path.like(format!("{prefix}%"))),
+                .filter(
+                    vfs_files::path
+                        .like(format!("{}%", like_escape(prefix)))
+                        .escape('\\'),
+                ),
         )
         .execute(conn),
     }
@@ -793,6 +812,10 @@ fn scoped_delete_prefix(
 
 /// Update file content for a scoped path. Used by [`vfs_write`] for overwrites.
 #[cfg(feature = "ssr")]
+// These take a connection, a scope, a drive, a path, and the file's data and
+// metadata. Grouping them into a struct would only move the same fields
+// somewhere less obvious.
+#[allow(clippy::too_many_arguments)]
 fn scoped_update_file(
     conn: &mut diesel::SqliteConnection,
     drive_str: &str,
@@ -955,7 +978,11 @@ pub fn vfs_list(
     };
 
     let files: Vec<VfsFile> = scoped_query(drive.as_str(), &filter)
-        .filter(vfs_files::path.like(format!("{}%", prefix)))
+        .filter(
+            vfs_files::path
+                .like(format!("{}%", like_escape(&prefix)))
+                .escape('\\'),
+        )
         .order(vfs_files::path.asc())
         .load(conn)
         .map_err(|e| VfsError::DatabaseError(e.to_string()))?;
@@ -1135,10 +1162,10 @@ fn vfs_mkdir_p(
 
     // Ensure parent exists first (recursive)
     let vp = VfsPath::new(drive, path)?;
-    if let Some(parent) = vp.parent() {
-        if parent != "/" {
-            vfs_mkdir_p(conn, scope, drive, &parent, user_id)?;
-        }
+    if let Some(parent) = vp.parent()
+        && parent != "/"
+    {
+        vfs_mkdir_p(conn, scope, drive, &parent, user_id)?;
     }
 
     // Create this directory
@@ -1166,6 +1193,10 @@ fn vfs_mkdir_p(
 /// The root directory `/` is always implicit and never needs to exist
 /// as a row.
 #[cfg(feature = "ssr")]
+// These take a connection, a scope, a drive, a path, and the file's data and
+// metadata. Grouping them into a struct would only move the same fields
+// somewhere less obvious.
+#[allow(clippy::too_many_arguments)]
 pub fn vfs_write(
     conn: &mut diesel::SqliteConnection,
     scope: &VfsScope,
@@ -1206,14 +1237,14 @@ pub fn vfs_write(
     };
 
     // Permission check on overwrite
-    if let Some(ref entry) = existing {
-        if !check_permission(entry.mode, scope.is_gm, scope.is_player, MODE_OTHER_W) {
-            return Err(VfsError::PermissionDenied(format!(
-                "{}:{}",
-                drive.letter(),
-                path
-            )));
-        }
+    if let Some(ref entry) = existing
+        && !check_permission(entry.mode, scope.is_gm, scope.is_player, MODE_OTHER_W)
+    {
+        return Err(VfsError::PermissionDenied(format!(
+            "{}:{}",
+            drive.letter(),
+            path
+        )));
     }
 
     // Quota check — subtract old size when overwriting
@@ -1374,7 +1405,74 @@ pub fn vfs_delete(
 
     let filter = scope.scope_for_drive(drive)?;
 
-    // If directory, recursively delete all descendants first
+    // A directory has to be empty, the way rmdir(2) and RMDIR both work. The
+    // file browser deletes trees through vfs_delete_recursive instead, so that
+    // discarding a whole subtree is always something the caller asked for.
+    if entry.is_directory && !scoped_dir_is_empty(conn, drive, &filter, path)? {
+        return Err(VfsError::DirectoryNotEmpty(format!(
+            "{}:{}",
+            drive.letter(),
+            path
+        )));
+    }
+
+    let deleted = scoped_delete_path(conn, drive.as_str(), &filter, path)
+        .map_err(|e| VfsError::DatabaseError(e.to_string()))?;
+
+    if deleted == 0 {
+        return Err(VfsError::NotFound(format!("{}:{}", drive.letter(), path)));
+    }
+    Ok(())
+}
+
+/// Whether a directory has no entries under it.
+#[cfg(feature = "ssr")]
+fn scoped_dir_is_empty(
+    conn: &mut diesel::SqliteConnection,
+    drive: Drive,
+    filter: &DriveFilter,
+    path: &str,
+) -> Result<bool, VfsError> {
+    let prefix = format!("{}/", path);
+    let children: i64 = scoped_query(drive.as_str(), filter)
+        .filter(
+            vfs_files::path
+                .like(format!("{}%", like_escape(&prefix)))
+                .escape('\\'),
+        )
+        .count()
+        .get_result(conn)
+        .map_err(|e| VfsError::DatabaseError(e.to_string()))?;
+    Ok(children == 0)
+}
+
+/// Delete a file, or a directory and everything beneath it.
+///
+/// This is what a file manager does when you discard a folder. Callers that
+/// want the safer behaviour, where a non-empty directory is refused, want
+/// [`vfs_delete`].
+///
+/// Permission is checked on the directory itself, not on each descendant, so a
+/// caller able to delete a directory can discard what is inside it.
+#[cfg(feature = "ssr")]
+pub fn vfs_delete_recursive(
+    conn: &mut diesel::SqliteConnection,
+    scope: &VfsScope,
+    drive: Drive,
+    path: &str,
+) -> Result<(), VfsError> {
+    let entry = vfs_stat(conn, scope, drive, path)?;
+
+    if !check_permission(entry.mode, scope.is_gm, scope.is_player, MODE_OTHER_W) {
+        return Err(VfsError::PermissionDenied(format!(
+            "{}:{}",
+            drive.letter(),
+            path
+        )));
+    }
+
+    let filter = scope.scope_for_drive(drive)?;
+
     if entry.is_directory {
         let prefix = format!("{}/", path);
         scoped_delete_prefix(conn, drive.as_str(), &filter, &prefix)
@@ -1449,7 +1547,11 @@ pub fn vfs_rename(
 
         // Fetch all descendants
         let descendants: Vec<VfsFile> = scoped_query(drive_str, &filter)
-            .filter(vfs_files::path.like(format!("{}%", old_prefix)))
+            .filter(
+                vfs_files::path
+                    .like(format!("{}%", like_escape(&old_prefix)))
+                    .escape('\\'),
+            )
             .load(conn)
             .map_err(|e| VfsError::DatabaseError(e.to_string()))?;
 
@@ -1474,6 +1576,10 @@ pub fn vfs_rename(
 /// If `create_parents` is true, missing parent directories at the
 /// destination are automatically created.
 #[cfg(feature = "ssr")]
+// These take a connection, a scope, a drive, a path, and the file's data and
+// metadata. Grouping them into a struct would only move the same fields
+// somewhere less obvious.
+#[allow(clippy::too_many_arguments)]
 pub fn vfs_copy(
     conn: &mut diesel::SqliteConnection,
     src_scope: &VfsScope,
@@ -1522,6 +1628,10 @@ pub fn vfs_copy(
 /// that references existing CAS content by hash, without allocating or
 /// copying the file data.
 #[cfg(feature = "ssr")]
+// These take a connection, a scope, a drive, a path, and the file's data and
+// metadata. Grouping them into a struct would only move the same fields
+// somewhere less obvious.
+#[allow(clippy::too_many_arguments)]
 fn vfs_write_cas_ref(
     conn: &mut diesel::SqliteConnection,
     scope: &VfsScope,
@@ -2120,6 +2230,94 @@ mod tests {
                 vfs_delete(&mut conn, &scope, Drive::U, "/stuff"),
                 Err(VfsError::DirectoryNotEmpty(_))
             ));
+
+            // Refusing must not have deleted anything on the way.
+            assert!(vfs_stat(&mut conn, &scope, Drive::U, "/stuff/f.txt").is_ok());
+            assert!(vfs_stat(&mut conn, &scope, Drive::U, "/stuff").is_ok());
+        }
+
+        #[test]
+        fn delete_empty_dir_succeeds() {
+            let mut conn = test_db();
+            let scope = user_scope();
+            vfs_mkdir(&mut conn, &scope, Drive::U, "/empty", 1, false).unwrap();
+
+            vfs_delete(&mut conn, &scope, Drive::U, "/empty").unwrap();
+            assert!(matches!(
+                vfs_stat(&mut conn, &scope, Drive::U, "/empty"),
+                Err(VfsError::NotFound(_))
+            ));
+        }
+
+        #[test]
+        fn underscore_in_a_name_is_not_a_wildcard() {
+            let mut conn = test_db();
+            let scope = user_scope();
+            // `_` matches any character in SQL LIKE, so an unescaped prefix
+            // query for /a_b also reaches into /axb.
+            for dir in ["/a_b", "/axb"] {
+                vfs_mkdir(&mut conn, &scope, Drive::U, dir, 1, false).unwrap();
+                let file = format!("{dir}/f.txt");
+                vfs_write(
+                    &mut conn,
+                    &scope,
+                    Drive::U,
+                    &file,
+                    b"x",
+                    None,
+                    None,
+                    1,
+                    false,
+                )
+                .unwrap();
+            }
+
+            // Listing one directory must not show the other's contents.
+            let listed = vfs_list(&mut conn, &scope, Drive::U, "/a_b").unwrap();
+            assert_eq!(listed.len(), 1);
+            assert_eq!(listed[0].path, "/a_b/f.txt");
+
+            // Nor may deleting it take the other's contents with it.
+            vfs_delete_recursive(&mut conn, &scope, Drive::U, "/a_b").unwrap();
+            assert!(vfs_stat(&mut conn, &scope, Drive::U, "/axb/f.txt").is_ok());
+            assert!(vfs_stat(&mut conn, &scope, Drive::U, "/axb").is_ok());
+        }
+
+        #[test]
+        fn delete_recursive_removes_the_whole_tree() {
+            let mut conn = test_db();
+            let scope = user_scope();
+            vfs_mkdir(&mut conn, &scope, Drive::U, "/tree", 1, false).unwrap();
+            vfs_mkdir(&mut conn, &scope, Drive::U, "/tree/inner", 1, false).unwrap();
+            for path in ["/tree/a.txt", "/tree/inner/b.txt"] {
+                vfs_write(
+                    &mut conn,
+                    &scope,
+                    Drive::U,
+                    path,
+                    b"x",
+                    None,
+                    None,
+                    1,
+                    false,
+                )
+                .unwrap();
+            }
+            // A sibling that merely shares a name prefix must survive.
+            vfs_mkdir(&mut conn, &scope, Drive::U, "/treehouse", 1, false).unwrap();
+
+            vfs_delete_recursive(&mut conn, &scope, Drive::U, "/tree").unwrap();
+
+            for path in ["/tree", "/tree/a.txt", "/tree/inner", "/tree/inner/b.txt"] {
+                assert!(
+                    matches!(
+                        vfs_stat(&mut conn, &scope, Drive::U, path),
+                        Err(VfsError::NotFound(_))
+                    ),
+                    "{path} should be gone"
+                );
+            }
+            assert!(vfs_stat(&mut conn, &scope, Drive::U, "/treehouse").is_ok());
         }
 
         #[test]

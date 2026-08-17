@@ -1,0 +1,93 @@
+[
+  {
+    "name": "brute",
+    "label": "Brute",
+    "type": "number",
+    "category": "Abilities",
+    "default": 0
+  },
+  {
+    "name": "skulker",
+    "label": "Skulker",
+    "type": "number",
+    "category": "Abilities",
+    "default": 0
+  },
+  {
+    "name": "erudite",
+    "label": "Erudite",
+    "type": "number",
+    "category": "Abilities",
+    "default": 0
+  },
+  {
+    "name": "hp_max",
+    "label": "Max HP",
+    "type": "number",
+    "category": "Combat",
+    "default": 10
+  },
+  {
+    "name": "inventory",
+    "label": "Inventory Score",
+    "type": "number",
+    "category": "Combat",
+    "default": 8
+  },
+  {
+    "name": "armour_absorbs",
+    "label": "Armour absorbs",
+    "type": "number",
+    "category": "Combat",
+    "default": 0
+  },
+  {
+    "name": "role",
+    "label": "Role",
+    "type": "text",
+    "category": "Info",
+    "default": ""
+  },
+  {
+    "name": "tagline",
+    "label": "Tagline",
+    "type": "text",
+    "category": "Info",
+    "default": ""
+  },
+  {
+    "name": "childhood",
+    "label": "Childhood",
+    "type": "text",
+    "category": "Background",
+    "default": ""
+  },
+  {
+    "name": "profession",
+    "label": "Profession",
+    "type": "text",
+    "category": "Background",
+    "default": ""
+  },
+  {
+    "name": "war",
+    "label": "During the war",
+    "type": "text",
+    "category": "Background",
+    "default": ""
+  },
+  {
+    "name": "hook",
+    "label": "Why you are here",
+    "type": "textarea",
+    "category": "Background",
+    "default": ""
+  },
+  {
+    "name": "notes",
+    "label": "Notes",
+    "type": "textarea",
+    "category": "Notes",
+    "default": ""
+  }
+]

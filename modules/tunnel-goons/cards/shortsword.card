@@ -1,0 +1,19 @@
+name: Shortsword
+kind: weapon
+slots: 1
+effect: +1 Brute in a close fight.
+note: Everyone starts with something like it.
+art:
+      /\
+     /  \
+    |    |
+    | *  |
+    |    |
+    |    |
+    |    |
+   /|    |\
+ .-'|____|'-.
+[____________]
+     |  |
+     |__|
+    (____)

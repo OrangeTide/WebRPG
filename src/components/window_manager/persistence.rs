@@ -22,6 +22,7 @@ pub(super) const STATIC_WINDOWS: &[(WindowId, &str)] = &[
     (WindowId::Terminal, "COMMAND.COM"),
     (WindowId::FileBrowser, "File Viewer"),
     (WindowId::HelpViewer, "Help"),
+    (WindowId::Modules, "Modules"),
 ];
 
 /// Load startup window preferences from localStorage.
@@ -38,12 +39,11 @@ pub(super) fn load_startup_prefs() -> Option<Vec<WindowId>> {
 /// Save startup window preferences to localStorage.
 #[cfg(feature = "hydrate")]
 pub(super) fn save_startup_prefs(open_windows: &[WindowId]) {
-    if let Some(window) = web_sys::window() {
-        if let Ok(Some(storage)) = window.local_storage() {
-            if let Ok(json) = serde_json::to_string(open_windows) {
-                let _ = storage.set_item(STARTUP_PREFS_KEY, &json);
-            }
-        }
+    if let Some(window) = web_sys::window()
+        && let Ok(Some(storage)) = window.local_storage()
+        && let Ok(json) = serde_json::to_string(open_windows)
+    {
+        let _ = storage.set_item(STARTUP_PREFS_KEY, &json);
     }
 }
 
@@ -58,27 +58,25 @@ pub(super) fn save_startup_prefs(open_windows: &[WindowId]) {
 pub(super) fn load_or_default_layout() -> Vec<WindowState> {
     #[cfg(feature = "hydrate")]
     {
-        if let Some(window) = web_sys::window() {
-            if let Ok(Some(storage)) = window.local_storage() {
-                if let Ok(Some(json)) = storage.get_item(LAYOUT_STORAGE_KEY) {
-                    if let Ok(mut stored) = serde_json::from_str::<Vec<WindowState>>(&json) {
-                        // Remove dynamic windows — they don't persist across reloads
-                        stored.retain(|w| !w.id.is_dynamic());
+        if let Some(window) = web_sys::window()
+            && let Ok(Some(storage)) = window.local_storage()
+            && let Ok(Some(json)) = storage.get_item(LAYOUT_STORAGE_KEY)
+            && let Ok(mut stored) = serde_json::from_str::<Vec<WindowState>>(&json)
+        {
+            // Remove dynamic windows — they don't persist across reloads
+            stored.retain(|w| !w.id.is_dynamic());
 
-                        // Merge with defaults: keep stored state for known IDs,
-                        // add defaults for any new IDs.
-                        let defaults = default_window_layout();
-                        for default_win in &defaults {
-                            if !stored.iter().any(|w| w.id == default_win.id) {
-                                stored.push(default_win.clone());
-                            }
-                        }
-                        // Remove any stored windows with IDs not in defaults
-                        stored.retain(|w| defaults.iter().any(|d| d.id == w.id));
-                        return stored;
-                    }
+            // Merge with defaults: keep stored state for known IDs,
+            // add defaults for any new IDs.
+            let defaults = default_window_layout();
+            for default_win in &defaults {
+                if !stored.iter().any(|w| w.id == default_win.id) {
+                    stored.push(default_win.clone());
                 }
             }
+            // Remove any stored windows with IDs not in defaults
+            stored.retain(|w| defaults.iter().any(|d| d.id == w.id));
+            return stored;
         }
     }
     let mut layout = default_window_layout();
@@ -96,14 +94,14 @@ pub(super) fn load_or_default_layout() -> Vec<WindowState> {
 /// Save window layout to localStorage.
 #[cfg(feature = "hydrate")]
 pub(super) fn save_layout(windows: &[WindowState]) {
-    if let Some(window) = web_sys::window() {
-        if let Ok(Some(storage)) = window.local_storage() {
-            // Only persist static windows
-            let static_wins: Vec<&WindowState> =
-                windows.iter().filter(|w| !w.id.is_dynamic()).collect();
-            if let Ok(json) = serde_json::to_string(&static_wins) {
-                let _ = storage.set_item(LAYOUT_STORAGE_KEY, &json);
-            }
+    if let Some(window) = web_sys::window()
+        && let Ok(Some(storage)) = window.local_storage()
+    {
+        // Only persist static windows
+        let static_wins: Vec<&WindowState> =
+            windows.iter().filter(|w| !w.id.is_dynamic()).collect();
+        if let Ok(json) = serde_json::to_string(&static_wins) {
+            let _ = storage.set_item(LAYOUT_STORAGE_KEY, &json);
         }
     }
 }

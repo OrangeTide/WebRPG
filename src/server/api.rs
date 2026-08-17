@@ -302,7 +302,7 @@ pub async fn create_map(
         return Err(ServerFnError::new("Only the GM can create maps"));
     }
 
-    let cell = cell_size.unwrap_or(40).max(10).min(200);
+    let cell = cell_size.unwrap_or(40).clamp(10, 200);
 
     let new_map = crate::models::db_models::NewMap {
         session_id,
@@ -1473,10 +1473,10 @@ pub async fn list_media(
             .unwrap_or_default();
 
         // Filter by tag if specified
-        if let Some(ref filter_tag) = tag {
-            if !tags.iter().any(|t| t == filter_tag) {
-                continue;
-            }
+        if let Some(ref filter_tag) = tag
+            && !tags.iter().any(|t| t == filter_tag)
+        {
+            continue;
         }
 
         // Filter by search term (matches against tags)
@@ -1515,7 +1515,13 @@ pub async fn list_media_tags(prefix: Option<String>) -> Result<Vec<String>, Serv
         .into_boxed();
 
     if let Some(ref p) = prefix {
-        query = query.filter(media_tags::tag.like(format!("{p}%")));
+        // The prefix is typed by a user, so `%` and `_` in it must match
+        // themselves rather than act as wildcards.
+        query = query.filter(
+            media_tags::tag
+                .like(format!("{}%", crate::vfs::like_escape(p)))
+                .escape('\\'),
+        );
     }
 
     let tags: Vec<String> = query
@@ -2021,6 +2027,31 @@ pub async fn vfs_delete_file(
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     vfs::vfs_delete(conn, &scope, drive, &parsed.path)
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    vfs_broadcast(session_id, &parsed.path, "delete");
+    Ok(())
+}
+
+/// Delete a file, or a directory and everything beneath it.
+///
+/// The file browser deletes folders this way, the way a file manager does.
+/// COMMAND.COM's RMDIR uses [`vfs_delete_file`] instead, which refuses a
+/// non-empty directory.
+#[server]
+pub async fn vfs_delete_tree(
+    drive: String,
+    path: String,
+    session_id: Option<i32>,
+) -> Result<(), ServerFnError> {
+    use crate::vfs;
+
+    let (mut conn, drive, scope, _user_id) = vfs_auth_scope(&drive, session_id).await?;
+    let conn = &mut conn;
+    let parsed = vfs::VfsPath::parse(&format!("{}:{}", drive.letter(), path))
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    vfs::vfs_delete_recursive(conn, &scope, drive, &parsed.path)
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     vfs_broadcast(session_id, &parsed.path, "delete");

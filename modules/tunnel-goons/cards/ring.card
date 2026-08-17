@@ -1,0 +1,15 @@
+name: Enchanted ring
+kind: treasure
+slots: 1
+effect: +1 Erudite for one working, named when you put it on.
+note: The referee decides what wearing it costs.
+art:
+      .----.
+    /  * .  \
+    \_______/
+     |_____|
+   .-'     '-.
+  /           \
+ |             |
+  \           /
+   '-._____.-'

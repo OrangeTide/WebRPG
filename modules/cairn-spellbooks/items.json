@@ -1,0 +1,2490 @@
+[
+  {
+    "id": "spellbook-adaptive-skin",
+    "name": "Spellbook: Adaptive Skin",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target can exist comfortably in hot or cold environments.",
+    "note": "d666 111, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-addle-brain",
+    "name": "Spellbook: Addle Brain",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target must pass WIL save or drop to 0 WIL for 1 hour.",
+    "note": "d666 112, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-adhere",
+    "name": "Spellbook: Adhere",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An object is covered in extremely sticky slime.",
+    "note": "d100 1. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-anchor",
+    "name": "Spellbook: Anchor",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A strong wire sprouts from your arms, affixing itself to two points within 50ft on each side.",
+    "note": "d100 2. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-animal-call",
+    "name": "Spellbook: Animal Call",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Summons a mundane beast. It holds no loyalty towards you or your allies.",
+    "note": "d666 113, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-animate-object",
+    "name": "Spellbook: Animate Object",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An object obeys your commands as best it can.",
+    "note": "d100 3. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-anthropomorphize",
+    "name": "Spellbook: Anthropomorphize",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An animal either gains human intelligence or human appearance for one day.",
+    "note": "d100 4. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-anti-magic-globe",
+    "name": "Spellbook: Anti-Magic Globe",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A thin shell of magical protection surrounds a small area around the caster. For every additional minute the globe is active they take one additional Fatigue.",
+    "note": "d666 114, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-arachnid-s-finesse",
+    "name": "Spellbook: Arachnid's Finesse",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target can walk on walls and ceilings.",
+    "note": "d666 115, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-arcane-arrow",
+    "name": "Spellbook: Arcane Arrow",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Green energy bursts from your fingers, dealing 1d6 damage and ignoring mundane armor.",
+    "note": "d666 116, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-arcane-confinement",
+    "name": "Spellbook: Arcane Confinement",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target is bound by magical rope, able only to speak but nothing more.",
+    "note": "d666 121, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-arcane-epistle",
+    "name": "Spellbook: Arcane Epistle",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You write a letter that only its intended reader can understand.",
+    "note": "d666 122, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-arcane-eye",
+    "name": "Spellbook: Arcane Eye",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You can see through a magical floating eyeball that flies around at your command.",
+    "note": "d100 5. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-arcane-fireworks",
+    "name": "Spellbook: Arcane Fireworks",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target flame becomes a great conflagration of heat, light and sound.",
+    "note": "d666 123, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-arcane-stain",
+    "name": "Spellbook: Arcane Stain",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Inscribes an invisible rune you can feel. Suffer 1d4 WIL loss if removed.",
+    "note": "d666 124, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-architect-s-eye",
+    "name": "Spellbook: Architect's Eye",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Any hidden doors within 60ft light up as if on fire.",
+    "note": "d666 125, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-architect-s-perfection",
+    "name": "Spellbook: Architect's Perfection",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Create a holographic wall, floor, or ceiling that looks absolutely real.",
+    "note": "d666 126, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-astral-prison",
+    "name": "Spellbook: Astral Prison",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An object is frozen in time and space within an invulnerable crystal shell.",
+    "note": "d100 6. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-astral-step",
+    "name": "Spellbook: Astral Step",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You and anyone touching you instantly transport to a known location you have been to before.",
+    "note": "d666 131, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-attract",
+    "name": "Spellbook: Attract",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Two objects are strongly magnetically attracted to each other if they come within 10 feet.",
+    "note": "d100 7. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-auditory-illusion",
+    "name": "Spellbook: Auditory Illusion",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You create illusory sounds that seem to come from a direction of your choice.",
+    "note": "d100 8. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-babble",
+    "name": "Spellbook: Babble",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A creature must loudly and clearly repeat everything you think.",
+    "note": "d100 9. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-bait-flower",
+    "name": "Spellbook: Bait Flower",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A plant sprouts from the ground that emanates the smell of decaying flesh.",
+    "note": "d100 10. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-banishment",
+    "name": "Spellbook: Banishment",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "WIL save or creature returns to native plane.",
+    "note": "d666 132, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-beast-form",
+    "name": "Spellbook: Beast Form",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You and your possessions transform into a mundane animal.",
+    "note": "d100 11. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-become-unseen",
+    "name": "Spellbook: Become Unseen",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target becomes invisible for 1 hour, and is still able to use abilities and attack without detection. Afterwards they become incapacitated (deprived).",
+    "note": "d666 133, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-befuddle",
+    "name": "Spellbook: Befuddle",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A creature of your choice is unable to form new short-term memories for the duration.",
+    "note": "d100 12. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-beguilement",
+    "name": "Spellbook: Beguilement",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target humanoid must make a WIL save or is controlled telepathically.",
+    "note": "d666 134, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-bewildering-fog",
+    "name": "Spellbook: Bewildering Fog",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A hazy fog surrounds you in a radius of 20ft. Attacks within the mist are impaired.",
+    "note": "d666 135, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-blazing-defense",
+    "name": "Spellbook: Blazing Defense",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You manifest a shield of flame (+1 Armor, 1d6 damage). Fire cannot hurt you.",
+    "note": "d666 136, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-blessing",
+    "name": "Spellbook: Blessing",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target's attacks are enhanced and non-Blast attacks are impaired against them until they next take damage.",
+    "note": "d666 141, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-body-swap",
+    "name": "Spellbook: Body Swap",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You switch bodies with a creature you touch. If one body dies, the other dies as well.",
+    "note": "d100 13. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-bolster",
+    "name": "Spellbook: Bolster",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A person you can see is emboldened by your words for a few minutes: their attacks are enhanced and they cannot become deprived.",
+    "note": "d666 142, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-bound",
+    "name": "Spellbook: Bound",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target can make a single jump to any place they can see.",
+    "note": "d666 143, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-boundless-message",
+    "name": "Spellbook: Boundless Message",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Delivers a single sentence to any one creature instantaneously, no matter the distance.",
+    "note": "d666 144, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-breath-soup",
+    "name": "Spellbook: Breath Soup",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Blocks vision and slows movement.",
+    "note": "d666 145, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-burning-missile",
+    "name": "Spellbook: Burning Missile",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You fire an acid missile that does 1d6 damage to a target for every round it is not washed off.",
+    "note": "d666 146, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-burnishing-bubble",
+    "name": "Spellbook: Burnishing Bubble",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target is enclosed by an impenetrable sphere that rolls along the ground, unless they pass a DEX save.",
+    "note": "d666 151, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-calcify",
+    "name": "Spellbook: Calcify",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target object turns to stone at the caster's touch. Living targets save vs STR.",
+    "note": "d666 152, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-catsense",
+    "name": "Spellbook: Catsense",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target has heightened senses for the next hour, especially at night.",
+    "note": "d666 153, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-charm",
+    "name": "Spellbook: Charm",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A creature you can see treats you as a friend.",
+    "note": "d100 14. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-chilling-graze",
+    "name": "Spellbook: Chilling Graze",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target loses 1d4+1 STR and is deprived.",
+    "note": "d666 154, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-cinder-flesh",
+    "name": "Spellbook: Cinder Flesh",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Energy beams burn enemies (1d10 blast damage) in a straight line.",
+    "note": "d666 155, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-circle-of-arcane-protection",
+    "name": "Spellbook: Circle of Arcane Protection",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Magical or godly beings cannot enter a 10ft circle.",
+    "note": "d666 156, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-cleanse",
+    "name": "Spellbook: Cleanse",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Rotten or poisoned food becomes edible.",
+    "note": "d666 161, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-cold-spray",
+    "name": "Spellbook: Cold Spray",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A spray of cold air does 1d6 damage 20ft in one direction.",
+    "note": "d666 162, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-command",
+    "name": "Spellbook: Command",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A target obeys a single three-word command that does not cause it harm.",
+    "note": "d100 15. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-comprehend",
+    "name": "Spellbook: Comprehend",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You become fluent in all languages for a short while.",
+    "note": "d100 16. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-conceal-object",
+    "name": "Spellbook: Conceal Object",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Masks an object against divination or scrying.",
+    "note": "d666 163, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-cone-of-foam",
+    "name": "Spellbook: Cone of Foam",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Dense foam sprays from your hand, coating the target.",
+    "note": "d100 17. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-conquer-gravity",
+    "name": "Spellbook: Conquer Gravity",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target moves up or down according to your whims.",
+    "note": "d666 164, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-control-plants",
+    "name": "Spellbook: Control Plants",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Nearby plants and trees obey you and gain the ability to move at a slow pace.",
+    "note": "d100 18. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-control-weather",
+    "name": "Spellbook: Control Weather",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You may alter the type of weather at will, but you do not otherwise control it.",
+    "note": "d100 19. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-cosmic-fingertips",
+    "name": "Spellbook: Cosmic Fingertips",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Your hands sculpt stone, rock or minerals into any form you please.",
+    "note": "d666 165, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-coup-de-grace",
+    "name": "Spellbook: Coup de Grace",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An ally's next attack ignores armor and takes damage directly from their target's STR.",
+    "note": "d666 166, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-craft-from-clay",
+    "name": "Spellbook: Craft from Clay",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Any natural, earthen target is transformed (rock to mud, lava to rock, etc).",
+    "note": "d666 211, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-create-unlife",
+    "name": "Spellbook: Create Unlife",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Creates 1d4 undead skeletons and zombies from corpses. WIL save every hour to control them.",
+    "note": "d666 212, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-cure-wounds",
+    "name": "Spellbook: Cure Wounds",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Restore 1d4 STR per day to a creature you can touch.",
+    "note": "d100 20. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-cure-all",
+    "name": "Spellbook: Cure-All",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A single illness or disease dissipates at your touch.",
+    "note": "d666 215, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-curse-of-the-sightless",
+    "name": "Spellbook: Curse of the Sightless",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Anyone within eyesight must make a WIL save or be blinded.",
+    "note": "d666 213, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-curse-unlife",
+    "name": "Spellbook: Curse Unlife",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Deals 1d4+2 STR loss to one undead, ignoring armor and resistances.",
+    "note": "d666 214, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-cute-ink",
+    "name": "Spellbook: Cute Ink",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A single page in a book can be altered to hide its true content.",
+    "note": "d666 216, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-darksight",
+    "name": "Spellbook: Darksight",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target can see 60 ft. in total darkness.",
+    "note": "d666 221, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-deafen",
+    "name": "Spellbook: Deafen",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "All nearby creatures are deafened.",
+    "note": "d100 21. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-death-s-breath",
+    "name": "Spellbook: Death's Breath",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You summon a poisonous cloud (1d6 STR loss) you can control.",
+    "note": "d666 222, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-detect-magic",
+    "name": "Spellbook: Detect Magic",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You can see or hear nearby magical auras.",
+    "note": "d100 22. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-devil-s-comedian",
+    "name": "Spellbook: Devil's Comedian",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "WIL save or target laughs uncontrollably, unable to take any action.",
+    "note": "d666 223, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-disassemble",
+    "name": "Spellbook: Disassemble",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Any of your body parts may be detached and reattached at will, without causing pain or damage. You can still control them.",
+    "note": "d100 23. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-disaster-fluid",
+    "name": "Spellbook: Disaster Fluid",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Anything in a 10ft square becomes slippery; DEX save to avoid slipping.",
+    "note": "d666 224, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-disguise",
+    "name": "Spellbook: Disguise",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You may alter the appearance of one character at will as long as they remain humanoid.",
+    "note": "d100 24. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-displace",
+    "name": "Spellbook: Displace",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An object appears to be up to 15ft from its actual position.",
+    "note": "d100 25. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-disrupt-scry",
+    "name": "Spellbook: Disrupt Scry",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Future divinations of one creature or object are misled according to your will.",
+    "note": "d666 225, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-doppelganger",
+    "name": "Spellbook: Doppelganger",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You spawn 1d6 decoy duplicates of someone you touch. Decoys are dispelled with a touch.",
+    "note": "d666 226, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-doubleskin",
+    "name": "Spellbook: Doubleskin",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target humanoid doubles in size.",
+    "note": "d666 231, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-dreampoison",
+    "name": "Spellbook: Dreampoison",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target is deprived after suffering a night of bad dreams.",
+    "note": "d666 232, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-dreamtalker",
+    "name": "Spellbook: Dreamtalker",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Sends a message to anyone currently asleep.",
+    "note": "d666 233, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-earsplit",
+    "name": "Spellbook: Earsplit",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Anyone within earshot is deafened.",
+    "note": "d666 234, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-earthquake",
+    "name": "Spellbook: Earthquake",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "The ground begins shaking violently. Structures may be damaged or collapse.",
+    "note": "d100 26. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-easy-descent",
+    "name": "Spellbook: Easy Descent",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Objects or creatures nearby fall very slowly.",
+    "note": "d666 235, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-edifice",
+    "name": "Spellbook: Edifice",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You summon a stone wall up to 20ft wide that you can control.",
+    "note": "d666 236, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-elasticity",
+    "name": "Spellbook: Elasticity",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Your body can stretch up to 10ft.",
+    "note": "d100 27. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-elemental-wall",
+    "name": "Spellbook: Elemental Wall",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A straight wall of ice or fire 50ft long and 10ft high rises from the ground.",
+    "note": "d100 28. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-energize-rope",
+    "name": "Spellbook: Energize Rope",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A rope-like object moves at your command.",
+    "note": "d666 241, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-ensorcelled",
+    "name": "Spellbook: Ensorcelled",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Creatures are enraptured for a few minutes unless they pass a WIL save.",
+    "note": "d666 242, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-envision",
+    "name": "Spellbook: Envision",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Spies on a target you have met, even across vast distances. On a WIL save, they can feel your presence.",
+    "note": "d666 243, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-ephemeral-audio",
+    "name": "Spellbook: Ephemeral Audio",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Point to a spot. Anyone nearby hears a sound you choose at any volume.",
+    "note": "d666 244, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-epidemic",
+    "name": "Spellbook: Epidemic",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Infects target with disease, which spreads until the source of magic is destroyed.",
+    "note": "d666 245, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-extraplanar-convocation",
+    "name": "Spellbook: Extraplanar Convocation",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Summons any extraplanar being onto your plane. It holds no loyalty towards you or your allies.",
+    "note": "d666 246, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-extraplanar-request",
+    "name": "Spellbook: Extraplanar Request",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Ask a single question of a random extraplanar entity.",
+    "note": "d666 251, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-feline-dexterity",
+    "name": "Spellbook: Feline Dexterity",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target becomes limber, lithe and as fast as quicksilver.",
+    "note": "d666 252, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-fiery-missile",
+    "name": "Spellbook: Fiery Missile",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A bow you touch can fire flaming arrows (1d10 damage) for one minute.",
+    "note": "d666 255, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-filch",
+    "name": "Spellbook: Filch",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A visible item teleports to your hands.",
+    "note": "d100 29. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-find-virulence",
+    "name": "Spellbook: Find Virulence",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Detects poison in any creature or object within 30ft.",
+    "note": "d666 253, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-fire-curse",
+    "name": "Spellbook: Fire Curse",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An object you touch is imbued with a hidden flame-trap dealing 1d4+2 STR loss.",
+    "note": "d666 254, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-fish-lung",
+    "name": "Spellbook: Fish Lung",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A target can breathe underwater until they surface again.",
+    "note": "d100 30. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-flare",
+    "name": "Spellbook: Flare",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A bright ball of energy fires a trail of light into the sky, revealing your location to friend or foe.",
+    "note": "d100 31. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-fleetfooted",
+    "name": "Spellbook: Fleetfooted",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "One creature moves at double speed.",
+    "note": "d666 261, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-flicker",
+    "name": "Spellbook: Flicker",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target randomly vanishes and reappears once at will.",
+    "note": "d666 262, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-fog-cloud",
+    "name": "Spellbook: Fog Cloud",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A dense fog spreads out from you.",
+    "note": "d100 32. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-fog-of-nausea",
+    "name": "Spellbook: Fog of Nausea",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A cloud of nauseating vapors pours out from the Spellbook's pages. Anyone nearby makes a STR save or vomits uncontrollably.",
+    "note": "d666 263, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-fold-portal",
+    "name": "Spellbook: Fold Portal",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A door you touch opens into another door you've stepped through before until it is shut again.",
+    "note": "d666 264, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-foolishness",
+    "name": "Spellbook: Foolishness",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A target you touch becomes vulnerable to wild mood swings, sweeping conclusions and silly behavior. They also lose 1d6 WIL for 24 hours (down to a minimum of 1).",
+    "note": "d666 265, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-fortify",
+    "name": "Spellbook: Fortify",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Damage from heat, ice, acid or electricity is impaired against a target for the next hour.",
+    "note": "d666 266, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-frenzy",
+    "name": "Spellbook: Frenzy",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A nearby creature erupts in a frenzy of violence.",
+    "note": "d100 33. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-frozen-corpse",
+    "name": "Spellbook: Frozen Corpse",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A corpse you touch is preserved.",
+    "note": "d666 311, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-gale",
+    "name": "Spellbook: Gale",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You summon an impenetrable wall of energy up to 15ft wide.",
+    "note": "d666 312, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-gate",
+    "name": "Spellbook: Gate",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A portal to a random plane opens.",
+    "note": "d100 34. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-ghost-whisper",
+    "name": "Spellbook: Ghost Whisper",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You and a sympathetic ally are linked, able to converse in short sentences for an hour.",
+    "note": "d666 313, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-gift-of-flight",
+    "name": "Spellbook: Gift of Flight",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target can fly for a short while.",
+    "note": "d666 314, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-glacier",
+    "name": "Spellbook: Glacier",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You create a wall of ice (15 HP, 3 Armor) around a creature you choose.",
+    "note": "d666 315, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-gorgon-s-gaze",
+    "name": "Spellbook: Gorgon's Gaze",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target is transformed into a statue on a failed WIL save. A success reverses the spell; holder must pass a WIL save or the book is destroyed.",
+    "note": "d666 316, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-gravity-shift",
+    "name": "Spellbook: Gravity Shift",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You can change the direction of gravity, but only for yourself.",
+    "note": "d100 35. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-great-ball-of-fire",
+    "name": "Spellbook: Great Ball of Fire",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You fire a ball of flame (1d10 damage) up to 20 feet away.",
+    "note": "d666 321, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-greed",
+    "name": "Spellbook: Greed",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A creature develops the overwhelming urge to possess a visible item of your choice.",
+    "note": "d100 36. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-hand-of-the-protector",
+    "name": "Spellbook: Hand of the Protector",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A giant, floating hand blocks all damage from a single opponent until you are safe from danger.",
+    "note": "d666 322, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-haste",
+    "name": "Spellbook: Haste",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Your movement speed is tripled.",
+    "note": "d100 37. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-hatred",
+    "name": "Spellbook: Hatred",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A creature develops a deep hatred of another creature or group and wishes to destroy them.",
+    "note": "d100 38. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-healing-grace",
+    "name": "Spellbook: Healing Grace",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A target heals 1d6 STR, and you become deprived until you take the time to meditate, pray or sleep.",
+    "note": "d666 323, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-hear-whispers",
+    "name": "Spellbook: Hear Whispers",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You can hear faint sounds clearly.",
+    "note": "d100 39. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-heatless-torch",
+    "name": "Spellbook: Heatless Torch",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Turns any object into a permanent, heatless torch.",
+    "note": "d666 324, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-hedgemagick",
+    "name": "Spellbook: Hedgemagick",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You perform a minor magical trick (create flame, wind, light or sound).",
+    "note": "d666 325, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-hempen-hoop",
+    "name": "Spellbook: Hempen Hoop",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A rope moves at your command.",
+    "note": "d666 326, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-hide-mind",
+    "name": "Spellbook: Hide Mind",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "The next person to scry your mind or your whereabouts is fooled.",
+    "note": "d666 331, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-hoodwink-monster",
+    "name": "Spellbook: Hoodwink Monster",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target monster makes a WIL save or treats you as an ally.",
+    "note": "d666 332, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-hoodwink-person",
+    "name": "Spellbook: Hoodwink Person",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target becomes a friend until out of sight.",
+    "note": "d666 333, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-hover",
+    "name": "Spellbook: Hover",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An object hovers, frictionless, 2ft above the ground. It can hold up to one humanoid.",
+    "note": "d100 40. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-hovering-protection",
+    "name": "Spellbook: Hovering Protection",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A hovering, transparent disk materializes around an ally granting 1 Armor.",
+    "note": "d666 334, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-hypnotize",
+    "name": "Spellbook: Hypnotize",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A creature enters a trance and will truthfully answer one yes or no question you ask it.",
+    "note": "d100 41. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-ice-ray",
+    "name": "Spellbook: Ice Ray",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Ice and snow flow from your fingertips, dealing 1d8 damage (blast) in a straight line.",
+    "note": "d666 335, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-icy-tempest",
+    "name": "Spellbook: Icy Tempest",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Hail deals 1d12 damage in a 20ft radius.",
+    "note": "d666 336, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-icy-touch",
+    "name": "Spellbook: Icy Touch",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A thick ice layer spreads across a touched surface, up to 10ft in radius.",
+    "note": "d100 42. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-identify-owner",
+    "name": "Spellbook: Identify Owner",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Letters appear over the object you touch, spelling out the name of the object's owners, if there are any.",
+    "note": "d100 43. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-ill-fate",
+    "name": "Spellbook: Ill Fate",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target automatically fails their next save.",
+    "note": "d666 341, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-illuminate",
+    "name": "Spellbook: Illuminate",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A floating light moves as you command.",
+    "note": "d100 44. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-illusory-landscape",
+    "name": "Spellbook: Illusory Landscape",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You can make one type of terrain appear like another.",
+    "note": "d666 342, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-incorporeal-shrug",
+    "name": "Spellbook: Incorporeal Shrug",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Ignore any one attack.",
+    "note": "d666 343, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-induce-despair",
+    "name": "Spellbook: Induce Despair",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target must pass a WIL save or its attacks are impaired.",
+    "note": "d666 344, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-induce-horror",
+    "name": "Spellbook: Induce Horror",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target makes a WIL save or flees.",
+    "note": "d666 345, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-inferno",
+    "name": "Spellbook: Inferno",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You summon a flaming wall up to 15ft wide. Anyone passing through suffers 1d6 STR loss.",
+    "note": "d666 346, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-influence",
+    "name": "Spellbook: Influence",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target gains armor 3 but running and swimming are impossible.",
+    "note": "d666 351, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-insubstantiate",
+    "name": "Spellbook: Insubstantiate",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target becomes insubstantial and can float.",
+    "note": "d666 352, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-invisible-tether",
+    "name": "Spellbook: Invisible Tether",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Two objects within 10ft of each other cannot be moved more than 10ft apart.",
+    "note": "d100 45. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-knock",
+    "name": "Spellbook: Knock",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A nearby mundane or magical lock unlocks loudly.",
+    "note": "d100 46. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-kraken-s-curse",
+    "name": "Spellbook: Kraken's Curse",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Tentacles grapple all within 20 ft, STR save to break free.",
+    "note": "d666 353, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-lamp-s-hue",
+    "name": "Spellbook: Lamp's Hue",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target object shines like a torch for one hour.",
+    "note": "d666 354, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-latch",
+    "name": "Spellbook: Latch",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An unlocked box, cabinet or door opens or closes at your command.",
+    "note": "d666 355, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-leap",
+    "name": "Spellbook: Leap",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You jump up to 10ft high, once.",
+    "note": "d100 47. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-librarian-s-trap",
+    "name": "Spellbook: Librarian's Trap",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Deals 1d4+2 STR loss when read.",
+    "note": "d666 356, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-lichsense",
+    "name": "Spellbook: Lichsense",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You feel any undead within 60ft. WIL save to avoid detection by intelligent undead.",
+    "note": "d666 361, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-light-show",
+    "name": "Spellbook: Light Show",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You control a dazzling display of light and color.",
+    "note": "d666 362, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-lightning-strike",
+    "name": "Spellbook: Lightning Strike",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Electricity flings from your fingertips doing 1d12 damage (blast) in a line.",
+    "note": "d666 363, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-linguist",
+    "name": "Spellbook: Linguist",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "For the next hour you can speak and understand any mundane language.",
+    "note": "d666 364, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-liquid-air",
+    "name": "Spellbook: Liquid Air",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "The air around you becomes swimmable.",
+    "note": "d100 48. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-magic-dampener",
+    "name": "Spellbook: Magic Dampener",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "All nearby magical effects have their effectiveness halved.",
+    "note": "d100 49. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-magic-seal",
+    "name": "Spellbook: Magic Seal",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Magically locks a door, portal or chest.",
+    "note": "d666 365, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-major-genesis",
+    "name": "Spellbook: Major Genesis",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Creates an object of nonliving stone or metal no greater than 5 cubic foot in size.",
+    "note": "d666 366, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-maker",
+    "name": "Spellbook: Maker",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Transforms raw materials into finished items.",
+    "note": "d666 411, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-manic-fury",
+    "name": "Spellbook: Manic Fury",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A target's attacks are enhanced. They must make a WIL save after a successful killing or lose control, attacking anyone in sight.",
+    "note": "d666 412, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-manse",
+    "name": "Spellbook: Manse",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A sturdy, furnished cottage appears for hours. You can permit and forbid entry to it at will.",
+    "note": "d100 50. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-marble-craze",
+    "name": "Spellbook: Marble Craze",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Your pockets are full of marbles and will refill every 30 seconds.",
+    "note": "d100 51. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-masquerade",
+    "name": "Spellbook: Masquerade",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A character's appearance and voice becomes identical to those of a character you touch.",
+    "note": "d100 52. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-master-undead",
+    "name": "Spellbook: Master Undead",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Undead creatures obey your command. Intelligent undead make a WIL save.",
+    "note": "d666 414, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-mental-tripwire",
+    "name": "Spellbook: Mental Tripwire",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Intruders set off an alarm audible only to you.",
+    "note": "d666 415, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-mind-bond",
+    "name": "Spellbook: Mind Bond",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Two allies can communicate via a mental link for the rest of the day.",
+    "note": "d666 416, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-mind-reader",
+    "name": "Spellbook: Mind Reader",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You can see or hear any person you have met before.",
+    "note": "d666 421, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-miniaturize",
+    "name": "Spellbook: Miniaturize",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A creature you touch is shrunk down to the size of a mouse.",
+    "note": "d100 53. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-minor-aegis",
+    "name": "Spellbook: Minor Aegis",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A target you touch ignores the next instance of harm from a specific source.",
+    "note": "d666 423, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-minor-genesis",
+    "name": "Spellbook: Minor Genesis",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Creates an object of nonliving matter no greater than one cubic foot in size.",
+    "note": "d666 424, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-mirage",
+    "name": "Spellbook: Mirage",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You summon a noiseless and simple illusion of your choice.",
+    "note": "d666 425, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-mirror-image",
+    "name": "Spellbook: Mirror Image",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An illusory duplicate of yourself appears and is under your control.",
+    "note": "d100 54. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-mirrorwalk",
+    "name": "Spellbook: Mirrorwalk",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A mirror becomes a gateway to another mirror that you looked into today.",
+    "note": "d100 55. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-molasses-veins",
+    "name": "Spellbook: Molasses Veins",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A single target moves at half speed.",
+    "note": "d666 426, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-multiarm",
+    "name": "Spellbook: Multiarm",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You temporarily gain an extra arm.",
+    "note": "d100 56. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-murky-bubble",
+    "name": "Spellbook: Murky Bubble",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You create a bubble of supernatural shadow within a 20ft radius.",
+    "note": "d666 431, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-necrotic-touch",
+    "name": "Spellbook: Necrotic Touch",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target must DEX save or is paralyzed.",
+    "note": "d666 432, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-night-sphere",
+    "name": "Spellbook: Night Sphere",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A 50ft-wide sphere of darkness displaying the night sky appears before you.",
+    "note": "d100 57. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-obfuscate",
+    "name": "Spellbook: Obfuscate",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target cannot be observed either through divination or scrying.",
+    "note": "d666 433, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-obfuscation",
+    "name": "Spellbook: Obfuscation",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Changes your appearance.",
+    "note": "d666 434, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-objectify",
+    "name": "Spellbook: Objectify",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You become any inanimate object between the size of a grand piano and an apple.",
+    "note": "d100 58. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-obscuring-mist",
+    "name": "Spellbook: Obscuring Mist",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A rolling fog obscures vision in a 300ft radius.",
+    "note": "d666 435, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-ooze-form",
+    "name": "Spellbook: Ooze Form",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You become a living jelly.",
+    "note": "d100 59. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-opaque-cover",
+    "name": "Spellbook: Opaque Cover",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Details about your person become obscured and unmemorable.",
+    "note": "d666 436, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-orb-of-ignus",
+    "name": "Spellbook: Orb of Ignus",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You control a floating ball of fire (1d8 damage) for a short while.",
+    "note": "d666 441, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-orb-of-immortality",
+    "name": "Spellbook: Orb of Immortality",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Mundane attacks cannot harm anyone within a 10ft radius, or vice-versa.",
+    "note": "d666 442, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-otherworldly-gate",
+    "name": "Spellbook: Otherworldly Gate",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Opens a portal to another reality. It works in both directions.",
+    "note": "d666 444, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-otherworldly-pet",
+    "name": "Spellbook: Otherworldly Pet",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Summons an unintelligent extraplanar creature up to the size of a small dog. It holds no loyalty towards you or your allies.",
+    "note": "d666 443, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-pacify",
+    "name": "Spellbook: Pacify",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A creature near you has an aversion to violence.",
+    "note": "d100 60. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-paincurrent",
+    "name": "Spellbook: Paincurrent",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An arc of electricity passes from your fingertips to a target you touch. They take 1d8 damage (1d12 if wearing metal armor).",
+    "note": "d666 445, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-passage",
+    "name": "Spellbook: Passage",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Creates a temporary path through wood, stone or brick.",
+    "note": "d100 61. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-passive-invisibility",
+    "name": "Spellbook: Passive Invisibility",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target is invisible until they attempt harm.",
+    "note": "d666 451, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-peeping-warlock",
+    "name": "Spellbook: Peeping Warlock",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You control a pair of floating eyes so long as yours remain closed.",
+    "note": "d666 452, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-perfect-illusion",
+    "name": "Spellbook: Perfect Illusion",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Creates an image with sound, smell and thermal effects, activated according to a trigger you choose. Touching the image or making a successful WIL save will reveal the illusion.",
+    "note": "d666 453, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-perfect-preservation",
+    "name": "Spellbook: Perfect Preservation",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A weapon you touch becomes immune to wear, mundane damage or elemental effects. The spell wears off after a day.",
+    "note": "d666 454, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-phantom-hound",
+    "name": "Spellbook: Phantom Hound",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A ghostly canine (4 HP, bite 1d4) obeys your commands for up to one hour.",
+    "note": "d666 455, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-phase-anchor",
+    "name": "Spellbook: Phase Anchor",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Binds an extraplanar creature to your will until it performs a specific task, after which they must pass a WIL save to escape.",
+    "note": "d666 456, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-phase-sneak",
+    "name": "Spellbook: Phase Sneak",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Anyone within a 10ft radius is rendered invisible.",
+    "note": "d666 461, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-phase-touch",
+    "name": "Spellbook: Phase Touch",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A disembodied, floating hand obeys your whims but is immaterial. The next Spellbook, ability or item that relies on touch now works from a distance.",
+    "note": "d666 462, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-philolomancy",
+    "name": "Spellbook: Philolomancy",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You understand all spoken and written languages.",
+    "note": "d666 463, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-philosopher-s-mind",
+    "name": "Spellbook: Philosopher's Mind",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target is immune to spiritual or psychic attacks, as well as any attempts at mental or spiritual manipulation or persuasion.",
+    "note": "d666 464, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-phobia",
+    "name": "Spellbook: Phobia",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A nearby creature becomes terrified of an object of your choice.",
+    "note": "d100 62. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-pit",
+    "name": "Spellbook: Pit",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A pit 10ft wide and 10ft deep opens in the ground.",
+    "note": "d100 63. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-planar-anchor",
+    "name": "Spellbook: Planar Anchor",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Bars extradimensional movement.",
+    "note": "d666 465, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-plant-scourge",
+    "name": "Spellbook: Plant Scourge",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Plants within eyesight wither and die.",
+    "note": "d666 466, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-pocket-container",
+    "name": "Spellbook: Pocket Container",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Summons a chest from an immaterial plane. It holds up to 6 items. The chest is dismissed at will.",
+    "note": "d666 511, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-pocket-sun",
+    "name": "Spellbook: Pocket Sun",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You create a halo of bright light in a 60ft radius.",
+    "note": "d666 512, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-primal-surge",
+    "name": "Spellbook: Primal Surge",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A creature rapidly evolves into a future version of its species.",
+    "note": "d100 64. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-prisma-shard",
+    "name": "Spellbook: Prisma Shard",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An array of hypnotic lights fascinate nearby creatures, unless they pass a WIL save.",
+    "note": "d666 513, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-profane-reveal",
+    "name": "Spellbook: Profane Reveal",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target an empty space to reveal invisible objects or creatures.",
+    "note": "d666 514, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-psychic-eye",
+    "name": "Spellbook: Psychic Eye",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Invisible floating eye allowing you to observe a single location as present.",
+    "note": "d666 515, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-psychic-touch",
+    "name": "Spellbook: Psychic Touch",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You can hear target's surface thoughts, so long as you touch them.",
+    "note": "d666 524, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-psychokinesis",
+    "name": "Spellbook: Psychokinesis",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Magically moves an object up to half your weight.",
+    "note": "d666 516, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-puppeteer",
+    "name": "Spellbook: Puppeteer",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You can throw your voice a great distance away.",
+    "note": "d666 521, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-purge-text",
+    "name": "Spellbook: Purge Text",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Mundane or magical writing vanishes at your touch.",
+    "note": "d666 522, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-push-pull",
+    "name": "Spellbook: Push/Pull",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An object of any size is pulled directly towards you or pushed directly away from you with the strength of one man.",
+    "note": "d100 65. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-pyramid-of-passivity",
+    "name": "Spellbook: Pyramid of Passivity",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target creatures must make a DEX save or their attacks are impaired.",
+    "note": "d666 523, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-raise-dead",
+    "name": "Spellbook: Raise Dead",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A skeleton rises from the ground to serve you. They are incredibly stupid and can only obey simple orders.",
+    "note": "d100 66. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-raise-spirit",
+    "name": "Spellbook: Raise Spirit",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "The spirit of a nearby corpse manifests and will answer 1 question.",
+    "note": "d100 67. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-rat-tat-tat",
+    "name": "Spellbook: Rat-Tat-Tat",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Loudly opens a locked or magically sealed door or chest.",
+    "note": "d666 525, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-ravenless-message",
+    "name": "Spellbook: Ravenless Message",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You send a short message 1 mile that anyone along its path can hear.",
+    "note": "d666 526, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-read-mind",
+    "name": "Spellbook: Read Mind",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You can hear the surface thoughts of nearby creatures.",
+    "note": "d100 68. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-reject-unlife",
+    "name": "Spellbook: Reject Unlife",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Nearby undead are immobilized for 30 seconds or until you take another action.",
+    "note": "d666 531, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-remembered-voice",
+    "name": "Spellbook: Remembered Voice",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A spot you mark becomes the trigger for a supernatural recording of your voice, delivering a short message of your choice.",
+    "note": "d666 532, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-repel",
+    "name": "Spellbook: Repel",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Two objects are strongly magnetically repelled from each other within 10 feet.",
+    "note": "d100 69. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-reverie",
+    "name": "Spellbook: Reverie",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Targets become dazed for a moment, as if lost in daydream.",
+    "note": "d666 533, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-runic-harm",
+    "name": "Spellbook: Runic Harm",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A rune you draw causes great pain to the reader, who must WIL save or scream until they pass out (1d4 WIL loss). A successful save destroys the rune.",
+    "note": "d666 534, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-runic-slumber",
+    "name": "Spellbook: Runic Slumber",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A rune you draw puts the reader into a magical sleep that lasts 1d6 hours.",
+    "note": "d666 535, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-safe-haven",
+    "name": "Spellbook: Safe Haven",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You summon a floating, invisible refuge for 8 hours. It fits up to 8 people comfortably.",
+    "note": "d666 536, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-scintillate",
+    "name": "Spellbook: Scintillate",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target must WIL save or their attacks become impaired.",
+    "note": "d666 541, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-scry",
+    "name": "Spellbook: Scry",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You can see through the eyes of a creature you touched earlier today.",
+    "note": "d100 70. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-scry-creature",
+    "name": "Spellbook: Scry Creature",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Indicates the precise location of a familiar creature.",
+    "note": "d666 542, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-scry-object",
+    "name": "Spellbook: Scry Object",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Indicates the precise location of an object, known or otherwise.",
+    "note": "d666 543, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-scrying-ward",
+    "name": "Spellbook: Scrying Ward",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "For 24 hours you become aware of any magical eavesdropping.",
+    "note": "d666 544, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-sculpt-elements",
+    "name": "Spellbook: Sculpt Elements",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Inanimate material behaves like clay in your hands.",
+    "note": "d100 71. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-sculpt-water",
+    "name": "Spellbook: Sculpt Water",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Raise, lower or part nearby water.",
+    "note": "d666 545, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-secret-attache",
+    "name": "Spellbook: Secret Attache",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You summon an invisible creature of great power that obeys your every command. Reading from other Spellbooks dispels the creature.",
+    "note": "d666 546, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-sense",
+    "name": "Spellbook: Sense",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Choose one kind of object (key, gold, arrow, jug, etc). You can sense the nearest example.",
+    "note": "d100 72. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-shelter",
+    "name": "Spellbook: Shelter",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Creates a standing edifice that can shelter up to 10 creatures, disappearing after 24 hours.",
+    "note": "d666 551, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-shield",
+    "name": "Spellbook: Shield",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A creature you touch is protected from mundane attacks for one minute.",
+    "note": "d100 73. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-shrinking-cant",
+    "name": "Spellbook: Shrinking Cant",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A humanoid creature you touch halves in size.",
+    "note": "d666 552, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-shroud",
+    "name": "Spellbook: Shroud",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A creature you touch is invisible until they move.",
+    "note": "d100 74. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-shuffle",
+    "name": "Spellbook: Shuffle",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Two creatures you can see instantly switch places.",
+    "note": "d100 75. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-signal",
+    "name": "Spellbook: Signal",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Sends up a flare that can be seen for some distance.",
+    "note": "d666 553, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-simple-illusion",
+    "name": "Spellbook: Simple Illusion",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Creates a simple image with sound. A cursory investigation will reveal the illusory image.",
+    "note": "d666 554, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-sinister-flame",
+    "name": "Spellbook: Sinister Flame",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target's palms are lined with flames (1d4+1 STR loss) for one minute.",
+    "note": "d666 555, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-sinister-polymorph",
+    "name": "Spellbook: Sinister Polymorph",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "WIL save or target is transformed into a harmless animal.",
+    "note": "d666 556, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-skillful-repair",
+    "name": "Spellbook: Skillful Repair",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You make minor repairs to a nonliving object.",
+    "note": "d100 76. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-sky-raft",
+    "name": "Spellbook: Sky Raft",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You summon a 3ft wide floating disk that holds up to 100lbs.",
+    "note": "d666 562, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-sleep",
+    "name": "Spellbook: Sleep",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A creature you can see falls into a light sleep.",
+    "note": "d100 77. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-slick",
+    "name": "Spellbook: Slick",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Every surface in a 30ft radius becomes extremely slippery.",
+    "note": "d100 78. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-smoke-form",
+    "name": "Spellbook: Smoke Form",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Your body becomes a living smoke that you can control.",
+    "note": "d100 79. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-sniff",
+    "name": "Spellbook: Sniff",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You can smell even the faintest traces of scents.",
+    "note": "d100 80. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-snuff",
+    "name": "Spellbook: Snuff",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "The source of any mundane light you can see is instantly snuffed out.",
+    "note": "d100 81. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-solar-portal",
+    "name": "Spellbook: Solar Portal",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Sends an extraplanar message to all beings that wish to enter your plane. You have no choice which being answers and it holds no loyalty to you or your allies.",
+    "note": "d666 563, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-song-of-repose",
+    "name": "Spellbook: Song of Repose",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target falls into a deep slumber.",
+    "note": "d666 564, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-sonic-shattering",
+    "name": "Spellbook: Sonic Shattering",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A sonic wave causes 1d6 STR loss to susceptible objects or crystalline creatures, ignoring armor.",
+    "note": "d666 565, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-sorcerer-s-lock",
+    "name": "Spellbook: Sorcerer's Lock",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Any door (magical or otherwise) is held shut until you leave its vicinity.",
+    "note": "d666 566, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-sort",
+    "name": "Spellbook: Sort",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Inanimate items sort themselves according to categories you set.",
+    "note": "d100 82. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-soul-annex",
+    "name": "Spellbook: Soul Annex",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target's spirit is caged within their body and replaced with the caster's. If the body is slain the original soul departs, but the caster must pass a WIL save to return to their body.",
+    "note": "d666 611, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-spellsaw",
+    "name": "Spellbook: Spellsaw",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A whirling blade flies from your chest, clearing any plant material in its way. It is otherwise harmless.",
+    "note": "d100 83. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-spider-climb",
+    "name": "Spellbook: Spider Climb",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You can climb surfaces like a spider.",
+    "note": "d100 84. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-steer-s-strength",
+    "name": "Spellbook: Steer's Strength",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target's strength triples; unarmed attacks are enhanced.",
+    "note": "d666 612, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-strength-tap",
+    "name": "Spellbook: Strength Tap",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A target you touch loses 1d6 STR, which is transferred to you (up to your max STR).",
+    "note": "d666 613, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-stumbling-steps",
+    "name": "Spellbook: Stumbling Steps",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A target you touch becomes deprived and loses 1 STR.",
+    "note": "d666 614, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-stupefaction",
+    "name": "Spellbook: Stupefaction",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target temporarily loses sense of place and time. WIL save to overcome.",
+    "note": "d666 615, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-sudden-slumber",
+    "name": "Spellbook: Sudden Slumber",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target falls asleep for 1d4 hours.",
+    "note": "d666 616, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-summon-elemental",
+    "name": "Spellbook: Summon Elemental",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A being of fire, water, earth, or wind manifests from available matter to perform a single task for the caster. It follows this command against its will.",
+    "note": "d666 621, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-swarm",
+    "name": "Spellbook: Swarm",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You become a swarm of crows, rats, or piranhas. You can only be harmed by blast attacks.",
+    "note": "d100 85. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-sway-will",
+    "name": "Spellbook: Sway Will",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A target is compelled to follow a stated course of action, without understanding why.",
+    "note": "d666 622, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-target-lure",
+    "name": "Spellbook: Target Lure",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An object you touch becomes the target of any nearby spell.",
+    "note": "d100 86. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-telekinesis",
+    "name": "Spellbook: Telekinesis",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You may mentally move 1 item under 60lbs.",
+    "note": "d100 87. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-telepathy",
+    "name": "Spellbook: Telepathy",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Two creatures can hear each other's thoughts, no matter how far apart.",
+    "note": "d100 88. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-teleport",
+    "name": "Spellbook: Teleport",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An object or person you can see is transported from one place to another in a 50ft radius.",
+    "note": "d100 89. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-temporary-reprieve",
+    "name": "Spellbook: Temporary Reprieve",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target regains any lost STR, but loses it again after a few minutes.",
+    "note": "d666 623, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-terrify",
+    "name": "Spellbook: Terrify",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Targets within eyesight must pass a WIL save or flee.",
+    "note": "d666 624, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-terrifying-illusion",
+    "name": "Spellbook: Terrifying Illusion",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A target is hunted by a terrible creature only they can see. Its attacks do 1d12 damage; on Critical Damage they must pass a WIL save or become catatonic.",
+    "note": "d666 625, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-thicket",
+    "name": "Spellbook: Thicket",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A thicket of trees and dense brush up to 50ft wide suddenly sprouts up.",
+    "note": "d100 90. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-thief-s-bane",
+    "name": "Spellbook: Thief's Bane",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An object appears trapped, even to an experienced thief.",
+    "note": "d666 626, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-thwart-the-elements",
+    "name": "Spellbook: Thwart the Elements",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Damage from energy blasts is impaired against a target for the next hour.",
+    "note": "d666 631, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-time-control",
+    "name": "Spellbook: Time Control",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Time in a 50ft bubble slows down or increases by 10% for 30 seconds.",
+    "note": "d100 91. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-tongue-of-the-blue-serpent",
+    "name": "Spellbook: Tongue of the Blue Serpent",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Rust-colored, serpentine letters materialize on a surface you choose. Anyone reading these words becomes immobilized unless they succeed a WIL save.",
+    "note": "d666 632, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-torrential-moat",
+    "name": "Spellbook: Torrential Moat",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You summon a powerful wind that deflects arrows, smaller creatures, and noxious gases.",
+    "note": "d666 633, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-toxic-blast",
+    "name": "Spellbook: Toxic Blast",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A small orb of acid deals 1d6 blast damage to a target.",
+    "note": "d666 634, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-transform-aura",
+    "name": "Spellbook: Transform Aura",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target's aura is made non-magical or vice-versa.",
+    "note": "d666 635, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-true-name",
+    "name": "Spellbook: True Name",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Determines the properties of a magical item you touch.",
+    "note": "d666 636, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-true-sight",
+    "name": "Spellbook: True Sight",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You see through all nearby illusions.",
+    "note": "d100 92. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-trueshift",
+    "name": "Spellbook: Trueshift",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A willing target takes on a new form (keeping only their WIL), but must pass a WIL save to shift out.",
+    "note": "d666 641, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-twilight-steed",
+    "name": "Spellbook: Twilight Steed",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Summons an arcane steed that never tires, but dissipates within daylight.",
+    "note": "d666 642, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-ultimate-sacrifice",
+    "name": "Spellbook: Ultimate Sacrifice",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "The book's holder transfers their life force into a corpse, reviving both body and soul.",
+    "note": "d666 643, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-uncurse",
+    "name": "Spellbook: Uncurse",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A person or object you touch is freed from a curse or nefarious spell.",
+    "note": "d666 644, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-undefinable-target",
+    "name": "Spellbook: Undefinable Target",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An ally becomes immune to mundane ranged attacks for one round.",
+    "note": "d666 645, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-undeniable-courage",
+    "name": "Spellbook: Undeniable Courage",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target passes their next WIL save and their attacks are enhanced.",
+    "note": "d666 646, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-unflappable-endurance",
+    "name": "Spellbook: Unflappable Endurance",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target does not take Fatigue from non-magical activities or become deprived until their next rest.",
+    "note": "d666 651, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-upwell",
+    "name": "Spellbook: Upwell",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A spring of seawater appears.",
+    "note": "d100 93. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-vermin-plague",
+    "name": "Spellbook: Vermin Plague",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Summons a swarm of bats, rats, spiders or similar creatures of your choice. They are harmless but distracting and hold no loyalty towards you or your allies.",
+    "note": "d666 652, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-vines-of-ichor",
+    "name": "Spellbook: Vines of Ichor",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You spread sticky spiderwebs on the walls, floor and ceilings within a 20ft radius.",
+    "note": "d666 653, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-vision",
+    "name": "Spellbook: Vision",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You completely control what a creature sees.",
+    "note": "d100 94. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-visual-illusion",
+    "name": "Spellbook: Visual Illusion",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A silent, immobile, room-sized illusion of your choice appears.",
+    "note": "d100 95. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-ward",
+    "name": "Spellbook: Ward",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A silver circle 50ft across appears on the ground. Choose one species that cannot cross it.",
+    "note": "d100 96. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-warrior-s-edge",
+    "name": "Spellbook: Warrior's Edge",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Target weapon is enhanced, and victim automatically fails a critical damage save.",
+    "note": "d666 654, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-web",
+    "name": "Spellbook: Web",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Your wrists shoot thick webbing.",
+    "note": "d100 97. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-widget",
+    "name": "Spellbook: Widget",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A primitive version of a drawn tool or item appears before you and disappears after a short time.",
+    "note": "d100 98. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-windborn",
+    "name": "Spellbook: Windborn",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You direct a powerful wind in a straight line, strong enough to blow over small boulders.",
+    "note": "d666 655, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-winter-s-woe",
+    "name": "Spellbook: Winter's Woe",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "An icy storm assails multiple targets, obscuring visibility and making the ground icy and treacherous.",
+    "note": "d666 656, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-witch-sight",
+    "name": "Spellbook: Witch Sight",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Magical auras become visible to you for one hour.",
+    "note": "d666 661, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-wizard-mark",
+    "name": "Spellbook: Wizard Mark",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "Your finger can shoot a stream of ulfire-colored paint. This paint is only visible to you and can be seen at any distance, even through solid objects.",
+    "note": "d100 99. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-wizard-s-exit",
+    "name": "Spellbook: Wizard's Exit",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You and anyone you touch can flee to safety at double speed.",
+    "note": "d666 662, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-wizard-s-grasp",
+    "name": "Spellbook: Wizard's Grasp",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You control a phantasmal hand that can lift up to 5 pounds.",
+    "note": "d666 663, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-wizard-s-haven",
+    "name": "Spellbook: Wizard's Haven",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A small, walled-in area cannot be scryed.",
+    "note": "d666 664, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-wizardsniff",
+    "name": "Spellbook: Wizardsniff",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You can feel any magic within a 60ft radius.",
+    "note": "d666 665, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-word-of-pain",
+    "name": "Spellbook: Word of Pain",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "A single phrase from your lips does 1d12 blast damage. Affected targets are also deafened.",
+    "note": "d666 666, community list. A spellbook takes one slot. Reading it casts the spell."
+  },
+  {
+    "id": "spellbook-x-ray-vision",
+    "name": "Spellbook: X-Ray Vision",
+    "kind": "spellbook",
+    "slots": 1,
+    "bonus": "You can see through walls, dirt, clothing, etc.",
+    "note": "d100 100. A spellbook takes one slot. Reading it casts the spell."
+  }
+]

@@ -20,6 +20,12 @@ pub struct ActiveSession {
     pub initiative_locked: bool,
 }
 
+impl Default for SessionManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SessionManager {
     pub fn new() -> Self {
         Self {

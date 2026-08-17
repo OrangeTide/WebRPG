@@ -13,6 +13,12 @@ pub struct HelpContext {
     pub navigate_to: RwSignal<Option<String>>,
 }
 
+impl Default for HelpContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HelpContext {
     pub fn new() -> Self {
         Self {
@@ -118,8 +124,23 @@ pub async fn get_help_content(slug: String) -> Result<String, ServerFnError> {
         return Err(ServerFnError::new("Invalid topic slug"));
     }
     let path = format!("help/{}.md", slug);
-    std::fs::read_to_string(&path)
-        .map_err(|_| ServerFnError::new(format!("Help topic '{}' not found", slug)))
+    if let Ok(text) = std::fs::read_to_string(&path) {
+        return Ok(text);
+    }
+
+    // Installed modules contribute their own pages, so `help:tunnel-goons`
+    // resolves whether or not the server ships that file itself.
+    for (module_id, topic) in crate::modules::loader::all_help_topics() {
+        if topic.slug == slug {
+            return crate::modules::loader::load_help(&module_id, &slug)
+                .map_err(ServerFnError::new);
+        }
+    }
+
+    Err(ServerFnError::new(format!(
+        "Help topic '{}' not found",
+        slug
+    )))
 }
 
 /// List help entries (files and subdirectories) under a parent path.
@@ -153,7 +174,7 @@ pub async fn list_help_topics(parent: String) -> Result<Vec<HelpEntry>, ServerFn
                 slug,
                 is_directory: true,
             });
-        } else if path.extension().map_or(false, |ext| ext == "md") {
+        } else if path.extension().is_some_and(|ext| ext == "md") {
             let stem = path.file_stem().unwrap().to_string_lossy().to_string();
             let slug = if parent.is_empty() {
                 stem.clone()
@@ -175,6 +196,20 @@ pub async fn list_help_topics(parent: String) -> Result<Vec<HelpEntry>, ServerFn
             });
         }
     }
+    // Module help pages sit alongside the built-in ones at the root.
+    if parent.is_empty() {
+        for (_, topic) in crate::modules::loader::all_help_topics() {
+            if entries.iter().any(|e| e.slug == topic.slug) {
+                continue;
+            }
+            entries.push(HelpEntry {
+                slug: topic.slug,
+                title: topic.title,
+                is_directory: false,
+            });
+        }
+    }
+
     // Directories first, then alphabetical by title
     entries.sort_by(|a, b| {
         b.is_directory
@@ -292,12 +327,11 @@ pub fn HelpViewerPanel() -> impl IntoView {
     let on_top = move |_: leptos::ev::MouseEvent| {
         #[cfg(feature = "hydrate")]
         {
-            if let Some(window) = web_sys::window() {
-                if let Some(doc) = window.document() {
-                    if let Ok(Some(el)) = doc.query_selector(".help-content") {
-                        el.set_scroll_top(0);
-                    }
-                }
+            if let Some(window) = web_sys::window()
+                && let Some(doc) = window.document()
+                && let Ok(Some(el)) = doc.query_selector(".help-content")
+            {
+                el.set_scroll_top(0);
             }
         }
     };
@@ -312,16 +346,15 @@ pub fn HelpViewerPanel() -> impl IntoView {
         #[cfg(feature = "hydrate")]
         {
             use wasm_bindgen::JsCast;
-            if let Some(target) = _ev.target() {
-                if let Some(el) = target.dyn_ref::<web_sys::Element>() {
-                    if let Ok(Some(anchor)) = el.closest("a[href^='help:']") {
-                        _ev.prevent_default();
-                        if let Some(href) = anchor.get_attribute("href") {
-                            if let Some(slug) = href.strip_prefix("help:") {
-                                do_navigate(HelpLocation::Topic(slug.to_string()));
-                            }
-                        }
-                    }
+            if let Some(target) = _ev.target()
+                && let Some(el) = target.dyn_ref::<web_sys::Element>()
+                && let Ok(Some(anchor)) = el.closest("a[href^='help:']")
+            {
+                _ev.prevent_default();
+                if let Some(href) = anchor.get_attribute("href")
+                    && let Some(slug) = href.strip_prefix("help:")
+                {
+                    do_navigate(HelpLocation::Topic(slug.to_string()));
                 }
             }
         }

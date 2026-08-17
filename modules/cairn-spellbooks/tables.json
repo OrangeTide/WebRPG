@@ -1,0 +1,1282 @@
+[
+  {
+    "id": "spells-core",
+    "name": "Spellbooks (d100)",
+    "die": "d100",
+    "description": "The core spell list. Roll for the spell in a found spellbook. Cairn spells are one spellbook each: reading it casts it.",
+    "entries": [
+      {
+        "key": "1",
+        "text": "Adhere. An object is covered in extremely sticky slime."
+      },
+      {
+        "key": "2",
+        "text": "Anchor. A strong wire sprouts from your arms, affixing itself to two points within 50ft on each side."
+      },
+      {
+        "key": "3",
+        "text": "Animate Object. An object obeys your commands as best it can."
+      },
+      {
+        "key": "4",
+        "text": "Anthropomorphize. An animal either gains human intelligence or human appearance for one day."
+      },
+      {
+        "key": "5",
+        "text": "Arcane Eye. You can see through a magical floating eyeball that flies around at your command."
+      },
+      {
+        "key": "6",
+        "text": "Astral Prison. An object is frozen in time and space within an invulnerable crystal shell."
+      },
+      {
+        "key": "7",
+        "text": "Attract. Two objects are strongly magnetically attracted to each other if they come within 10 feet."
+      },
+      {
+        "key": "8",
+        "text": "Auditory Illusion. You create illusory sounds that seem to come from a direction of your choice."
+      },
+      {
+        "key": "9",
+        "text": "Babble. A creature must loudly and clearly repeat everything you think."
+      },
+      {
+        "key": "10",
+        "text": "Bait Flower. A plant sprouts from the ground that emanates the smell of decaying flesh."
+      },
+      {
+        "key": "11",
+        "text": "Beast Form. You and your possessions transform into a mundane animal."
+      },
+      {
+        "key": "12",
+        "text": "Befuddle. A creature of your choice is unable to form new short-term memories for the duration."
+      },
+      {
+        "key": "13",
+        "text": "Body Swap. You switch bodies with a creature you touch. If one body dies, the other dies as well."
+      },
+      {
+        "key": "14",
+        "text": "Charm. A creature you can see treats you as a friend."
+      },
+      {
+        "key": "15",
+        "text": "Command. A target obeys a single three-word command that does not cause it harm."
+      },
+      {
+        "key": "16",
+        "text": "Comprehend. You become fluent in all languages for a short while."
+      },
+      {
+        "key": "17",
+        "text": "Cone of Foam. Dense foam sprays from your hand, coating the target."
+      },
+      {
+        "key": "18",
+        "text": "Control Plants. Nearby plants and trees obey you and gain the ability to move at a slow pace."
+      },
+      {
+        "key": "19",
+        "text": "Control Weather. You may alter the type of weather at will, but you do not otherwise control it."
+      },
+      {
+        "key": "20",
+        "text": "Cure Wounds. Restore 1d4 STR per day to a creature you can touch."
+      },
+      {
+        "key": "21",
+        "text": "Deafen. All nearby creatures are deafened."
+      },
+      {
+        "key": "22",
+        "text": "Detect Magic. You can see or hear nearby magical auras."
+      },
+      {
+        "key": "23",
+        "text": "Disassemble. Any of your body parts may be detached and reattached at will, without causing pain or damage. You can still control them."
+      },
+      {
+        "key": "24",
+        "text": "Disguise. You may alter the appearance of one character at will as long as they remain humanoid."
+      },
+      {
+        "key": "25",
+        "text": "Displace. An object appears to be up to 15ft from its actual position."
+      },
+      {
+        "key": "26",
+        "text": "Earthquake. The ground begins shaking violently. Structures may be damaged or collapse."
+      },
+      {
+        "key": "27",
+        "text": "Elasticity. Your body can stretch up to 10ft."
+      },
+      {
+        "key": "28",
+        "text": "Elemental Wall. A straight wall of ice or fire 50ft long and 10ft high rises from the ground."
+      },
+      {
+        "key": "29",
+        "text": "Filch. A visible item teleports to your hands."
+      },
+      {
+        "key": "30",
+        "text": "Fish Lung. A target can breathe underwater until they surface again."
+      },
+      {
+        "key": "31",
+        "text": "Flare. A bright ball of energy fires a trail of light into the sky, revealing your location to friend or foe."
+      },
+      {
+        "key": "32",
+        "text": "Fog Cloud. A dense fog spreads out from you."
+      },
+      {
+        "key": "33",
+        "text": "Frenzy. A nearby creature erupts in a frenzy of violence."
+      },
+      {
+        "key": "34",
+        "text": "Gate. A portal to a random plane opens."
+      },
+      {
+        "key": "35",
+        "text": "Gravity Shift. You can change the direction of gravity, but only for yourself."
+      },
+      {
+        "key": "36",
+        "text": "Greed. A creature develops the overwhelming urge to possess a visible item of your choice."
+      },
+      {
+        "key": "37",
+        "text": "Haste. Your movement speed is tripled."
+      },
+      {
+        "key": "38",
+        "text": "Hatred. A creature develops a deep hatred of another creature or group and wishes to destroy them."
+      },
+      {
+        "key": "39",
+        "text": "Hear Whispers. You can hear faint sounds clearly."
+      },
+      {
+        "key": "40",
+        "text": "Hover. An object hovers, frictionless, 2ft above the ground. It can hold up to one humanoid."
+      },
+      {
+        "key": "41",
+        "text": "Hypnotize. A creature enters a trance and will truthfully answer one yes or no question you ask it."
+      },
+      {
+        "key": "42",
+        "text": "Icy Touch. A thick ice layer spreads across a touched surface, up to 10ft in radius."
+      },
+      {
+        "key": "43",
+        "text": "Identify Owner. Letters appear over the object you touch, spelling out the name of the object's owners, if there are any."
+      },
+      {
+        "key": "44",
+        "text": "Illuminate. A floating light moves as you command."
+      },
+      {
+        "key": "45",
+        "text": "Invisible Tether. Two objects within 10ft of each other cannot be moved more than 10ft apart."
+      },
+      {
+        "key": "46",
+        "text": "Knock. A nearby mundane or magical lock unlocks loudly."
+      },
+      {
+        "key": "47",
+        "text": "Leap. You jump up to 10ft high, once."
+      },
+      {
+        "key": "48",
+        "text": "Liquid Air. The air around you becomes swimmable."
+      },
+      {
+        "key": "49",
+        "text": "Magic Dampener. All nearby magical effects have their effectiveness halved."
+      },
+      {
+        "key": "50",
+        "text": "Manse. A sturdy, furnished cottage appears for hours. You can permit and forbid entry to it at will."
+      },
+      {
+        "key": "51",
+        "text": "Marble Craze. Your pockets are full of marbles and will refill every 30 seconds."
+      },
+      {
+        "key": "52",
+        "text": "Masquerade. A character's appearance and voice becomes identical to those of a character you touch."
+      },
+      {
+        "key": "53",
+        "text": "Miniaturize. A creature you touch is shrunk down to the size of a mouse."
+      },
+      {
+        "key": "54",
+        "text": "Mirror Image. An illusory duplicate of yourself appears and is under your control."
+      },
+      {
+        "key": "55",
+        "text": "Mirrorwalk. A mirror becomes a gateway to another mirror that you looked into today."
+      },
+      {
+        "key": "56",
+        "text": "Multiarm. You temporarily gain an extra arm."
+      },
+      {
+        "key": "57",
+        "text": "Night Sphere. A 50ft-wide sphere of darkness displaying the night sky appears before you."
+      },
+      {
+        "key": "58",
+        "text": "Objectify. You become any inanimate object between the size of a grand piano and an apple."
+      },
+      {
+        "key": "59",
+        "text": "Ooze Form. You become a living jelly."
+      },
+      {
+        "key": "60",
+        "text": "Pacify. A creature near you has an aversion to violence."
+      },
+      {
+        "key": "61",
+        "text": "Passage. Creates a temporary path through wood, stone or brick."
+      },
+      {
+        "key": "62",
+        "text": "Phobia. A nearby creature becomes terrified of an object of your choice."
+      },
+      {
+        "key": "63",
+        "text": "Pit. A pit 10ft wide and 10ft deep opens in the ground."
+      },
+      {
+        "key": "64",
+        "text": "Primal Surge. A creature rapidly evolves into a future version of its species."
+      },
+      {
+        "key": "65",
+        "text": "Push/Pull. An object of any size is pulled directly towards you or pushed directly away from you with the strength of one man."
+      },
+      {
+        "key": "66",
+        "text": "Raise Dead. A skeleton rises from the ground to serve you. They are incredibly stupid and can only obey simple orders."
+      },
+      {
+        "key": "67",
+        "text": "Raise Spirit. The spirit of a nearby corpse manifests and will answer 1 question."
+      },
+      {
+        "key": "68",
+        "text": "Read Mind. You can hear the surface thoughts of nearby creatures."
+      },
+      {
+        "key": "69",
+        "text": "Repel. Two objects are strongly magnetically repelled from each other within 10 feet."
+      },
+      {
+        "key": "70",
+        "text": "Scry. You can see through the eyes of a creature you touched earlier today."
+      },
+      {
+        "key": "71",
+        "text": "Sculpt Elements. Inanimate material behaves like clay in your hands."
+      },
+      {
+        "key": "72",
+        "text": "Sense. Choose one kind of object (key, gold, arrow, jug, etc). You can sense the nearest example."
+      },
+      {
+        "key": "73",
+        "text": "Shield. A creature you touch is protected from mundane attacks for one minute."
+      },
+      {
+        "key": "74",
+        "text": "Shroud. A creature you touch is invisible until they move."
+      },
+      {
+        "key": "75",
+        "text": "Shuffle. Two creatures you can see instantly switch places."
+      },
+      {
+        "key": "76",
+        "text": "Skillful Repair. You make minor repairs to a nonliving object."
+      },
+      {
+        "key": "77",
+        "text": "Sleep. A creature you can see falls into a light sleep."
+      },
+      {
+        "key": "78",
+        "text": "Slick. Every surface in a 30ft radius becomes extremely slippery."
+      },
+      {
+        "key": "79",
+        "text": "Smoke Form. Your body becomes a living smoke that you can control."
+      },
+      {
+        "key": "80",
+        "text": "Sniff. You can smell even the faintest traces of scents."
+      },
+      {
+        "key": "81",
+        "text": "Snuff. The source of any mundane light you can see is instantly snuffed out."
+      },
+      {
+        "key": "82",
+        "text": "Sort. Inanimate items sort themselves according to categories you set."
+      },
+      {
+        "key": "83",
+        "text": "Spellsaw. A whirling blade flies from your chest, clearing any plant material in its way. It is otherwise harmless."
+      },
+      {
+        "key": "84",
+        "text": "Spider Climb. You can climb surfaces like a spider."
+      },
+      {
+        "key": "85",
+        "text": "Swarm. You become a swarm of crows, rats, or piranhas. You can only be harmed by blast attacks."
+      },
+      {
+        "key": "86",
+        "text": "Target Lure. An object you touch becomes the target of any nearby spell."
+      },
+      {
+        "key": "87",
+        "text": "Telekinesis. You may mentally move 1 item under 60lbs."
+      },
+      {
+        "key": "88",
+        "text": "Telepathy. Two creatures can hear each other's thoughts, no matter how far apart."
+      },
+      {
+        "key": "89",
+        "text": "Teleport. An object or person you can see is transported from one place to another in a 50ft radius."
+      },
+      {
+        "key": "90",
+        "text": "Thicket. A thicket of trees and dense brush up to 50ft wide suddenly sprouts up."
+      },
+      {
+        "key": "91",
+        "text": "Time Control. Time in a 50ft bubble slows down or increases by 10% for 30 seconds."
+      },
+      {
+        "key": "92",
+        "text": "True Sight. You see through all nearby illusions."
+      },
+      {
+        "key": "93",
+        "text": "Upwell. A spring of seawater appears."
+      },
+      {
+        "key": "94",
+        "text": "Vision. You completely control what a creature sees."
+      },
+      {
+        "key": "95",
+        "text": "Visual Illusion. A silent, immobile, room-sized illusion of your choice appears."
+      },
+      {
+        "key": "96",
+        "text": "Ward. A silver circle 50ft across appears on the ground. Choose one species that cannot cross it."
+      },
+      {
+        "key": "97",
+        "text": "Web. Your wrists shoot thick webbing."
+      },
+      {
+        "key": "98",
+        "text": "Widget. A primitive version of a drawn tool or item appears before you and disappears after a short time."
+      },
+      {
+        "key": "99",
+        "text": "Wizard Mark. Your finger can shoot a stream of ulfire-colored paint. This paint is only visible to you and can be seen at any distance, even through solid objects."
+      },
+      {
+        "key": "100",
+        "text": "X-Ray Vision. You can see through walls, dirt, clothing, etc."
+      }
+    ]
+  },
+  {
+    "id": "spells-community",
+    "name": "More spellbooks (d666)",
+    "die": "d666",
+    "description": "A larger community-contributed list, of uneven quality. Roll three d6 in order. Use it when you want a spell the table will not recognise; skim what you roll before handing it over.",
+    "entries": [
+      {
+        "key": "111",
+        "text": "Adaptive Skin. Target can exist comfortably in hot or cold environments."
+      },
+      {
+        "key": "112",
+        "text": "Addle Brain. Target must pass WIL save or drop to 0 WIL for 1 hour."
+      },
+      {
+        "key": "113",
+        "text": "Animal Call. Summons a mundane beast. It holds no loyalty towards you or your allies."
+      },
+      {
+        "key": "114",
+        "text": "Anti-Magic Globe. A thin shell of magical protection surrounds a small area around the caster. For every additional minute the globe is active they take one additional Fatigue."
+      },
+      {
+        "key": "115",
+        "text": "Arachnid's Finesse. Target can walk on walls and ceilings."
+      },
+      {
+        "key": "116",
+        "text": "Arcane Arrow. Green energy bursts from your fingers, dealing 1d6 damage and ignoring mundane armor."
+      },
+      {
+        "key": "121",
+        "text": "Arcane Confinement. Target is bound by magical rope, able only to speak but nothing more."
+      },
+      {
+        "key": "122",
+        "text": "Arcane Epistle. You write a letter that only its intended reader can understand."
+      },
+      {
+        "key": "123",
+        "text": "Arcane Fireworks. Target flame becomes a great conflagration of heat, light and sound."
+      },
+      {
+        "key": "124",
+        "text": "Arcane Stain. Inscribes an invisible rune you can feel. Suffer 1d4 WIL loss if removed."
+      },
+      {
+        "key": "125",
+        "text": "Architect's Eye. Any hidden doors within 60ft light up as if on fire."
+      },
+      {
+        "key": "126",
+        "text": "Architect's Perfection. Create a holographic wall, floor, or ceiling that looks absolutely real."
+      },
+      {
+        "key": "131",
+        "text": "Astral Step. You and anyone touching you instantly transport to a known location you have been to before."
+      },
+      {
+        "key": "132",
+        "text": "Banishment. WIL save or creature returns to native plane."
+      },
+      {
+        "key": "133",
+        "text": "Become Unseen. Target becomes invisible for 1 hour, and is still able to use abilities and attack without detection. Afterwards they become incapacitated (deprived)."
+      },
+      {
+        "key": "134",
+        "text": "Beguilement. Target humanoid must make a WIL save or is controlled telepathically."
+      },
+      {
+        "key": "135",
+        "text": "Bewildering Fog. A hazy fog surrounds you in a radius of 20ft. Attacks within the mist are impaired."
+      },
+      {
+        "key": "136",
+        "text": "Blazing Defense. You manifest a shield of flame (+1 Armor, 1d6 damage). Fire cannot hurt you."
+      },
+      {
+        "key": "141",
+        "text": "Blessing. Target's attacks are enhanced and non-Blast attacks are impaired against them until they next take damage."
+      },
+      {
+        "key": "142",
+        "text": "Bolster. A person you can see is emboldened by your words for a few minutes: their attacks are enhanced and they cannot become deprived."
+      },
+      {
+        "key": "143",
+        "text": "Bound. Target can make a single jump to any place they can see."
+      },
+      {
+        "key": "144",
+        "text": "Boundless Message. Delivers a single sentence to any one creature instantaneously, no matter the distance."
+      },
+      {
+        "key": "145",
+        "text": "Breath Soup. Blocks vision and slows movement."
+      },
+      {
+        "key": "146",
+        "text": "Burning Missile. You fire an acid missile that does 1d6 damage to a target for every round it is not washed off."
+      },
+      {
+        "key": "151",
+        "text": "Burnishing Bubble. Target is enclosed by an impenetrable sphere that rolls along the ground, unless they pass a DEX save."
+      },
+      {
+        "key": "152",
+        "text": "Calcify. Target object turns to stone at the caster's touch. Living targets save vs STR."
+      },
+      {
+        "key": "153",
+        "text": "Catsense. Target has heightened senses for the next hour, especially at night."
+      },
+      {
+        "key": "154",
+        "text": "Chilling Graze. Target loses 1d4+1 STR and is deprived."
+      },
+      {
+        "key": "155",
+        "text": "Cinder Flesh. Energy beams burn enemies (1d10 blast damage) in a straight line."
+      },
+      {
+        "key": "156",
+        "text": "Circle of Arcane Protection. Magical or godly beings cannot enter a 10ft circle."
+      },
+      {
+        "key": "161",
+        "text": "Cleanse. Rotten or poisoned food becomes edible."
+      },
+      {
+        "key": "162",
+        "text": "Cold Spray. A spray of cold air does 1d6 damage 20ft in one direction."
+      },
+      {
+        "key": "163",
+        "text": "Conceal Object. Masks an object against divination or scrying."
+      },
+      {
+        "key": "164",
+        "text": "Conquer Gravity. Target moves up or down according to your whims."
+      },
+      {
+        "key": "165",
+        "text": "Cosmic Fingertips. Your hands sculpt stone, rock or minerals into any form you please."
+      },
+      {
+        "key": "166",
+        "text": "Coup de Grace. An ally's next attack ignores armor and takes damage directly from their target's STR."
+      },
+      {
+        "key": "211",
+        "text": "Craft from Clay. Any natural, earthen target is transformed (rock to mud, lava to rock, etc)."
+      },
+      {
+        "key": "212",
+        "text": "Create Unlife. Creates 1d4 undead skeletons and zombies from corpses. WIL save every hour to control them."
+      },
+      {
+        "key": "213",
+        "text": "Curse of the Sightless. Anyone within eyesight must make a WIL save or be blinded."
+      },
+      {
+        "key": "214",
+        "text": "Curse Unlife. Deals 1d4+2 STR loss to one undead, ignoring armor and resistances."
+      },
+      {
+        "key": "215",
+        "text": "Cure-All. A single illness or disease dissipates at your touch."
+      },
+      {
+        "key": "216",
+        "text": "Cute Ink. A single page in a book can be altered to hide its true content."
+      },
+      {
+        "key": "221",
+        "text": "Darksight. Target can see 60 ft. in total darkness."
+      },
+      {
+        "key": "222",
+        "text": "Death's Breath. You summon a poisonous cloud (1d6 STR loss) you can control."
+      },
+      {
+        "key": "223",
+        "text": "Devil's Comedian. WIL save or target laughs uncontrollably, unable to take any action."
+      },
+      {
+        "key": "224",
+        "text": "Disaster Fluid. Anything in a 10ft square becomes slippery; DEX save to avoid slipping."
+      },
+      {
+        "key": "225",
+        "text": "Disrupt Scry. Future divinations of one creature or object are misled according to your will."
+      },
+      {
+        "key": "226",
+        "text": "Doppelganger. You spawn 1d6 decoy duplicates of someone you touch. Decoys are dispelled with a touch."
+      },
+      {
+        "key": "231",
+        "text": "Doubleskin. Target humanoid doubles in size."
+      },
+      {
+        "key": "232",
+        "text": "Dreampoison. Target is deprived after suffering a night of bad dreams."
+      },
+      {
+        "key": "233",
+        "text": "Dreamtalker. Sends a message to anyone currently asleep."
+      },
+      {
+        "key": "234",
+        "text": "Earsplit. Anyone within earshot is deafened."
+      },
+      {
+        "key": "235",
+        "text": "Easy Descent. Objects or creatures nearby fall very slowly."
+      },
+      {
+        "key": "236",
+        "text": "Edifice. You summon a stone wall up to 20ft wide that you can control."
+      },
+      {
+        "key": "241",
+        "text": "Energize Rope. A rope-like object moves at your command."
+      },
+      {
+        "key": "242",
+        "text": "Ensorcelled. Creatures are enraptured for a few minutes unless they pass a WIL save."
+      },
+      {
+        "key": "243",
+        "text": "Envision. Spies on a target you have met, even across vast distances. On a WIL save, they can feel your presence."
+      },
+      {
+        "key": "244",
+        "text": "Ephemeral Audio. Point to a spot. Anyone nearby hears a sound you choose at any volume."
+      },
+      {
+        "key": "245",
+        "text": "Epidemic. Infects target with disease, which spreads until the source of magic is destroyed."
+      },
+      {
+        "key": "246",
+        "text": "Extraplanar Convocation. Summons any extraplanar being onto your plane. It holds no loyalty towards you or your allies."
+      },
+      {
+        "key": "251",
+        "text": "Extraplanar Request. Ask a single question of a random extraplanar entity."
+      },
+      {
+        "key": "252",
+        "text": "Feline Dexterity. Target becomes limber, lithe and as fast as quicksilver."
+      },
+      {
+        "key": "253",
+        "text": "Find Virulence. Detects poison in any creature or object within 30ft."
+      },
+      {
+        "key": "254",
+        "text": "Fire Curse. An object you touch is imbued with a hidden flame-trap dealing 1d4+2 STR loss."
+      },
+      {
+        "key": "255",
+        "text": "Fiery Missile. A bow you touch can fire flaming arrows (1d10 damage) for one minute."
+      },
+      {
+        "key": "256",
+        "text": "Fish Lung. A target can breathe underwater until they surface again."
+      },
+      {
+        "key": "261",
+        "text": "Fleetfooted. One creature moves at double speed."
+      },
+      {
+        "key": "262",
+        "text": "Flicker. Target randomly vanishes and reappears once at will."
+      },
+      {
+        "key": "263",
+        "text": "Fog of Nausea. A cloud of nauseating vapors pours out from the Spellbook's pages. Anyone nearby makes a STR save or vomits uncontrollably."
+      },
+      {
+        "key": "264",
+        "text": "Fold Portal. A door you touch opens into another door you've stepped through before until it is shut again."
+      },
+      {
+        "key": "265",
+        "text": "Foolishness. A target you touch becomes vulnerable to wild mood swings, sweeping conclusions and silly behavior. They also lose 1d6 WIL for 24 hours (down to a minimum of 1)."
+      },
+      {
+        "key": "266",
+        "text": "Fortify. Damage from heat, ice, acid or electricity is impaired against a target for the next hour."
+      },
+      {
+        "key": "311",
+        "text": "Frozen Corpse. A corpse you touch is preserved."
+      },
+      {
+        "key": "312",
+        "text": "Gale. You summon an impenetrable wall of energy up to 15ft wide."
+      },
+      {
+        "key": "313",
+        "text": "Ghost Whisper. You and a sympathetic ally are linked, able to converse in short sentences for an hour."
+      },
+      {
+        "key": "314",
+        "text": "Gift of Flight. Target can fly for a short while."
+      },
+      {
+        "key": "315",
+        "text": "Glacier. You create a wall of ice (15 HP, 3 Armor) around a creature you choose."
+      },
+      {
+        "key": "316",
+        "text": "Gorgon's Gaze. Target is transformed into a statue on a failed WIL save. A success reverses the spell; holder must pass a WIL save or the book is destroyed."
+      },
+      {
+        "key": "321",
+        "text": "Great Ball of Fire. You fire a ball of flame (1d10 damage) up to 20 feet away."
+      },
+      {
+        "key": "322",
+        "text": "Hand of the Protector. A giant, floating hand blocks all damage from a single opponent until you are safe from danger."
+      },
+      {
+        "key": "323",
+        "text": "Healing Grace. A target heals 1d6 STR, and you become deprived until you take the time to meditate, pray or sleep."
+      },
+      {
+        "key": "324",
+        "text": "Heatless Torch. Turns any object into a permanent, heatless torch."
+      },
+      {
+        "key": "325",
+        "text": "Hedgemagick. You perform a minor magical trick (create flame, wind, light or sound)."
+      },
+      {
+        "key": "326",
+        "text": "Hempen Hoop. A rope moves at your command."
+      },
+      {
+        "key": "331",
+        "text": "Hide Mind. The next person to scry your mind or your whereabouts is fooled."
+      },
+      {
+        "key": "332",
+        "text": "Hoodwink Monster. Target monster makes a WIL save or treats you as an ally."
+      },
+      {
+        "key": "333",
+        "text": "Hoodwink Person. Target becomes a friend until out of sight."
+      },
+      {
+        "key": "334",
+        "text": "Hovering Protection. A hovering, transparent disk materializes around an ally granting 1 Armor."
+      },
+      {
+        "key": "335",
+        "text": "Ice Ray. Ice and snow flow from your fingertips, dealing 1d8 damage (blast) in a straight line."
+      },
+      {
+        "key": "336",
+        "text": "Icy Tempest. Hail deals 1d12 damage in a 20ft radius."
+      },
+      {
+        "key": "341",
+        "text": "Ill Fate. Target automatically fails their next save."
+      },
+      {
+        "key": "342",
+        "text": "Illusory Landscape. You can make one type of terrain appear like another."
+      },
+      {
+        "key": "343",
+        "text": "Incorporeal Shrug. Ignore any one attack."
+      },
+      {
+        "key": "344",
+        "text": "Induce Despair. Target must pass a WIL save or its attacks are impaired."
+      },
+      {
+        "key": "345",
+        "text": "Induce Horror. Target makes a WIL save or flees."
+      },
+      {
+        "key": "346",
+        "text": "Inferno. You summon a flaming wall up to 15ft wide. Anyone passing through suffers 1d6 STR loss."
+      },
+      {
+        "key": "351",
+        "text": "Influence. Target gains armor 3 but running and swimming are impossible."
+      },
+      {
+        "key": "352",
+        "text": "Insubstantiate. Target becomes insubstantial and can float."
+      },
+      {
+        "key": "353",
+        "text": "Kraken's Curse. Tentacles grapple all within 20 ft, STR save to break free."
+      },
+      {
+        "key": "354",
+        "text": "Lamp's Hue. Target object shines like a torch for one hour."
+      },
+      {
+        "key": "355",
+        "text": "Latch. An unlocked box, cabinet or door opens or closes at your command."
+      },
+      {
+        "key": "356",
+        "text": "Librarian's Trap. Deals 1d4+2 STR loss when read."
+      },
+      {
+        "key": "361",
+        "text": "Lichsense. You feel any undead within 60ft. WIL save to avoid detection by intelligent undead."
+      },
+      {
+        "key": "362",
+        "text": "Light Show. You control a dazzling display of light and color."
+      },
+      {
+        "key": "363",
+        "text": "Lightning Strike. Electricity flings from your fingertips doing 1d12 damage (blast) in a line."
+      },
+      {
+        "key": "364",
+        "text": "Linguist. For the next hour you can speak and understand any mundane language."
+      },
+      {
+        "key": "365",
+        "text": "Magic Seal. Magically locks a door, portal or chest."
+      },
+      {
+        "key": "366",
+        "text": "Major Genesis. Creates an object of nonliving stone or metal no greater than 5 cubic foot in size."
+      },
+      {
+        "key": "411",
+        "text": "Maker. Transforms raw materials into finished items."
+      },
+      {
+        "key": "412",
+        "text": "Manic Fury. A target's attacks are enhanced. They must make a WIL save after a successful killing or lose control, attacking anyone in sight."
+      },
+      {
+        "key": "413",
+        "text": "Masquerade. You assume the likeness of a similar creature you have seen."
+      },
+      {
+        "key": "414",
+        "text": "Master Undead. Undead creatures obey your command. Intelligent undead make a WIL save."
+      },
+      {
+        "key": "415",
+        "text": "Mental Tripwire. Intruders set off an alarm audible only to you."
+      },
+      {
+        "key": "416",
+        "text": "Mind Bond. Two allies can communicate via a mental link for the rest of the day."
+      },
+      {
+        "key": "421",
+        "text": "Mind Reader. You can see or hear any person you have met before."
+      },
+      {
+        "key": "422",
+        "text": "Miniaturize. An object shrinks to one tenth its size."
+      },
+      {
+        "key": "423",
+        "text": "Minor Aegis. A target you touch ignores the next instance of harm from a specific source."
+      },
+      {
+        "key": "424",
+        "text": "Minor Genesis. Creates an object of nonliving matter no greater than one cubic foot in size."
+      },
+      {
+        "key": "425",
+        "text": "Mirage. You summon a noiseless and simple illusion of your choice."
+      },
+      {
+        "key": "426",
+        "text": "Molasses Veins. A single target moves at half speed."
+      },
+      {
+        "key": "431",
+        "text": "Murky Bubble. You create a bubble of supernatural shadow within a 20ft radius."
+      },
+      {
+        "key": "432",
+        "text": "Necrotic Touch. Target must DEX save or is paralyzed."
+      },
+      {
+        "key": "433",
+        "text": "Obfuscate. Target cannot be observed either through divination or scrying."
+      },
+      {
+        "key": "434",
+        "text": "Obfuscation. Changes your appearance."
+      },
+      {
+        "key": "435",
+        "text": "Obscuring Mist. A rolling fog obscures vision in a 300ft radius."
+      },
+      {
+        "key": "436",
+        "text": "Opaque Cover. Details about your person become obscured and unmemorable."
+      },
+      {
+        "key": "441",
+        "text": "Orb of Ignus. You control a floating ball of fire (1d8 damage) for a short while."
+      },
+      {
+        "key": "442",
+        "text": "Orb of Immortality. Mundane attacks cannot harm anyone within a 10ft radius, or vice-versa."
+      },
+      {
+        "key": "443",
+        "text": "Otherworldly Pet. Summons an unintelligent extraplanar creature up to the size of a small dog. It holds no loyalty towards you or your allies."
+      },
+      {
+        "key": "444",
+        "text": "Otherworldly Gate. Opens a portal to another reality. It works in both directions."
+      },
+      {
+        "key": "445",
+        "text": "Paincurrent. An arc of electricity passes from your fingertips to a target you touch. They take 1d8 damage (1d12 if wearing metal armor)."
+      },
+      {
+        "key": "446",
+        "text": "Passage. Creates a temporary path through wood, stone or brick."
+      },
+      {
+        "key": "451",
+        "text": "Passive Invisibility. Target is invisible until they attempt harm."
+      },
+      {
+        "key": "452",
+        "text": "Peeping Warlock. You control a pair of floating eyes so long as yours remain closed."
+      },
+      {
+        "key": "453",
+        "text": "Perfect Illusion. Creates an image with sound, smell and thermal effects, activated according to a trigger you choose. Touching the image or making a successful WIL save will reveal the illusion."
+      },
+      {
+        "key": "454",
+        "text": "Perfect Preservation. A weapon you touch becomes immune to wear, mundane damage or elemental effects. The spell wears off after a day."
+      },
+      {
+        "key": "455",
+        "text": "Phantom Hound. A ghostly canine (4 HP, bite 1d4) obeys your commands for up to one hour."
+      },
+      {
+        "key": "456",
+        "text": "Phase Anchor. Binds an extraplanar creature to your will until it performs a specific task, after which they must pass a WIL save to escape."
+      },
+      {
+        "key": "461",
+        "text": "Phase Sneak. Anyone within a 10ft radius is rendered invisible."
+      },
+      {
+        "key": "462",
+        "text": "Phase Touch. A disembodied, floating hand obeys your whims but is immaterial. The next Spellbook, ability or item that relies on touch now works from a distance."
+      },
+      {
+        "key": "463",
+        "text": "Philolomancy. You understand all spoken and written languages."
+      },
+      {
+        "key": "464",
+        "text": "Philosopher's Mind. Target is immune to spiritual or psychic attacks, as well as any attempts at mental or spiritual manipulation or persuasion."
+      },
+      {
+        "key": "465",
+        "text": "Planar Anchor. Bars extradimensional movement."
+      },
+      {
+        "key": "466",
+        "text": "Plant Scourge. Plants within eyesight wither and die."
+      },
+      {
+        "key": "511",
+        "text": "Pocket Container. Summons a chest from an immaterial plane. It holds up to 6 items. The chest is dismissed at will."
+      },
+      {
+        "key": "512",
+        "text": "Pocket Sun. You create a halo of bright light in a 60ft radius."
+      },
+      {
+        "key": "513",
+        "text": "Prisma Shard. An array of hypnotic lights fascinate nearby creatures, unless they pass a WIL save."
+      },
+      {
+        "key": "514",
+        "text": "Profane Reveal. Target an empty space to reveal invisible objects or creatures."
+      },
+      {
+        "key": "515",
+        "text": "Psychic Eye. Invisible floating eye allowing you to observe a single location as present."
+      },
+      {
+        "key": "516",
+        "text": "Psychokinesis. Magically moves an object up to half your weight."
+      },
+      {
+        "key": "521",
+        "text": "Puppeteer. You can throw your voice a great distance away."
+      },
+      {
+        "key": "522",
+        "text": "Purge Text. Mundane or magical writing vanishes at your touch."
+      },
+      {
+        "key": "523",
+        "text": "Pyramid of Passivity. Target creatures must make a DEX save or their attacks are impaired."
+      },
+      {
+        "key": "524",
+        "text": "Psychic Touch. You can hear target's surface thoughts, so long as you touch them."
+      },
+      {
+        "key": "525",
+        "text": "Rat-Tat-Tat. Loudly opens a locked or magically sealed door or chest."
+      },
+      {
+        "key": "526",
+        "text": "Ravenless Message. You send a short message 1 mile that anyone along its path can hear."
+      },
+      {
+        "key": "531",
+        "text": "Reject Unlife. Nearby undead are immobilized for 30 seconds or until you take another action."
+      },
+      {
+        "key": "532",
+        "text": "Remembered Voice. A spot you mark becomes the trigger for a supernatural recording of your voice, delivering a short message of your choice."
+      },
+      {
+        "key": "533",
+        "text": "Reverie. Targets become dazed for a moment, as if lost in daydream."
+      },
+      {
+        "key": "534",
+        "text": "Runic Harm. A rune you draw causes great pain to the reader, who must WIL save or scream until they pass out (1d4 WIL loss). A successful save destroys the rune."
+      },
+      {
+        "key": "535",
+        "text": "Runic Slumber. A rune you draw puts the reader into a magical sleep that lasts 1d6 hours."
+      },
+      {
+        "key": "536",
+        "text": "Safe Haven. You summon a floating, invisible refuge for 8 hours. It fits up to 8 people comfortably."
+      },
+      {
+        "key": "541",
+        "text": "Scintillate. Target must WIL save or their attacks become impaired."
+      },
+      {
+        "key": "542",
+        "text": "Scry Creature. Indicates the precise location of a familiar creature."
+      },
+      {
+        "key": "543",
+        "text": "Scry Object. Indicates the precise location of an object, known or otherwise."
+      },
+      {
+        "key": "544",
+        "text": "Scrying Ward. For 24 hours you become aware of any magical eavesdropping."
+      },
+      {
+        "key": "545",
+        "text": "Sculpt Water. Raise, lower or part nearby water."
+      },
+      {
+        "key": "546",
+        "text": "Secret Attache. You summon an invisible creature of great power that obeys your every command. Reading from other Spellbooks dispels the creature."
+      },
+      {
+        "key": "551",
+        "text": "Shelter. Creates a standing edifice that can shelter up to 10 creatures, disappearing after 24 hours."
+      },
+      {
+        "key": "552",
+        "text": "Shrinking Cant. A humanoid creature you touch halves in size."
+      },
+      {
+        "key": "553",
+        "text": "Signal. Sends up a flare that can be seen for some distance."
+      },
+      {
+        "key": "554",
+        "text": "Simple Illusion. Creates a simple image with sound. A cursory investigation will reveal the illusory image."
+      },
+      {
+        "key": "555",
+        "text": "Sinister Flame. Target's palms are lined with flames (1d4+1 STR loss) for one minute."
+      },
+      {
+        "key": "556",
+        "text": "Sinister Polymorph. WIL save or target is transformed into a harmless animal."
+      },
+      {
+        "key": "561",
+        "text": "Skillful Repair. You make minor repairs to a nonliving object."
+      },
+      {
+        "key": "562",
+        "text": "Sky Raft. You summon a 3ft wide floating disk that holds up to 100lbs."
+      },
+      {
+        "key": "563",
+        "text": "Solar Portal. Sends an extraplanar message to all beings that wish to enter your plane. You have no choice which being answers and it holds no loyalty to you or your allies."
+      },
+      {
+        "key": "564",
+        "text": "Song of Repose. Target falls into a deep slumber."
+      },
+      {
+        "key": "565",
+        "text": "Sonic Shattering. A sonic wave causes 1d6 STR loss to susceptible objects or crystalline creatures, ignoring armor."
+      },
+      {
+        "key": "566",
+        "text": "Sorcerer's Lock. Any door (magical or otherwise) is held shut until you leave its vicinity."
+      },
+      {
+        "key": "611",
+        "text": "Soul Annex. Target's spirit is caged within their body and replaced with the caster's. If the body is slain the original soul departs, but the caster must pass a WIL save to return to their body."
+      },
+      {
+        "key": "612",
+        "text": "Steer's Strength. Target's strength triples; unarmed attacks are enhanced."
+      },
+      {
+        "key": "613",
+        "text": "Strength Tap. A target you touch loses 1d6 STR, which is transferred to you (up to your max STR)."
+      },
+      {
+        "key": "614",
+        "text": "Stumbling Steps. A target you touch becomes deprived and loses 1 STR."
+      },
+      {
+        "key": "615",
+        "text": "Stupefaction. Target temporarily loses sense of place and time. WIL save to overcome."
+      },
+      {
+        "key": "616",
+        "text": "Sudden Slumber. Target falls asleep for 1d4 hours."
+      },
+      {
+        "key": "621",
+        "text": "Summon Elemental. A being of fire, water, earth, or wind manifests from available matter to perform a single task for the caster. It follows this command against its will."
+      },
+      {
+        "key": "622",
+        "text": "Sway Will. A target is compelled to follow a stated course of action, without understanding why."
+      },
+      {
+        "key": "623",
+        "text": "Temporary Reprieve. Target regains any lost STR, but loses it again after a few minutes."
+      },
+      {
+        "key": "624",
+        "text": "Terrify. Targets within eyesight must pass a WIL save or flee."
+      },
+      {
+        "key": "625",
+        "text": "Terrifying Illusion. A target is hunted by a terrible creature only they can see. Its attacks do 1d12 damage; on Critical Damage they must pass a WIL save or become catatonic."
+      },
+      {
+        "key": "626",
+        "text": "Thief's Bane. An object appears trapped, even to an experienced thief."
+      },
+      {
+        "key": "631",
+        "text": "Thwart the Elements. Damage from energy blasts is impaired against a target for the next hour."
+      },
+      {
+        "key": "632",
+        "text": "Tongue of the Blue Serpent. Rust-colored, serpentine letters materialize on a surface you choose. Anyone reading these words becomes immobilized unless they succeed a WIL save."
+      },
+      {
+        "key": "633",
+        "text": "Torrential Moat. You summon a powerful wind that deflects arrows, smaller creatures, and noxious gases."
+      },
+      {
+        "key": "634",
+        "text": "Toxic Blast. A small orb of acid deals 1d6 blast damage to a target."
+      },
+      {
+        "key": "635",
+        "text": "Transform Aura. Target's aura is made non-magical or vice-versa."
+      },
+      {
+        "key": "636",
+        "text": "True Name. Determines the properties of a magical item you touch."
+      },
+      {
+        "key": "641",
+        "text": "Trueshift. A willing target takes on a new form (keeping only their WIL), but must pass a WIL save to shift out."
+      },
+      {
+        "key": "642",
+        "text": "Twilight Steed. Summons an arcane steed that never tires, but dissipates within daylight."
+      },
+      {
+        "key": "643",
+        "text": "Ultimate Sacrifice. The book's holder transfers their life force into a corpse, reviving both body and soul."
+      },
+      {
+        "key": "644",
+        "text": "Uncurse. A person or object you touch is freed from a curse or nefarious spell."
+      },
+      {
+        "key": "645",
+        "text": "Undefinable Target. An ally becomes immune to mundane ranged attacks for one round."
+      },
+      {
+        "key": "646",
+        "text": "Undeniable Courage. Target passes their next WIL save and their attacks are enhanced."
+      },
+      {
+        "key": "651",
+        "text": "Unflappable Endurance. Target does not take Fatigue from non-magical activities or become deprived until their next rest."
+      },
+      {
+        "key": "652",
+        "text": "Vermin Plague. Summons a swarm of bats, rats, spiders or similar creatures of your choice. They are harmless but distracting and hold no loyalty towards you or your allies."
+      },
+      {
+        "key": "653",
+        "text": "Vines of Ichor. You spread sticky spiderwebs on the walls, floor and ceilings within a 20ft radius."
+      },
+      {
+        "key": "654",
+        "text": "Warrior's Edge. Target weapon is enhanced, and victim automatically fails a critical damage save."
+      },
+      {
+        "key": "655",
+        "text": "Windborn. You direct a powerful wind in a straight line, strong enough to blow over small boulders."
+      },
+      {
+        "key": "656",
+        "text": "Winter's Woe. An icy storm assails multiple targets, obscuring visibility and making the ground icy and treacherous."
+      },
+      {
+        "key": "661",
+        "text": "Witch Sight. Magical auras become visible to you for one hour."
+      },
+      {
+        "key": "662",
+        "text": "Wizard's Exit. You and anyone you touch can flee to safety at double speed."
+      },
+      {
+        "key": "663",
+        "text": "Wizard's Grasp. You control a phantasmal hand that can lift up to 5 pounds."
+      },
+      {
+        "key": "664",
+        "text": "Wizard's Haven. A small, walled-in area cannot be scryed."
+      },
+      {
+        "key": "665",
+        "text": "Wizardsniff. You can feel any magic within a 60ft radius."
+      },
+      {
+        "key": "666",
+        "text": "Word of Pain. A single phrase from your lips does 1d12 blast damage. Affected targets are also deafened."
+      }
+    ]
+  }
+]

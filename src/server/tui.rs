@@ -72,38 +72,37 @@ pub fn run_tui(port: u16, db_path: String) -> io::Result<()> {
         terminal.draw(|f| draw(f, &app))?;
 
         let timeout = tick_rate.saturating_sub(last_tick.elapsed());
-        if event::poll(timeout)? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press {
-                    if app.quit_confirm {
-                        match key.code {
-                            KeyCode::Char('y') | KeyCode::Char('Y') => {
-                                break;
-                            }
-                            _ => {
-                                app.quit_confirm = false;
-                            }
-                        }
-                    } else {
-                        match key.code {
-                            KeyCode::Char('q') | KeyCode::Char('Q') => {
-                                app.quit_confirm = true;
-                            }
-                            KeyCode::Up => {
-                                app.active_scroll = app.active_scroll.saturating_sub(1);
-                            }
-                            KeyCode::Down => {
-                                app.active_scroll = app.active_scroll.saturating_add(1);
-                            }
-                            KeyCode::PageUp => {
-                                app.recent_scroll = app.recent_scroll.saturating_sub(1);
-                            }
-                            KeyCode::PageDown => {
-                                app.recent_scroll = app.recent_scroll.saturating_add(1);
-                            }
-                            _ => {}
-                        }
+        if event::poll(timeout)?
+            && let Event::Key(key) = event::read()?
+            && key.kind == KeyEventKind::Press
+        {
+            if app.quit_confirm {
+                match key.code {
+                    KeyCode::Char('y') | KeyCode::Char('Y') => {
+                        break;
                     }
+                    _ => {
+                        app.quit_confirm = false;
+                    }
+                }
+            } else {
+                match key.code {
+                    KeyCode::Char('q') | KeyCode::Char('Q') => {
+                        app.quit_confirm = true;
+                    }
+                    KeyCode::Up => {
+                        app.active_scroll = app.active_scroll.saturating_sub(1);
+                    }
+                    KeyCode::Down => {
+                        app.active_scroll = app.active_scroll.saturating_add(1);
+                    }
+                    KeyCode::PageUp => {
+                        app.recent_scroll = app.recent_scroll.saturating_sub(1);
+                    }
+                    KeyCode::PageDown => {
+                        app.recent_scroll = app.recent_scroll.saturating_add(1);
+                    }
+                    _ => {}
                 }
             }
         }
@@ -340,7 +339,7 @@ fn gather_active_sessions(snap: &MetricsSnapshot) -> Vec<SessionRow> {
 
 fn gather_recent_sessions(snap: &MetricsSnapshot) -> Vec<SessionRow> {
     let mut recent: Vec<_> = snap.recent_sessions.iter().filter(|s| !s.active).collect();
-    recent.sort_by(|a, b| b.last_active.cmp(&a.last_active));
+    recent.sort_by_key(|s| std::cmp::Reverse(s.last_active));
     recent.truncate(5);
     recent
         .into_iter()

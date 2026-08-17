@@ -157,6 +157,30 @@ pub struct InventoryItemInfo {
     pub description: String,
     pub quantity: i32,
     pub is_party_item: bool,
+    /// Character carrying the item, when it is not party gear.
+    #[serde(default)]
+    pub owner_character_id: Option<i32>,
+    /// How much of the owner's carrying capacity one of these eats.
+    #[serde(default = "default_slots")]
+    pub slots: i32,
+    /// gear, weapon, armour, treasure, or consumable.
+    #[serde(default)]
+    pub kind: String,
+    /// What the item gives, in the language of the roll.
+    #[serde(default)]
+    pub bonus: String,
+    /// Total and remaining uses for a consumable. `None` for everything else.
+    #[serde(default)]
+    pub uses_max: Option<i32>,
+    #[serde(default)]
+    pub uses_left: Option<i32>,
+    /// Gear tags, defined by the system module (reach, piercing, heavy, ...).
+    #[serde(default)]
+    pub tags: Vec<String>,
+}
+
+fn default_slots() -> i32 {
+    1
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -248,6 +272,10 @@ pub mod db_models {
         pub template_id: Option<i32>,
         pub active: bool,
         pub created_at: String,
+        /// Id of the system module the session was set up with.
+        pub system_module_id: Option<String>,
+        /// Id of the adventure module installed into the session.
+        pub adventure_module_id: Option<String>,
     }
 
     #[derive(Debug, Insertable)]
@@ -459,6 +487,13 @@ pub mod db_models {
         pub description: &'a str,
         pub quantity: i32,
         pub is_party_item: bool,
+        pub owner_character_id: Option<i32>,
+        pub slots: i32,
+        pub kind: &'a str,
+        pub bonus: &'a str,
+        pub uses_max: Option<i32>,
+        pub uses_left: Option<i32>,
+        pub tags: &'a str,
     }
 
     #[derive(Debug, Insertable)]
@@ -483,6 +518,12 @@ pub mod db_models {
         pub quantity: i32,
         pub owner_character_id: Option<i32>,
         pub is_party_item: bool,
+        pub slots: i32,
+        pub kind: String,
+        pub bonus: String,
+        pub uses_max: Option<i32>,
+        pub uses_left: Option<i32>,
+        pub tags: String,
     }
 
     #[derive(Debug, Queryable, Selectable)]

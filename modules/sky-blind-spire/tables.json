@@ -1,0 +1,314 @@
+[
+  {
+    "id": "encounters",
+    "name": "Encounters",
+    "die": "d6",
+    "description": "Roll when the party spends real time, makes noise, or backtracks.",
+    "entries": [
+      {
+        "key": "1",
+        "text": "A giant, investigating the man-smell."
+      },
+      {
+        "key": "2",
+        "text": "A huge muck-fly, up from the cone."
+      },
+      {
+        "key": "3",
+        "text": "A Ricalu thief in a blue cloak, hands full of silver."
+      },
+      {
+        "key": "4",
+        "text": "The halls echo with the giants' songs. No encounter, but everything can hear you."
+      },
+      {
+        "key": "5",
+        "text": "A young dire pelican, possessed, moving wrong."
+      },
+      {
+        "key": "6",
+        "text": "d3 undines from the fountain, hunting sparks."
+      }
+    ]
+  },
+  {
+    "id": "loot",
+    "name": "Loot, for searching bodies, nests, and heaps",
+    "die": "d6",
+    "description": "Everything here is mundane or minor. The real treasures are the ring, the circlet, the blade, the plate, the quills, and the potion.",
+    "entries": [
+      {
+        "key": "1",
+        "text": "A cracked hand-mirror. +1 Erudite to look at something you must not look at directly."
+      },
+      {
+        "key": "2",
+        "text": "Twelve feet of chain, cut free. Heavy, +1 to climbs and to jam a door."
+      },
+      {
+        "key": "3",
+        "text": "A goblin's tooth-pouch. The shaman wants it back badly."
+      },
+      {
+        "key": "4",
+        "text": "Half a torn tower map. Shows three rooms in correct sequence."
+      },
+      {
+        "key": "5",
+        "text": "Smoked lake-fish, four meals. Restores 2 HP if eaten somewhere quiet."
+      },
+      {
+        "key": "6",
+        "text": "A giant's drinking bowl, silver, worth a month's wages and the size of a shield."
+      }
+    ]
+  },
+  {
+    "id": "gates",
+    "name": "The lettered gates",
+    "die": "",
+    "description": "Five pairs of corridors linking distant parts of the tower. Walk into one end, walk out the other. There is no sensation of travel and no way to tell from inside.",
+    "entries": [
+      {
+        "key": "A",
+        "text": "Room 1, the entry, to room 18's north exit, behind the blue tapestry."
+      },
+      {
+        "key": "B",
+        "text": "Room 7, the fountain, to room 16, the giants' hall."
+      },
+      {
+        "key": "C",
+        "text": "Room 18 to the corridor east of room 17."
+      },
+      {
+        "key": "D",
+        "text": "Room 12 to room 11."
+      },
+      {
+        "key": "E",
+        "text": "The corridor west of room 8 to the corridor east of room 10."
+      }
+    ]
+  },
+  {
+    "id": "windows",
+    "name": "Which window belongs to which room",
+    "die": "",
+    "description": "Each face carries one window per floor, and each chain drops to the window below it on the same face. The players' elevation handout deliberately carries no room numbers; this is your key to it.",
+    "entries": [
+      {
+        "key": "Floor 5",
+        "text": "5N room 7 - 5E room 21 - 5S room 23 - 5W room 17."
+      },
+      {
+        "key": "Floor 4",
+        "text": "4N room 20 - 4E room 22 - 4S room 12 - 4W room 3."
+      },
+      {
+        "key": "Floor 3",
+        "text": "3N room 8 - 3E room 23 - 3S room 19 - 3W room 4."
+      },
+      {
+        "key": "Floor 2",
+        "text": "All four second-floor windows open into room 9, the pelicans' roost."
+      }
+    ]
+  },
+  {
+    "id": "climbing",
+    "name": "Chains and climbing",
+    "die": "",
+    "description": "Every window from the second floor up has a rusty chain bolted to its sill that dangles to the window below it.",
+    "entries": [
+      {
+        "key": "DS 8",
+        "text": "Down one chain. Rope, hook, or climbing gear gives +1."
+      },
+      {
+        "key": "DS 10",
+        "text": "Up one chain. Damage on a miss is a fall, 3 points."
+      },
+      {
+        "key": "DS 12",
+        "text": "Climbing with a silver sack. Or drop it and hear it hit the rocks."
+      },
+      {
+        "key": "+2 DS",
+        "text": "In wind or rain. The lake makes its own weather."
+      },
+      {
+        "key": "DS 12",
+        "text": "Round to the next face. No chain runs sideways, so moving between windows at the same height means working along the stonework, one face at a time. A miss is a fall the whole way down."
+      }
+    ]
+  },
+  {
+    "id": "spark",
+    "name": "The spark, by rooms walked in order",
+    "die": "",
+    "description": "Room 1 grants a spark. Entering the next number up grows it; entering any other number kills it, silently. Never roll for the sequence: the tracking is the game. The sparks are blue, so after the first hour nobody can see their own.",
+    "entries": [
+      {
+        "key": "1-5",
+        "text": "A firefly. Cold on the cheek."
+      },
+      {
+        "key": "6-12",
+        "text": "A marble. Makes hair rise."
+      },
+      {
+        "key": "13-18",
+        "text": "A fist. Warm blue light through fingers."
+      },
+      {
+        "key": "19-23",
+        "text": "As bright as a torch. Lights the whole room."
+      }
+    ]
+  },
+  {
+    "id": "treasures",
+    "name": "Named treasures",
+    "die": "",
+    "description": "Where the tower's real prizes are.",
+    "entries": [
+      {
+        "key": "Ring of water breathing",
+        "text": "Room 1, on a skeleton. Breathe water indefinitely. Makes drowning by undine survivable."
+      },
+      {
+        "key": "Defender's blade",
+        "text": "Room 7, in the font. +1 Brute, and +1 again when you fight defending someone else."
+      },
+      {
+        "key": "Plate armour",
+        "text": "Room 7. Absorbs 2 damage; -1 Skulker; counts as 3 items."
+      },
+      {
+        "key": "Venomous quills, three",
+        "text": "Room 9, in a jawbone. Thrown, Skulker DS 8; a hit does 4 extra damage as the venom works."
+      },
+      {
+        "key": "Potion of leaping",
+        "text": "Room 9, under the jawbone. One drink, one enormous jump."
+      },
+      {
+        "key": "Circlet of clear sight",
+        "text": "Rooms 16-17, in a silver sack. The wearer sees blue. Cancels sky-blindness entirely."
+      },
+      {
+        "key": "Six sacks of silver",
+        "text": "Rooms 16-17. Each is 4 items of encumbrance and a year's wages."
+      }
+    ]
+  },
+  {
+    "id": "clocks",
+    "name": "Faction clocks",
+    "die": "",
+    "description": "Advance one clock every time the party spends real time somewhere: a long search, a rest, a fight, a loud argument.",
+    "entries": [
+      {
+        "key": "Undines 1",
+        "text": "Distant singing through the stone, in no language."
+      },
+      {
+        "key": "Undines 2",
+        "text": "Wet footprints in dust, walking away, with nobody making them."
+      },
+      {
+        "key": "Undines 3",
+        "text": "A puddle in a dry room that was not there when they came through."
+      },
+      {
+        "key": "Undines 4",
+        "text": "d3 undines catch the party in the open."
+      },
+      {
+        "key": "Undines 5",
+        "text": "d6 undines, in the fountain room, blocking the door."
+      },
+      {
+        "key": "Idols 1",
+        "text": "A corpse's hand twitches as they pass."
+      },
+      {
+        "key": "Idols 2",
+        "text": "Something cold touches a character's neck. Nobody is behind them."
+      },
+      {
+        "key": "Idols 3",
+        "text": "Whispering, in the character's own voice, from an empty stair."
+      },
+      {
+        "key": "Idols 4",
+        "text": "Anyone who sleeps or drops below 4 HP must resist possession: Erudite DS 10."
+      },
+      {
+        "key": "Idols 5",
+        "text": "Every dead body in the hall stands up."
+      },
+      {
+        "key": "Pelicans 1",
+        "text": "A shadow crosses a window. Twice."
+      },
+      {
+        "key": "Pelicans 2",
+        "text": "Fish bones and droppings in a room nowhere near the roost."
+      },
+      {
+        "key": "Pelicans 3",
+        "text": "A bird lands in a window, looks at them, and leaves."
+      },
+      {
+        "key": "Pelicans 4",
+        "text": "One pelican attacks the straggler."
+      },
+      {
+        "key": "Pelicans 5",
+        "text": "Three birds hunt the party through the halls. Save this for the moment they are leaving, carrying loot, on the outside of the tower."
+      }
+    ]
+  },
+  {
+    "id": "session-plan",
+    "name": "Session plan and timing",
+    "die": "",
+    "description": "Sessions land in three to five hours. If you are running short, cut rooms 10-12 and 19-21 to a sentence each. Never cut room 22.",
+    "entries": [
+      {
+        "key": "15 min",
+        "text": "Open. Hand out sheets, read the hook, approach the tower, spot the goblin camp and the shaman burying teeth."
+      },
+      {
+        "key": "20 min",
+        "text": "Room 1. Gibbets, the spark, the ring. Players learn the numbers exist."
+      },
+      {
+        "key": "The hour",
+        "text": "Sky-blindness lands. Do this on the clock, not when convenient."
+      },
+      {
+        "key": "60 min",
+        "text": "Lower loop, rooms 2-9. Gate weirdness, the fountain, the pelicans. Somebody loses a spark here."
+      },
+      {
+        "key": "50 min",
+        "text": "Middle. Bleak Hall, the cone, the study. The maps in room 22 explain the whole puzzle."
+      },
+      {
+        "key": "40 min",
+        "text": "Giants, rooms 16-17. Fight, bargain, steal, or start the twins feuding."
+      },
+      {
+        "key": "25 min",
+        "text": "The climb. Chains outside, room 23, the roof."
+      },
+      {
+        "key": "20 min",
+        "text": "Altar. Lightning, wish, and the price."
+      }
+    ]
+  }
+]

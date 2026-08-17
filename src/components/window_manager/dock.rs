@@ -167,26 +167,23 @@ const DOCK_STORAGE_KEY: &str = "webrpg_dock_layout";
 
 #[cfg(feature = "hydrate")]
 fn load_dock_layout() -> DockLayout {
-    if let Some(window) = web_sys::window() {
-        if let Ok(Some(storage)) = window.local_storage() {
-            if let Ok(Some(json)) = storage.get_item(DOCK_STORAGE_KEY) {
-                if let Ok(layout) = serde_json::from_str::<DockLayout>(&json) {
-                    return layout;
-                }
-            }
-        }
+    if let Some(window) = web_sys::window()
+        && let Ok(Some(storage)) = window.local_storage()
+        && let Ok(Some(json)) = storage.get_item(DOCK_STORAGE_KEY)
+        && let Ok(layout) = serde_json::from_str::<DockLayout>(&json)
+    {
+        return layout;
     }
     DockLayout::new()
 }
 
 #[cfg(feature = "hydrate")]
 fn save_dock_layout(layout: &DockLayout) {
-    if let Some(window) = web_sys::window() {
-        if let Ok(Some(storage)) = window.local_storage() {
-            if let Ok(json) = serde_json::to_string(layout) {
-                let _ = storage.set_item(DOCK_STORAGE_KEY, &json);
-            }
-        }
+    if let Some(window) = web_sys::window()
+        && let Ok(Some(storage)) = window.local_storage()
+        && let Ok(json) = serde_json::to_string(layout)
+    {
+        let _ = storage.set_item(DOCK_STORAGE_KEY, &json);
     }
 }
 
@@ -279,23 +276,23 @@ pub(super) fn Dock() -> impl IntoView {
         let drag = dock_drag.get();
         let mut tiles: Vec<(WindowId, String, &'static str, DockPos)> = vec![];
         for w in &wins {
-            if w.minimized {
-                if let Some(pos) = layout.get_pos(w.id) {
-                    // Skip the tile being actively dragged (it's rendered separately)
-                    if drag
-                        .as_ref()
-                        .is_some_and(|d| d.window_id == w.id && d.active)
-                    {
-                        continue;
-                    }
-                    let label = w.title.as_deref().unwrap_or(w.id.dock_label());
-                    let label = if label.len() > 8 {
-                        format!("{}...", &label[..6])
-                    } else {
-                        label.to_string()
-                    };
-                    tiles.push((w.id, label, w.id.dock_icon(), pos));
+            if w.minimized
+                && let Some(pos) = layout.get_pos(w.id)
+            {
+                // Skip the tile being actively dragged (it's rendered separately)
+                if drag
+                    .as_ref()
+                    .is_some_and(|d| d.window_id == w.id && d.active)
+                {
+                    continue;
                 }
+                let label = w.title.as_deref().unwrap_or(w.id.dock_label());
+                let label = if label.len() > 8 {
+                    format!("{}...", &label[..6])
+                } else {
+                    label.to_string()
+                };
+                tiles.push((w.id, label, w.id.dock_icon(), pos));
             }
         }
         tiles
@@ -431,7 +428,8 @@ pub(super) fn Dock() -> impl IntoView {
                 }
                 style="cursor: pointer;"
             >
-                <span class="dock-tile-icon">{"\u{1f6e1}"}</span>
+                // 🛠️ hammer and wrench: this tile opens Settings.
+                <span class="dock-tile-icon">{"\u{1f6e0}\u{fe0f}"}</span>
                 <span class="dock-tile-label">"WebRPG"</span>
             </div>
 
