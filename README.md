@@ -74,7 +74,7 @@ For a release build:
 cargo leptos build --release
 ```
 
-The output is a server binary at `target/server/release/webrpg` and static
+The output is a server binary at `target/release/webrpg` and static
 assets in `target/site/`. To deploy, copy both and set these environment
 variables:
 

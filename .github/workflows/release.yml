@@ -71,9 +71,13 @@ jobs:
       - name: Package release artifact
         run: |
           mkdir -p dist
-          cp target/server/release/webrpg dist/
+          cp target/release/webrpg dist/
           cp -r target/site dist/site
           cp -r migrations dist/migrations
+          # The server reads game modules from MODULES_DIR, default ./modules.
+          # Without these a release starts with no systems or adventures at all.
+          cp -r modules dist/modules
+          cp -r help dist/help
           tar czf webrpg-${{ github.ref_name }}-linux-x86_64.tar.gz -C dist .
 
       - name: Upload artifact

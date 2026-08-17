@@ -40,6 +40,20 @@ cp -r migrations "$RELEASE_DIR/${RELEASE_NAME}/migrations"
 # Help pages
 cp -r help "$RELEASE_DIR/${RELEASE_NAME}/help"
 
+# Game modules. The server reads these from MODULES_DIR, default ./modules,
+# so a release without them offers no systems or adventures.
+#
+# Only tracked files: a working copy may hold fetched adventure art that is
+# gitignored precisely because its licence does not allow redistributing it in
+# a package like this one.
+if git -C . rev-parse --git-dir >/dev/null 2>&1; then
+    git ls-files modules | tar cf - -T - \
+        | (cd "$RELEASE_DIR/${RELEASE_NAME}" && tar xf -)
+else
+    echo "warning: not a git checkout, copying modules/ wholesale" >&2
+    cp -r modules "$RELEASE_DIR/${RELEASE_NAME}/modules"
+fi
+
 # Scripts
 cp -r scripts "$RELEASE_DIR/${RELEASE_NAME}/scripts"
 
