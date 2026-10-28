@@ -211,11 +211,7 @@ pub fn ModulesPanel() -> impl IntoView {
     };
 
     let post_to_chat = move |message: String| {
-        send.with_value(|f| {
-            if let Some(f) = f {
-                f(ClientMessage::ChatMessage { message });
-            }
-        });
+        send.send(ClientMessage::ChatMessage { message });
     };
 
     let roll_die = move |die: String| {
@@ -224,11 +220,7 @@ pub fn ModulesPanel() -> impl IntoView {
         } else {
             die
         };
-        send.with_value(|f| {
-            if let Some(f) = f {
-                f(ClientMessage::RollDice { expression });
-            }
-        });
+        send.send(ClientMessage::RollDice { expression });
     };
 
     view! {
@@ -503,21 +495,17 @@ pub fn ModulesPanel() -> impl IntoView {
                                             let tags = item.tags.clone();
                                             let deal = move |_| {
                                                 let owner = deal_to.get();
-                                                send.with_value(|f| {
-                                                    if let Some(f) = f {
-                                                        f(ClientMessage::AddInventoryItem {
-                                                            name: name.clone(),
-                                                            description: description.clone(),
-                                                            quantity: 1,
-                                                            is_party_item: owner.is_none(),
-                                                            kind: kind.clone(),
-                                                            bonus: bonus.clone(),
-                                                            slots: Some(slots),
-                                                            uses,
-                                                            tags: tags.clone(),
-                                                            owner_character_id: owner,
-                                                        });
-                                                    }
+                                                send.send(ClientMessage::AddInventoryItem {
+                                                    name: name.clone(),
+                                                    description: description.clone(),
+                                                    quantity: 1,
+                                                    is_party_item: owner.is_none(),
+                                                    kind: kind.clone(),
+                                                    bonus: bonus.clone(),
+                                                    slots: Some(slots),
+                                                    uses,
+                                                    tags: tags.clone(),
+                                                    owner_character_id: owner,
                                                 });
                                             };
                                             view! {

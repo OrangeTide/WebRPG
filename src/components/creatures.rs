@@ -246,13 +246,9 @@ pub fn CreaturePanel() -> impl IntoView {
                         let send = ctx.send;
                         let roll_init = move |_| {
                             let label = roll_name.clone();
-                            send.with_value(|f| {
-                                if let Some(f) = f {
-                                    f(ClientMessage::RollCreatureInitiative {
-                                        creature_id: cid,
-                                        label,
-                                    });
-                                }
+                            send.send(ClientMessage::RollCreatureInitiative {
+                                creature_id: cid,
+                                label,
                             });
                         };
                         let place_on_map = {
@@ -263,19 +259,15 @@ pub fn CreaturePanel() -> impl IntoView {
                                 let label = label.clone();
                                 let img = img.clone();
                                 let (cx, cy) = view_center.get();
-                                send.with_value(|f| {
-                                    if let Some(f) = f {
-                                        f(ClientMessage::PlaceToken {
-                                            label,
-                                            x: cx,
-                                            y: cy,
-                                            color: "#aa4444".to_string(),
-                                            size: 1,
-                                            character_id: None,
-                                            creature_id: Some(cid),
-                                            image_url: img,
-                                        });
-                                    }
+                                send.send(ClientMessage::PlaceToken {
+                                    label,
+                                    x: cx,
+                                    y: cy,
+                                    color: "#aa4444".to_string(),
+                                    size: 1,
+                                    character_id: None,
+                                    creature_id: Some(cid),
+                                    image_url: img,
                                 });
                             }
                         };

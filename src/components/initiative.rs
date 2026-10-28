@@ -77,12 +77,8 @@ pub fn InitiativeTracker() -> impl IntoView {
         // Stable sort descending by initiative value
         entries.sort_by(|a, b| b.initiative_value.partial_cmp(&a.initiative_value).unwrap());
 
-        send.with_value(|f| {
-            if let Some(f) = f {
-                f(ClientMessage::UpdateInitiative {
-                    entries: entries.clone(),
-                });
-            }
+        send.send(ClientMessage::UpdateInitiative {
+            entries: entries.clone(),
         });
 
         set_new_label.set(String::new());
@@ -100,12 +96,8 @@ pub fn InitiativeTracker() -> impl IntoView {
         let next_idx = (current_idx + 1) % entries.len();
         entries[next_idx].is_current_turn = true;
 
-        send.with_value(|f| {
-            if let Some(f) = f {
-                f(ClientMessage::UpdateInitiative {
-                    entries: entries.clone(),
-                });
-            }
+        send.send(ClientMessage::UpdateInitiative {
+            entries: entries.clone(),
         });
     };
 
@@ -118,12 +110,8 @@ pub fn InitiativeTracker() -> impl IntoView {
                 let new_idx = idx.min(entries.len() - 1);
                 entries[new_idx].is_current_turn = true;
             }
-            send.with_value(|f| {
-                if let Some(f) = f {
-                    f(ClientMessage::UpdateInitiative {
-                        entries: entries.clone(),
-                    });
-                }
+            send.send(ClientMessage::UpdateInitiative {
+                entries: entries.clone(),
             });
         }
     };
@@ -135,23 +123,15 @@ pub fn InitiativeTracker() -> impl IntoView {
                 e.is_current_turn = false;
             }
             entries[idx].is_current_turn = true;
-            send.with_value(|f| {
-                if let Some(f) = f {
-                    f(ClientMessage::UpdateInitiative {
-                        entries: entries.clone(),
-                    });
-                }
+            send.send(ClientMessage::UpdateInitiative {
+                entries: entries.clone(),
             });
         }
     };
 
     let toggle_lock = move |_| {
         let new_locked = !initiative_locked.get();
-        send.with_value(|f| {
-            if let Some(f) = f {
-                f(ClientMessage::SetInitiativeLock { locked: new_locked });
-            }
-        });
+        send.send(ClientMessage::SetInitiativeLock { locked: new_locked });
     };
 
     let do_drop = move || {
@@ -162,12 +142,8 @@ pub fn InitiativeTracker() -> impl IntoView {
             if let Some(target) = reorder_index(from, to, entries.len()) {
                 let item = entries.remove(from);
                 entries.insert(target, item);
-                send.with_value(|f| {
-                    if let Some(f) = f {
-                        f(ClientMessage::UpdateInitiative {
-                            entries: entries.clone(),
-                        });
-                    }
+                send.send(ClientMessage::UpdateInitiative {
+                    entries: entries.clone(),
                 });
             }
         } else {

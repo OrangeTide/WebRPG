@@ -1519,7 +1519,10 @@ pub fn TerminalPanel() -> impl IntoView {
         },
     ]);
 
-    let shell = StoredValue::new_local(ShellState::default());
+    // ShellState is Send + Sync (just a VfsPath), so it needs no LocalStorage.
+    // Using new_local here would create a SendWrapper that panics if the SSR
+    // render is dropped on a different worker thread than it was built on.
+    let shell = StoredValue::new(ShellState::default());
     let (input, set_input) = signal(String::new());
     let (prompt, set_prompt) = signal("A:/>  ".to_string());
     let history: RwSignal<Vec<String>> = RwSignal::new(Vec::new());

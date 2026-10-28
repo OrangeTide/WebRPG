@@ -115,18 +115,14 @@ pub fn CheckRoller(character_id: i32, data: serde_json::Value) -> impl IntoView 
             bonuses.push(penalty);
         }
 
-        send.with_value(|f| {
-            if let Some(f) = f {
-                f(ClientMessage::RollCheck {
-                    label: label.get().trim().to_string(),
-                    ability: ability_label.clone(),
-                    ability_mod: modifier,
-                    bonuses: bonuses.clone(),
-                    ds: ds.get().trim().parse::<i32>().ok(),
-                    dangerous: dangerous.get(),
-                    dice: rules.dice.clone(),
-                });
-            }
+        send.send(ClientMessage::RollCheck {
+            label: label.get().trim().to_string(),
+            ability: ability_label.clone(),
+            ability_mod: modifier,
+            bonuses: bonuses.clone(),
+            ds: ds.get().trim().parse::<i32>().ok(),
+            dangerous: dangerous.get(),
+            dice: rules.dice.clone(),
         });
 
         // The label is per-action; the ability and the ticked items usually

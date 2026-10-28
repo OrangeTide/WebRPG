@@ -107,19 +107,15 @@ pub fn CharacterSelection() -> impl IntoView {
         let view_center = ctx.map_view_center;
         move |char_id: i32, char_name: String, portrait: Option<String>| {
             let (cx, cy) = view_center.get();
-            send.with_value(|f| {
-                if let Some(f) = f {
-                    f(ClientMessage::PlaceToken {
-                        label: char_name,
-                        x: cx,
-                        y: cy,
-                        color: "#4488cc".to_string(),
-                        size: 1,
-                        character_id: Some(char_id),
-                        creature_id: None,
-                        image_url: portrait,
-                    });
-                }
+            send.send(ClientMessage::PlaceToken {
+                label: char_name,
+                x: cx,
+                y: cy,
+                color: "#4488cc".to_string(),
+                size: 1,
+                character_id: Some(char_id),
+                creature_id: None,
+                image_url: portrait,
             });
         }
     };
@@ -129,11 +125,7 @@ pub fn CharacterSelection() -> impl IntoView {
         let view_center = ctx.map_view_center;
         move |_| {
             let (cx, cy) = view_center.get();
-            send.with_value(|f| {
-                if let Some(f) = f {
-                    f(ClientMessage::PlaceAllPlayerTokens { x: cx, y: cy });
-                }
-            });
+            send.send(ClientMessage::PlaceAllPlayerTokens { x: cx, y: cy });
         }
     };
 
@@ -509,12 +501,8 @@ fn CharacterEditor(character: CharacterInfo, template: Option<TemplateInfo>) -> 
                 let initiative_locked = ctx.initiative_locked;
                 let roll_char_id = char_id;
                 let roll_init = move |_| {
-                    send.with_value(|f| {
-                        if let Some(f) = f {
-                            f(ClientMessage::RollCharacterInitiative {
-                                character_id: roll_char_id,
-                            });
-                        }
+                    send.send(ClientMessage::RollCharacterInitiative {
+                        character_id: roll_char_id,
                     });
                 };
                 view! {
@@ -760,8 +748,7 @@ fn ResourceBar(resource: ResourceInfo) -> impl IntoView {
     }
 }
 
-type SendHandle =
-    StoredValue<Option<Box<dyn Fn(ClientMessage)>>, leptos::reactive::owner::LocalStorage>;
+type SendHandle = crate::pages::game::Sender;
 
 #[component]
 fn FieldEditor(
@@ -780,14 +767,10 @@ fn FieldEditor(
     let on_change = move |new_value: serde_json::Value| {
         let path = field_name.clone();
         let val = new_value.clone();
-        send.with_value(|f| {
-            if let Some(f) = f {
-                f(ClientMessage::UpdateCharacterField {
-                    character_id,
-                    field_path: path,
-                    value: val,
-                });
-            }
+        send.send(ClientMessage::UpdateCharacterField {
+            character_id,
+            field_path: path,
+            value: val,
         });
     };
 

@@ -50,11 +50,7 @@ pub fn ChatPanel() -> impl IntoView {
     });
 
     let send_ws = move |msg: ClientMessage| {
-        send_handle.with_value(|f| {
-            if let Some(f) = f {
-                f(msg);
-            }
-        });
+        send_handle.send(msg);
     };
 
     let on_submit = move |_ev: leptos::ev::Event| {

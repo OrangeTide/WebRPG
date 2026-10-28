@@ -914,11 +914,7 @@ pub fn MapCanvas() -> impl IntoView {
                     }
                     MapTool::Ping => {
                         // Send ping at world position
-                        send.with_value(|f| {
-                            if let Some(f) = f {
-                                f(ClientMessage::Ping { x: wx, y: wy });
-                            }
-                        });
+                        send.send(ClientMessage::Ping { x: wx, y: wy });
                     }
                     MapTool::Rotate => {
                         let cell = m.cell_size as f64;
@@ -1180,11 +1176,7 @@ pub fn MapCanvas() -> impl IntoView {
                             .map(|t| (t.id, t.x, t.y))
                             .collect();
                         if !moves.is_empty() {
-                            send.with_value(|f| {
-                                if let Some(f) = f {
-                                    f(ClientMessage::MoveTokens { moves });
-                                }
-                            });
+                            send.send(ClientMessage::MoveTokens { moves });
                         }
                         drag_token_start.set(None);
                         drag_token_origins.set(Vec::new());
@@ -1203,21 +1195,17 @@ pub fn MapCanvas() -> impl IntoView {
                             tokens_data.iter().filter(|t| sel.contains(&t.id)).collect();
                         let rotations: Vec<(i32, f32)> =
                             selected.iter().map(|t| (t.id, t.rotation)).collect();
-                        send.with_value(|f| {
-                            if let Some(f) = f {
-                                // Only send position changes for multi-token orbit
-                                if selected.len() > 1 {
-                                    let moves: Vec<(i32, f32, f32)> =
-                                        selected.iter().map(|t| (t.id, t.x, t.y)).collect();
-                                    if !moves.is_empty() {
-                                        f(ClientMessage::MoveTokens { moves });
-                                    }
-                                }
-                                if !rotations.is_empty() {
-                                    f(ClientMessage::RotateTokens { rotations });
-                                }
+                        // Only send position changes for multi-token orbit
+                        if selected.len() > 1 {
+                            let moves: Vec<(i32, f32, f32)> =
+                                selected.iter().map(|t| (t.id, t.x, t.y)).collect();
+                            if !moves.is_empty() {
+                                send.send(ClientMessage::MoveTokens { moves });
                             }
-                        });
+                        }
+                        if !rotations.is_empty() {
+                            send.send(ClientMessage::RotateTokens { rotations });
+                        }
                     }
                     rotate_anchor_angle.set(None);
                     rotate_initial_state.set(Vec::new());
@@ -1396,12 +1384,8 @@ pub fn MapCanvas() -> impl IntoView {
     };
 
     let on_bg_select = Callback::new(move |media: crate::models::MediaInfo| {
-        send.with_value(|f| {
-            if let Some(f) = f {
-                f(ClientMessage::SetMapBackground {
-                    background_url: Some(media.url.clone()),
-                });
-            }
+        send.send(ClientMessage::SetMapBackground {
+            background_url: Some(media.url.clone()),
         });
         show_media_browser.set(false);
     });
@@ -1507,11 +1491,7 @@ pub fn MapCanvas() -> impl IntoView {
                     let mid = new_map.id;
                     map_signal.set(Some(new_map));
                     // Tell server to switch to the new map
-                    send.with_value(|f| {
-                        if let Some(f) = f {
-                            f(ClientMessage::SetMap { map_id: mid });
-                        }
-                    });
+                    send.send(ClientMessage::SetMap { map_id: mid });
                 }
                 Err(e) => log::error!("Failed to create map: {e}"),
             }
@@ -1541,11 +1521,7 @@ pub fn MapCanvas() -> impl IntoView {
                         Ok(maps) => {
                             if let Some(next) = maps.first() {
                                 map_signal.set(Some(next.clone()));
-                                send.with_value(|f| {
-                                    if let Some(f) = f {
-                                        f(ClientMessage::SetMap { map_id: next.id });
-                                    }
-                                });
+                                send.send(ClientMessage::SetMap { map_id: next.id });
                             } else {
                                 map_signal.set(None);
                                 tokens.set(vec![]);
@@ -1802,11 +1778,7 @@ pub fn MapCanvas() -> impl IntoView {
                     on:change=move |ev| {
                         let color: String = leptos::prelude::event_target_value(&ev);
                         ctx.ping_color.set(color.clone());
-                        send.with_value(|f| {
-                            if let Some(f) = f {
-                                f(ClientMessage::SetPingColor { color });
-                            }
-                        });
+                        send.send(ClientMessage::SetPingColor { color });
                     }
                 />
 
@@ -1817,14 +1789,10 @@ pub fn MapCanvas() -> impl IntoView {
                         on:click=move |_| {
                             let offset = view_offset.get();
                             let zoom = view_zoom.get();
-                            send.with_value(|f| {
-                                if let Some(f) = f {
-                                    f(ClientMessage::SyncViewport {
-                                        x: offset.0,
-                                        y: offset.1,
-                                        zoom,
-                                    });
-                                }
+                            send.send(ClientMessage::SyncViewport {
+                                x: offset.0,
+                                y: offset.1,
+                                zoom,
                             });
                         }
                         data-tooltip="Sync Viewport to Players"
@@ -1872,11 +1840,7 @@ pub fn MapCanvas() -> impl IntoView {
                                                     on:click=move |_| {
                                                         if is_active { return; }
                                                         show_map_list.set(false);
-                                                        send.with_value(|f| {
-                                                            if let Some(f) = f {
-                                                                f(ClientMessage::SetMap { map_id: mid });
-                                                            }
-                                                        });
+                                                        send.send(ClientMessage::SetMap { map_id: mid });
                                                     }
                                                 >{name}</div>
                                             }
@@ -1938,11 +1902,7 @@ pub fn MapCanvas() -> impl IntoView {
                                                 prop:value=move || map.get().map(|m| m.default_token_color).unwrap_or_else(|| "#888888".to_string())
                                                 on:change=move |ev| {
                                                     let color: String = leptos::prelude::event_target_value(&ev);
-                                                    send.with_value(|f| {
-                                                        if let Some(f) = f {
-                                                            f(ClientMessage::SetMapDefaultColor { color });
-                                                        }
-                                                    });
+                                                    send.send(ClientMessage::SetMapDefaultColor { color });
                                                 }
                                             />
                                         </label>
@@ -2163,13 +2123,9 @@ fn TokenContextMenu(
                                 ev.prevent_default();
                                 let new_label = rename_value.get();
                                 if !new_label.trim().is_empty() {
-                                    send.with_value(|f| {
-                                        if let Some(f) = f {
-                                            f(ClientMessage::UpdateTokenLabel {
-                                                token_id: single_id,
-                                                label: new_label,
-                                            });
-                                        }
+                                    send.send(ClientMessage::UpdateTokenLabel {
+                                        token_id: single_id,
+                                        label: new_label,
                                     });
                                 }
                                 renaming.set(false);
@@ -2211,13 +2167,9 @@ fn TokenContextMenu(
                             class="map-ctx-item"
                             on:click=move |_| {
                                 token_context_menu.set(None);
-                                send.with_value(|f| {
-                                    if let Some(f) = f {
-                                        f(ClientMessage::UpdateTokenVisibility {
-                                            token_id: single_id,
-                                            visible: !is_visible,
-                                        });
-                                    }
+                                send.send(ClientMessage::UpdateTokenVisibility {
+                                    token_id: single_id,
+                                    visible: !is_visible,
                                 });
                             }
                         >
@@ -2232,18 +2184,16 @@ fn TokenContextMenu(
                                 let creature_label = creature_label.clone();
                                 move |_| {
                                     token_context_menu.set(None);
-                                    send.with_value(|f| {
-                                        if let Some(f) = f {
-                                            if let Some(cid) = character_id {
-                                                f(ClientMessage::RollCharacterInitiative { character_id: cid });
-                                            } else if let Some(crid) = creature_id {
-                                                f(ClientMessage::RollCreatureInitiative {
-                                                    creature_id: crid,
-                                                    label: creature_label.clone(),
-                                                });
-                                            }
-                                        }
-                                    });
+                                    if let Some(cid) = character_id {
+                                        send.send(ClientMessage::RollCharacterInitiative {
+                                            character_id: cid,
+                                        });
+                                    } else if let Some(crid) = creature_id {
+                                        send.send(ClientMessage::RollCreatureInitiative {
+                                            creature_id: crid,
+                                            label: creature_label.clone(),
+                                        });
+                                    }
                                 }
                             }
                         >
@@ -2260,11 +2210,7 @@ fn TokenContextMenu(
                                 move |_| {
                                     token_context_menu.set(None);
                                     for &tid in &ids {
-                                        send.with_value(|f| {
-                                            if let Some(f) = f {
-                                                f(ClientMessage::RemoveToken { token_id: tid });
-                                            }
-                                        });
+                                        send.send(ClientMessage::RemoveToken { token_id: tid });
                                     }
                                     selected_ids.set(std::collections::HashSet::new());
                                 }
@@ -2328,13 +2274,9 @@ fn TokenHpPopup(
         } else {
             new_conditions.push(condition);
         }
-        send.with_value(|f| {
-            if let Some(f) = f {
-                f(ClientMessage::UpdateTokenConditions {
-                    token_id,
-                    conditions: new_conditions,
-                });
-            }
+        send.send(ClientMessage::UpdateTokenConditions {
+            token_id,
+            conditions: new_conditions,
         });
     };
 

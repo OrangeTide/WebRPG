@@ -84,21 +84,17 @@ pub fn InventoryPanel() -> impl IntoView {
             Owner::Character(id) => Some(id),
         };
 
-        send.with_value(|f| {
-            if let Some(f) = f {
-                f(ClientMessage::AddInventoryItem {
-                    name: name.clone(),
-                    description: String::new(),
-                    quantity: 1,
-                    is_party_item: owner_character_id.is_none(),
-                    kind: String::new(),
-                    bonus: bonus.clone(),
-                    slots: Some(slots),
-                    uses: None,
-                    tags: Vec::new(),
-                    owner_character_id,
-                });
-            }
+        send.send(ClientMessage::AddInventoryItem {
+            name: name.clone(),
+            description: String::new(),
+            quantity: 1,
+            is_party_item: owner_character_id.is_none(),
+            kind: String::new(),
+            bonus: bonus.clone(),
+            slots: Some(slots),
+            uses: None,
+            tags: Vec::new(),
+            owner_character_id,
         });
 
         set_new_name.set(String::new());
@@ -107,26 +103,18 @@ pub fn InventoryPanel() -> impl IntoView {
     };
 
     let remove_item = move |item_id: i32| {
-        send.with_value(|f| {
-            if let Some(f) = f {
-                f(ClientMessage::RemoveInventoryItem { item_id });
-            }
-        });
+        send.send(ClientMessage::RemoveInventoryItem { item_id });
     };
 
     let change_qty = move |item_id: i32, delta: i32| {
         let items = inventory.get();
         if let Some(item) = items.iter().find(|i| i.id == item_id) {
             let new_quantity = (item.quantity + delta).max(0);
-            send.with_value(|f| {
-                if let Some(f) = f {
-                    f(ClientMessage::UpdateInventoryItem {
-                        item_id,
-                        name: None,
-                        description: None,
-                        quantity: Some(new_quantity),
-                    });
-                }
+            send.send(ClientMessage::UpdateInventoryItem {
+                item_id,
+                name: None,
+                description: None,
+                quantity: Some(new_quantity),
             });
         }
     };
@@ -139,21 +127,13 @@ pub fn InventoryPanel() -> impl IntoView {
         };
         let left = item.uses_left.unwrap_or(0);
         let uses_left = if index < left { index } else { index + 1 };
-        send.with_value(|f| {
-            if let Some(f) = f {
-                f(ClientMessage::SetInventoryItemUses { item_id, uses_left });
-            }
-        });
+        send.send(ClientMessage::SetInventoryItemUses { item_id, uses_left });
     };
 
     let assign = move |item_id: i32, character_id: Option<i32>| {
-        send.with_value(|f| {
-            if let Some(f) = f {
-                f(ClientMessage::AssignInventoryItem {
-                    item_id,
-                    character_id,
-                });
-            }
+        send.send(ClientMessage::AssignInventoryItem {
+            item_id,
+            character_id,
         });
     };
 

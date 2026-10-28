@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+#[cfg(feature = "hydrate")]
 use leptos::reactive::owner::LocalStorage;
 
 use crate::components::charsheet::{CharacterEditorPanel, CharacterSelection};
@@ -105,7 +106,7 @@ pub struct GameContext {
     pub chat_messages: RwSignal<Vec<ChatMessageInfo>>,
     pub inventory: RwSignal<Vec<InventoryItemInfo>>,
     pub connected: RwSignal<bool>,
-    pub send: StoredValue<Option<SendFn>, LocalStorage>,
+    pub send: Sender,
     /// Bumped when any character data/resource changes (triggers refetch in listeners).
     pub character_revision: RwSignal<u32>,
     /// Whether the current user is the GM of this session.
@@ -151,16 +152,58 @@ pub struct GameContext {
 
 // In WASM (single-threaded), JS types like WebSocket aren't Send+Sync.
 // Use LocalStorage to avoid the Send+Sync requirement.
+#[cfg(feature = "hydrate")]
 type SendFn = Box<dyn Fn(ClientMessage)>;
+
+/// Sends client messages over the session WebSocket. The closure captures the
+/// WebSocket, which is not Send on wasm, so on the client it lives in a
+/// LocalStorage StoredValue. It is None until the socket connects, and a send
+/// before then logs a warning rather than silently dropping the message.
+///
+/// On the server the sender holds nothing at all. The WebSocket is hydrate-only,
+/// so creating a LocalStorage value during SSR would leave a non-Send value in
+/// the reactive owner that panics when the streaming render is cleaned up on a
+/// different worker thread than it was built on. `send` is a no-op there.
+#[derive(Clone, Copy)]
+pub struct Sender {
+    #[cfg(feature = "hydrate")]
+    inner: StoredValue<Option<SendFn>, LocalStorage>,
+}
+
+impl Sender {
+    #[cfg(feature = "hydrate")]
+    fn new() -> Self {
+        Sender {
+            inner: StoredValue::new_local(None),
+        }
+    }
+
+    #[cfg(not(feature = "hydrate"))]
+    fn new() -> Self {
+        Sender {}
+    }
+
+    /// Install the real send closure once the socket is open. Hydrate-only.
+    #[cfg(feature = "hydrate")]
+    fn connect(&self, f: SendFn) {
+        self.inner.set_value(Some(f));
+    }
+
+    pub fn send(&self, msg: ClientMessage) {
+        #[cfg(feature = "hydrate")]
+        self.inner.with_value(|f| match f {
+            Some(f) => f(msg),
+            None => log::warn!("message sent before the WebSocket connected; dropping it"),
+        });
+        #[cfg(not(feature = "hydrate"))]
+        let _ = msg;
+    }
+}
 
 #[allow(dead_code)]
 impl GameContext {
     pub fn send_message(&self, msg: ClientMessage) {
-        self.send.with_value(|f| {
-            if let Some(f) = f {
-                f(msg);
-            }
-        });
+        self.send.send(msg);
     }
 
     fn apply_snapshot(&self, snapshot: GameStateSnapshot) {
@@ -478,7 +521,7 @@ pub fn GamePage() -> impl IntoView {
         chat_messages: RwSignal::new(vec![]),
         inventory: RwSignal::new(vec![]),
         connected: RwSignal::new(false),
-        send: StoredValue::new_local(None),
+        send: Sender::new(),
         character_revision: RwSignal::new(0),
         is_gm: RwSignal::new(false),
         ping_color: RwSignal::new("#ffcc00".to_string()),
@@ -620,7 +663,7 @@ pub fn GamePage() -> impl IntoView {
                         let _ = ws_clone.send_with_str(&json);
                     }
                 });
-                ctx.send.set_value(Some(send_fn));
+                ctx.send.connect(send_fn);
 
                 // On open: send JoinSession
                 let ctx_open = ctx.clone();
