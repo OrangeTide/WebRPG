@@ -53,17 +53,8 @@ pub fn ModulesPanel() -> impl IntoView {
         },
     );
 
-    let characters = Resource::new(
-        move || (session_id.get(), ctx.character_revision.get()),
-        |(sid, _)| async move {
-            if sid == 0 {
-                return Vec::new();
-            }
-            crate::server::api::list_characters(sid)
-                .await
-                .unwrap_or_default()
-        },
-    );
+    // Shared character cache from GameContext, kept current by delta events.
+    let characters = ctx.characters;
 
     // The adventure content, as much of it as this user is allowed to see.
     let adventure = Resource::new(
@@ -304,20 +295,15 @@ pub fn ModulesPanel() -> impl IntoView {
                         set_deal_to.set(event_target_value(&ev).parse::<i32>().ok())
                     }>
                         <option value="">"Party"</option>
-                        <Suspense fallback=|| ()>
-                            {move || {
-                                characters
-                                    .get()
-                                    .map(|chars| {
-                                        chars
-                                            .into_iter()
-                                            .map(|c| {
-                                                view! { <option value=c.id.to_string()>{c.name}</option> }
-                                            })
-                                            .collect_view()
-                                    })
-                            }}
-                        </Suspense>
+                        {move || {
+                            characters
+                                .get()
+                                .into_iter()
+                                .map(|c| {
+                                    view! { <option value=c.id.to_string()>{c.name}</option> }
+                                })
+                                .collect_view()
+                        }}
                     </select>
                 </div>
             </Show>

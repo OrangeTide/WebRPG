@@ -22,26 +22,15 @@ pub fn InventoryPanel() -> impl IntoView {
     let inventory = ctx.inventory;
     let send = ctx.send;
     let modules = ctx.modules;
-    let session_id = ctx.session_id;
-    let character_revision = ctx.character_revision;
 
     let (owner, set_owner) = signal(Owner::Party);
     let (new_name, set_new_name) = signal(String::new());
     let (new_slots, set_new_slots) = signal(String::new());
     let (new_bonus, set_new_bonus) = signal(String::new());
 
-    // Characters, for the owner tabs and their carrying capacity.
-    let characters = Resource::new(
-        move || (session_id.get(), character_revision.get()),
-        |(sid, _)| async move {
-            if sid == 0 {
-                return Vec::new();
-            }
-            crate::server::api::list_characters(sid)
-                .await
-                .unwrap_or_default()
-        },
-    );
+    // Characters, for the owner tabs and their carrying capacity. Shared cache
+    // from GameContext, kept current by the server's delta events.
+    let characters = ctx.characters;
 
     // Carrying capacity comes from the system module: which sheet field holds
     // it, and what going over costs. Without a module there is no limit.
@@ -147,36 +136,31 @@ pub fn InventoryPanel() -> impl IntoView {
                 >
                     "Party"
                 </button>
-                <Suspense fallback=|| ()>
-                    {move || {
-                        characters
-                            .get()
-                            .map(|chars| {
-                                chars
-                                    .into_iter()
-                                    .map(|c| {
-                                        let id = c.id;
-                                        view! {
-                                            <button
-                                                class="inv-owner-tab"
-                                                class:active=move || owner.get() == Owner::Character(id)
-                                                on:click=move |_| set_owner.set(Owner::Character(id))
-                                            >
-                                                {c.name.clone()}
-                                            </button>
-                                        }
-                                    })
-                                    .collect_view()
-                            })
-                    }}
-                </Suspense>
+                {move || {
+                    characters
+                        .get()
+                        .into_iter()
+                        .map(|c| {
+                            let id = c.id;
+                            view! {
+                                <button
+                                    class="inv-owner-tab"
+                                    class:active=move || owner.get() == Owner::Character(id)
+                                    on:click=move |_| set_owner.set(Owner::Character(id))
+                                >
+                                    {c.name.clone()}
+                                </button>
+                            }
+                        })
+                        .collect_view()
+                }}
             </div>
 
             // Slot meter. Party gear is not carried by anyone, so it has no limit.
             <Suspense fallback=|| ()>
                 {move || {
                     let used: i32 = visible_items().iter().map(stack_slots).sum();
-                    let chars = characters.get().unwrap_or_default();
+                    let chars = characters.get();
                     let capacity = match owner.get() {
                         Owner::Party => None,
                         Owner::Character(id) => capacity_of(&chars, id),
@@ -212,7 +196,7 @@ pub fn InventoryPanel() -> impl IntoView {
                         let uses_max = item.uses_max.unwrap_or(0);
                         let uses_left = item.uses_left.unwrap_or(0);
                         let slots = item.slots.max(0);
-                        let chars = characters.get().unwrap_or_default();
+                        let chars = characters.get();
                         let current_owner = item.owner_character_id;
 
                         view! {

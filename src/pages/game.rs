@@ -14,7 +14,9 @@ use crate::components::terminal::TerminalPanel;
 use crate::components::window_manager::{
     GameWindow, WindowId, WindowManager, WindowManagerContext,
 };
-use crate::models::{ChatMessageInfo, InitiativeEntryInfo, InventoryItemInfo, MapInfo, TokenInfo};
+use crate::models::{
+    CharacterInfo, ChatMessageInfo, InitiativeEntryInfo, InventoryItemInfo, MapInfo, TokenInfo,
+};
 use crate::ws::messages::{ClientMessage, GameStateSnapshot, ServerMessage};
 
 // ---------------------------------------------------------------------------
@@ -105,9 +107,16 @@ pub struct GameContext {
     pub initiative: RwSignal<Vec<InitiativeEntryInfo>>,
     pub chat_messages: RwSignal<Vec<ChatMessageInfo>>,
     pub inventory: RwSignal<Vec<InventoryItemInfo>>,
+    /// All characters in the session. The single client-side cache: the server
+    /// pushes granular `CharacterUpdated`/`CharacterResourceUpdated` deltas that
+    /// are applied here in place, and windows read this signal reactively
+    /// instead of each refetching the whole list.
+    pub characters: RwSignal<Vec<CharacterInfo>>,
     pub connected: RwSignal<bool>,
     pub send: Sender,
-    /// Bumped when any character data/resource changes (triggers refetch in listeners).
+    /// Bumped to force a full reload of `characters` from the server. Used for
+    /// changes that are not broadcast as deltas (create/delete). Field and
+    /// resource edits are applied in place and do not bump this.
     pub character_revision: RwSignal<u32>,
     /// Whether the current user is the GM of this session.
     pub is_gm: RwSignal<bool>,
@@ -392,11 +401,45 @@ impl GameContext {
                     }
                 }
             }
-            ServerMessage::CharacterUpdated { .. } => {
-                self.character_revision.update(|n| *n += 1);
+            ServerMessage::CharacterUpdated {
+                character_id,
+                field_path,
+                value,
+            } => {
+                // Apply the delta in place, mirroring the dot-path write the
+                // server does in ws_handler::character::update_character_field.
+                self.characters.update(|chars| {
+                    let Some(c) = chars.iter_mut().find(|c| c.id == character_id) else {
+                        return;
+                    };
+                    let parts: Vec<&str> = field_path.split('.').collect();
+                    let mut current = &mut c.data;
+                    for (i, part) in parts.iter().enumerate() {
+                        if i == parts.len() - 1 {
+                            current[part] = value.clone();
+                        } else {
+                            if !current.get(part).is_some_and(|v| v.is_object()) {
+                                current[part] = serde_json::json!({});
+                            }
+                            current = &mut current[part];
+                        }
+                    }
+                });
             }
-            ServerMessage::CharacterResourceUpdated { .. } => {
-                self.character_revision.update(|n| *n += 1);
+            ServerMessage::CharacterResourceUpdated {
+                character_id,
+                resource_id,
+                current_value,
+                max_value,
+            } => {
+                self.characters.update(|chars| {
+                    if let Some(c) = chars.iter_mut().find(|c| c.id == character_id)
+                        && let Some(r) = c.resources.iter_mut().find(|r| r.id == resource_id)
+                    {
+                        r.current_value = current_value;
+                        r.max_value = max_value;
+                    }
+                });
             }
             ServerMessage::InventoryUpdated { items } => {
                 self.inventory.set(items);
@@ -520,6 +563,7 @@ pub fn GamePage() -> impl IntoView {
         initiative: RwSignal::new(vec![]),
         chat_messages: RwSignal::new(vec![]),
         inventory: RwSignal::new(vec![]),
+        characters: RwSignal::new(vec![]),
         connected: RwSignal::new(false),
         send: Sender::new(),
         character_revision: RwSignal::new(0),
@@ -597,6 +641,29 @@ pub fn GamePage() -> impl IntoView {
             .unwrap()
             .add_event_listener_with_callback("mouseover", cb.as_ref().unchecked_ref());
         cb.forget();
+    }
+
+    // Load the session's characters into the single shared cache. Runs once the
+    // session id is known, and again whenever character_revision is bumped (for
+    // create/delete, which are not broadcast as deltas). Field and resource
+    // edits are applied in place by apply_server_message and do not refetch.
+    #[cfg(feature = "hydrate")]
+    {
+        let characters = ctx.characters;
+        let character_revision = ctx.character_revision;
+        Effect::new(move |_| {
+            let sid = session_id_r.get();
+            character_revision.track();
+            if sid == 0 {
+                return;
+            }
+            leptos::task::spawn_local(async move {
+                match crate::server::api::list_characters(sid).await {
+                    Ok(chars) => characters.set(chars),
+                    Err(e) => log::error!("Failed to load characters: {e}"),
+                }
+            });
+        });
     }
 
     // Fetch WS token and connect

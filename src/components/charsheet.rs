@@ -12,40 +12,12 @@ pub fn CharacterSelection() -> impl IntoView {
     let ctx = expect_context::<GameContext>();
     let session_id = ctx.session_id;
 
-    // Use signal + effect instead of Resource so the list loads correctly
-    // after hydration (session_id starts at 0 and gets set in an Effect).
-    let characters = RwSignal::new(Vec::<CharacterInfo>::new());
-    #[allow(unused_variables)]
-    let loading = RwSignal::new(true);
-    let refetch = RwSignal::new(0u32);
-
-    #[allow(unused_variables)]
+    // Characters come from the shared GameContext cache, kept current by the
+    // server's delta events. Create and delete are not broadcast as deltas, so
+    // they bump character_revision to reload the list from the server.
+    let characters = ctx.characters;
     let character_revision = ctx.character_revision;
-
-    // Only fetch on client — SSR must render the same empty initial state
-    // that the client sees during hydration.
-    #[cfg(feature = "hydrate")]
-    {
-        let fetch_characters = move || {
-            let sid = session_id.get();
-            refetch.track();
-            character_revision.track();
-            if sid == 0 {
-                return;
-            }
-            loading.set(true);
-            leptos::task::spawn_local(async move {
-                match crate::server::api::list_characters(sid).await {
-                    Ok(chars) => characters.set(chars),
-                    Err(e) => log::error!("Failed to load characters: {e}"),
-                }
-                loading.set(false);
-            });
-        };
-        Effect::new(move |_| fetch_characters());
-    }
-
-    let trigger_refetch = move || refetch.update(|n| *n += 1);
+    let trigger_refetch = move || character_revision.update(|n| *n += 1);
 
     let (show_create_form, set_show_create_form) = signal(false);
     let (creating, set_creating) = signal(false);
