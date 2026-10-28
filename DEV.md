@@ -260,19 +260,31 @@ The game page (`pages/game.rs`) creates a `GameContext` provided via Leptos
 context to all child components. `GameContext` holds `RwSignal`s for each piece
 of game state (map, tokens, fog, chat, initiative, inventory) plus:
 
-- `character_revision: RwSignal<u32>` — bumped on any character data/resource
-  change; listeners (e.g. character selection list) track this to trigger
-  refetches.
+- `characters: RwSignal<Vec<CharacterInfo>>` — the single client-side cache of
+  the session's characters, loaded once when the session id is known. The server
+  pushes granular `CharacterUpdated` / `CharacterResourceUpdated` deltas, which
+  are applied to this signal in place; windows (character selection, inventory,
+  modules) read it reactively instead of each refetching the whole list.
+- `character_revision: RwSignal<u32>` — bumped only to force a full reload of
+  `characters` from the server for changes that are not broadcast as deltas
+  (character create/delete). Field and resource edits apply in place and do not
+  bump it.
 - `initiative_locked: RwSignal<bool>` — whether character sheet initiative
   rolls are locked (GM toggle).
 - `pings: RwSignal<Vec<(f64, f64, String, f64)>>` — active map pings
   (x, y, color, timestamp_ms). Auto-expired after 3 seconds.
 - `viewport_override: RwSignal<Option<(f64, f64, f64)>>` — when set by a
   GM viewport sync, the map canvas jumps to the given (x, y, zoom).
+- `center_on: RwSignal<Option<CenterTarget>>` — a request for the map to
+  recenter on a token. `CenterTarget` is `Character(id)` / `TokenLabel(label)` /
+  `TokenId(id)`; the map resolves whichever key it carries, centers, and clears
+  the signal. One command in place of a separate signal per lookup key.
 - `loading_status` / `loading_error: RwSignal<Option<String>>` — startup
   modal state.
-- `send: StoredValue<Option<SendFn>, LocalStorage>` — WebSocket send
-  function (non-`Send` JS type, stored with `LocalStorage`).
+- `send: Sender` — WebSocket send handle. The send closure captures the socket
+  (a non-`Send` JS value), so on the client it lives in a `LocalStorage`
+  `StoredValue`; on the server it holds nothing and `send()` is a no-op. See
+  "SSR and non-`Send` reactive values" below.
 
 Components read state reactively and send messages through the context:
 
@@ -319,9 +331,9 @@ Components read state reactively and send messages through the context:
   "Roll Initiative" button between resource bars and ability scores (disabled
   when initiative is locked). Character field edits are sent as
   `UpdateCharacterField` WebSocket messages for real-time sync. The Character
-  Selection list uses a composite `<For>` key that includes portrait, data,
-  and resources so that any change (portrait, HP, stats) triggers a re-render.
-  Supports character portraits via the media browser.
+  Selection list iterates the shared `characters` cache with a composite `<For>`
+  key (id, portrait, data, resources), so an in-place delta update to a character
+  re-renders just that row. Supports character portraits via the media browser.
 - **CreaturePanel** — GM-only creature stat block CRUD. Create, edit, and
   delete creature stat blocks with template-driven stat fields. "Roll
   Initiative" button on each creature card (always enabled, ignores lock).
@@ -331,6 +343,47 @@ Components read state reactively and send messages through the context:
   files. Supports image thumbnails, tag-based filtering with autocomplete, and
   text search. Used by map background picker, token image picker, and character
   portrait picker.
+
+### SSR and non-`Send` reactive values
+
+`cargo-leptos` renders every page on the server first (SSR), then hydrates it on
+the client. The SSR render runs on the Axum/Tokio runtime, which is
+multi-threaded: Leptos streams the response and can drop a page's reactive owner
+on a different worker thread than the one that built it.
+
+A reactive value created with a `new_local` constructor (`StoredValue::new_local`,
+`RwSignal::new_local`, anything typed with `LocalStorage`) is **not `Send`** and
+is wrapped in a `SendWrapper`. If such a value is created during the SSR render
+and then dropped on another worker thread, `SendWrapper`'s `Drop` panics:
+
+```
+Dropped SendWrapper<T> variable from a thread different to the one it has been
+created with.
+```
+
+The panic aborts the response mid-stream, so the browser receives a truncated
+document (`ERR_INCOMPLETE_CHUNKED_ENCODING`), hydration never completes, and the
+page is stuck "Connecting..." with no data. Because it depends on how Tokio
+schedules the stream, it is a race: it can pass on one load and fail on the next,
+and a change elsewhere (restructuring resources or `<Suspense>` boundaries,
+which is what first exposed this) can start triggering it on most loads.
+
+**Rule: never create a non-`Send` reactive value during the SSR render.** Either
+
+- gate its creation behind `#[cfg(feature = "hydrate")]` when it is only useful
+  on the client, e.g. the WebSocket `Sender` (holds nothing on the server) and
+  the per-tab scratch-drive signal; or
+- if the value is actually `Send + Sync` (holds only plain data), use the plain
+  `StoredValue::new` / `RwSignal::new` instead of the `new_local` variant, e.g.
+  the terminal's `ShellState` (just a `VfsPath`).
+
+To check for a regression, load an authenticated `/game/:id` repeatedly rather
+than once (it is a race) and confirm the server log has no `SendWrapper` panic
+and every response is the full document:
+
+```sh
+for i in $(seq 1 24); do curl -s -b cookies.txt "$BASE/game/1" | wc -c; done
+```
 
 ### Multi-Window UI
 
