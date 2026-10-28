@@ -2,7 +2,7 @@ use leptos::prelude::*;
 
 use crate::components::window_manager::WindowManagerContext;
 use crate::models::{CharacterInfo, FieldType, ResourceInfo, TemplateField, TemplateInfo};
-use crate::pages::game::GameContext;
+use crate::pages::game::{CenterTarget, GameContext};
 use crate::ws::messages::ClientMessage;
 
 /// Character selection list — shows all characters for the session.
@@ -203,7 +203,7 @@ pub fn CharacterSelection() -> impl IntoView {
                                 <button
                                     class="btn-add"
                                     data-tooltip="Find on Map"
-                                    on:click=move |_| ctx.center_on_character.set(Some(cid))
+                                    on:click=move |_| ctx.center_on.set(Some(CenterTarget::Character(cid)))
                                 >
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -443,7 +443,7 @@ fn CharacterEditor(character: CharacterInfo, template: Option<TemplateInfo>) -> 
                 <button
                     class="btn-add"
                     data-tooltip="Find on Map"
-                    on:click=move |_| ctx.center_on_character.set(Some(char_id))
+                    on:click=move |_| ctx.center_on.set(Some(CenterTarget::Character(char_id)))
                 >
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>

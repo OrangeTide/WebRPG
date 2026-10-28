@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 
 use crate::models::InitiativeEntryInfo;
-use crate::pages::game::GameContext;
+use crate::pages::game::{CenterTarget, GameContext};
 use crate::ws::messages::ClientMessage;
 
 /// Compute the insertion index from a Y coordinate within the initiative list.
@@ -309,9 +309,10 @@ pub fn InitiativeTracker() -> impl IntoView {
                                         let label = entry.label.clone();
                                         move |_| {
                                             if let Some(tid) = token_id {
-                                                ctx.center_on_token_id.set(Some(tid));
+                                                ctx.center_on.set(Some(CenterTarget::TokenId(tid)));
                                             } else {
-                                                ctx.center_on_token_label.set(Some(label.clone()));
+                                                ctx.center_on
+                                                    .set(Some(CenterTarget::TokenLabel(label.clone())));
                                             }
                                         }
                                     }

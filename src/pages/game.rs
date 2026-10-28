@@ -96,6 +96,16 @@ impl LoadingState {
 }
 
 /// Shared game state provided via Leptos context to all child components.
+/// A request for the map to recenter on a specific token. The map resolves the
+/// target to a token, centers on it, then clears the request. One command with
+/// several lookup keys, rather than one signal per key.
+#[derive(Clone, Debug, PartialEq)]
+pub enum CenterTarget {
+    Character(i32),
+    TokenLabel(String),
+    TokenId(i32),
+}
+
 #[derive(Clone)]
 pub struct GameContext {
     pub session_id: ReadSignal<i32>,
@@ -131,12 +141,9 @@ pub struct GameContext {
     /// Current map viewport center in grid coordinates, updated by the map component.
     /// Used by other components to place tokens in view.
     pub map_view_center: RwSignal<(f32, f32)>,
-    /// When set, the map component centers on the token with this character_id.
-    pub center_on_character: RwSignal<Option<i32>>,
-    /// When set, the map component centers on the first token matching this label.
-    pub center_on_token_label: RwSignal<Option<String>>,
-    /// When set, the map component centers on the token with this ID.
-    pub center_on_token_id: RwSignal<Option<i32>>,
+    /// When set, the map centers on the token matching this target, then clears
+    /// the signal. One request with several lookup keys (see CenterTarget).
+    pub center_on: RwSignal<Option<CenterTarget>>,
     /// When set, the Creatures window is brought to front and scrolls to this creature_id.
     pub focus_creature: RwSignal<Option<i32>>,
     /// Whether initiative rolls from character sheets are locked.
@@ -397,7 +404,7 @@ impl GameContext {
                             self.turn_star.set(Some((wx, wy, now)));
                         }
                         // Auto-center map on the active token
-                        self.center_on_token_id.set(Some(tid));
+                        self.center_on.set(Some(CenterTarget::TokenId(tid)));
                     }
                 }
             }
@@ -573,9 +580,7 @@ pub fn GamePage() -> impl IntoView {
         pings: RwSignal::new(vec![]),
         viewport_override: RwSignal::new(None),
         map_view_center: RwSignal::new((0.0, 0.0)),
-        center_on_character: RwSignal::new(None),
-        center_on_token_label: RwSignal::new(None),
-        center_on_token_id: RwSignal::new(None),
+        center_on: RwSignal::new(None),
         focus_creature: RwSignal::new(None),
         initiative_locked: RwSignal::new(false),
         loading: RwSignal::new(Some(LoadingState::INITIALIZING)),
