@@ -51,16 +51,11 @@ impl SessionManager {
 
     pub fn broadcast(&self, session_id: i32, message: &ServerMessage, exclude: Option<&str>) {
         if let Some(session) = self.sessions.get(&session_id) {
-            let msg_json = serde_json::to_string(message).unwrap_or_default();
             for entry in session.clients.iter() {
                 if exclude.is_some_and(|ex| ex == entry.key()) {
                     continue;
                 }
-                let parsed: ServerMessage =
-                    serde_json::from_str(&msg_json).unwrap_or_else(|_| ServerMessage::Error {
-                        message: "Failed to serialize message".to_string(),
-                    });
-                let _ = entry.value().send(parsed);
+                let _ = entry.value().send(message.clone());
             }
         }
     }
