@@ -34,6 +34,8 @@ pub fn load_map_with_tokens(map_id: i32) -> Result<MapWithTokens, String> {
         background_url: m.background_url,
         default_token_color: m.default_token_color,
         fog_enabled: m.fog_enabled,
+        grid_offset_x: m.grid_offset_x,
+        grid_offset_y: m.grid_offset_y,
     };
 
     let db_tokens: Vec<Token> = tokens::table
@@ -142,6 +144,8 @@ pub fn build_snapshot(session_id: i32, user_id: i32) -> GameStateSnapshot {
             background_url: m.background_url,
             default_token_color: m.default_token_color,
         fog_enabled: m.fog_enabled,
+        grid_offset_x: m.grid_offset_x,
+        grid_offset_y: m.grid_offset_y,
         };
 
         let db_tokens: Vec<Token> = tokens::table
@@ -338,4 +342,31 @@ pub fn set_fog_enabled(map_id: i32, enabled: bool) -> Result<(), String> {
         .execute(conn)
         .map(|_| ())
         .map_err(|e| format!("Failed to update fog setting: {e}"))
+}
+
+/// Load just the MapInfo DTO for a map (no tokens or fog).
+pub fn load_map_info(map_id: i32) -> Result<MapInfo, String> {
+    use crate::db;
+    use crate::models::db_models::Map;
+    use crate::schema::maps;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+    let m: Map = maps::table
+        .find(map_id)
+        .select(Map::as_select())
+        .first(conn)
+        .map_err(|_| "Map not found".to_string())?;
+    Ok(MapInfo {
+        id: m.id,
+        name: m.name,
+        width: m.width,
+        height: m.height,
+        cell_size: m.cell_size,
+        background_url: m.background_url,
+        default_token_color: m.default_token_color,
+        fog_enabled: m.fog_enabled,
+        grid_offset_x: m.grid_offset_x,
+        grid_offset_y: m.grid_offset_y,
+    })
 }

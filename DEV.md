@@ -303,6 +303,12 @@ All message types are fully implemented:
   paints with the Reveal and Cover brush tools, or Reveal/Cover the entire map.
 - **Map:** switch active map (`SetMap`), set background (`SetMapBackground`).
   Map create/delete/list via server functions (not WebSocket).
+- **Map settings:** `UpdateMapSettings`/`MapSettingsUpdated` (GM only) edit the
+  active map's name, grid dimensions, cell size, grid origin offset, and default
+  token color in one go, broadcasting the full updated map. The grid offset
+  (`maps.grid_offset_x`/`grid_offset_y`) shifts the drawn grid, tokens, and fog
+  together so the overlay grid can be aligned to a background image. The New Map
+  and Map Settings forms share the same fields.
 - **Ping:** `Ping`/`PingBroadcast` — collaborative map pings with per-user
   color (`SetPingColor`)
 - **GM viewport sync:** `SyncViewport`/`ViewportSynced` — GM broadcasts viewport

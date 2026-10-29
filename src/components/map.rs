@@ -124,8 +124,6 @@ pub fn MapCanvas() -> impl IntoView {
     // (screen_x, screen_y, vec of token ids)
     let token_context_menu = RwSignal::new(Option::<(f64, f64, Vec<i32>)>::None);
 
-    let show_media_browser = RwSignal::new(false);
-    let show_map_settings = RwSignal::new(false);
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
     let container_ref = NodeRef::<leptos::html::Div>::new();
 
@@ -254,8 +252,8 @@ pub fn MapCanvas() -> impl IntoView {
                 && let Some(ref m) = map_data
             {
                 let cell = m.cell_size as f64;
-                let world_x = (t.x as f64 + 0.5) * cell;
-                let world_y = (t.y as f64 + 0.5) * cell;
+                let world_x = m.grid_offset_x as f64 + (t.x as f64 + 0.5) * cell;
+                let world_y = m.grid_offset_y as f64 + (t.y as f64 + 0.5) * cell;
                 if let Some(canvas) = canvas_ref_center.get() {
                     let canvas_el: &web_sys::HtmlCanvasElement = canvas.as_ref();
                     let cw = canvas_el.client_width() as f64;
@@ -412,12 +410,17 @@ pub fn MapCanvas() -> impl IntoView {
                 let w = (m.width * m.cell_size) as f64;
                 let h = (m.height * m.cell_size) as f64;
                 let cell = m.cell_size as f64;
+                // Grid origin offset: the grid, tokens, and fog are drawn from
+                // this world-space origin so the grid can be aligned to a
+                // background image. The background itself stays at (0, 0).
+                let ox = m.grid_offset_x as f64;
+                let oy = m.grid_offset_y as f64;
 
                 // Update viewport center in grid coords for other components
                 let center_wx = offset.0 + css_w as f64 / zoom / 2.0;
                 let center_wy = offset.1 + css_h as f64 / zoom / 2.0;
                 ctx.map_view_center
-                    .set(((center_wx / cell) as f32, (center_wy / cell) as f32));
+                    .set((((center_wx - ox) / cell) as f32, ((center_wy - oy) / cell) as f32));
 
                 // Apply viewport transform for world-space drawing
                 ctx2d
@@ -437,17 +440,17 @@ pub fn MapCanvas() -> impl IntoView {
                 ctx2d.set_stroke_style_str("#333355");
                 ctx2d.set_line_width(0.5 / zoom);
                 for x in 0..=m.width {
-                    let px = (x * m.cell_size) as f64;
+                    let px = ox + (x * m.cell_size) as f64;
                     ctx2d.begin_path();
-                    ctx2d.move_to(px, 0.0);
-                    ctx2d.line_to(px, h);
+                    ctx2d.move_to(px, oy);
+                    ctx2d.line_to(px, oy + h);
                     ctx2d.stroke();
                 }
                 for y in 0..=m.height {
-                    let py = (y * m.cell_size) as f64;
+                    let py = oy + (y * m.cell_size) as f64;
                     ctx2d.begin_path();
-                    ctx2d.move_to(0.0, py);
-                    ctx2d.line_to(w, py);
+                    ctx2d.move_to(ox, py);
+                    ctx2d.line_to(ox + w, py);
                     ctx2d.stroke();
                 }
 
@@ -463,8 +466,8 @@ pub fn MapCanvas() -> impl IntoView {
                     if !t.visible {
                         ctx2d.set_global_alpha(0.35);
                     }
-                    let cx = (t.x as f64 + 0.5) * cell;
-                    let cy = (t.y as f64 + 0.5) * cell;
+                    let cx = ox + (t.x as f64 + 0.5) * cell;
+                    let cy = oy + (t.y as f64 + 0.5) * cell;
                     let radius = cell * t.size as f64 * 0.4;
 
                     // Apply rotation around token center
@@ -628,8 +631,8 @@ pub fn MapCanvas() -> impl IntoView {
                         for gy in 0..m.height {
                             if !revealed.contains(&(gx, gy)) {
                                 ctx2d.fill_rect(
-                                    (gx * m.cell_size) as f64,
-                                    (gy * m.cell_size) as f64,
+                                    ox + (gx * m.cell_size) as f64,
+                                    oy + (gy * m.cell_size) as f64,
                                     cell,
                                     cell,
                                 );
@@ -769,13 +772,14 @@ pub fn MapCanvas() -> impl IntoView {
     // Each cell is sent once per stroke; the local fog signal is updated
     // optimistically so the brush feels immediate (the server echo is a no-op).
     #[cfg(feature = "hydrate")]
-    let paint_fog = move |wx: f64, wy: f64, reveal: bool, width: i32, height: i32, cell_size: i32| {
-        if cell_size <= 0 {
+    let paint_fog = move |wx: f64, wy: f64, reveal: bool, m: &crate::models::MapInfo| {
+        if m.cell_size <= 0 {
             return;
         }
-        let gx = (wx / cell_size as f64).floor() as i32;
-        let gy = (wy / cell_size as f64).floor() as i32;
-        if gx < 0 || gy < 0 || gx >= width || gy >= height {
+        let cell_size = m.cell_size as f64;
+        let gx = ((wx - m.grid_offset_x as f64) / cell_size).floor() as i32;
+        let gy = ((wy - m.grid_offset_y as f64) / cell_size).floor() as i32;
+        if gx < 0 || gy < 0 || gx >= m.width || gy >= m.height {
             return;
         }
         let key = (gx, gy);
@@ -847,14 +851,16 @@ pub fn MapCanvas() -> impl IntoView {
                 match tool {
                     MapTool::Select | MapTool::Pan => {
                         let cell = m.cell_size as f64;
+                        let ox = m.grid_offset_x as f64;
+                        let oy = m.grid_offset_y as f64;
                         let tokens_data = tokens.get();
 
                         let clicked = tokens_data.iter().rev().find(|t| {
                             if !t.visible && !ctx.is_gm.get() {
                                 return false;
                             }
-                            let cx = (t.x as f64 + 0.5) * cell;
-                            let cy = (t.y as f64 + 0.5) * cell;
+                            let cx = ox + (t.x as f64 + 0.5) * cell;
+                            let cy = oy + (t.y as f64 + 0.5) * cell;
                             let radius = cell * t.size as f64 * 0.5;
                             let dx = wx - cx;
                             let dy = wy - cy;
@@ -901,14 +907,16 @@ pub fn MapCanvas() -> impl IntoView {
                     }
                     MapTool::Measure => {
                         let cell = m.cell_size as f64;
+                        let ox = m.grid_offset_x as f64;
+                        let oy = m.grid_offset_y as f64;
                         let snap = snap_to_grid.get();
                         let mw = if snap {
-                            ((wx / cell).floor() + 0.5) * cell
+                            ox + (((wx - ox) / cell).floor() + 0.5) * cell
                         } else {
                             wx
                         };
                         let mh = if snap {
-                            ((wy / cell).floor() + 0.5) * cell
+                            oy + (((wy - oy) / cell).floor() + 0.5) * cell
                         } else {
                             wy
                         };
@@ -932,11 +940,13 @@ pub fn MapCanvas() -> impl IntoView {
                             fog_painting.set(true);
                             fog_stroke_cells.update(|s| s.clear());
                             let reveal = tool == MapTool::FogReveal;
-                            paint_fog(wx, wy, reveal, m.width, m.height, m.cell_size);
+                            paint_fog(wx, wy, reveal, &m);
                         }
                     }
                     MapTool::Rotate => {
                         let cell = m.cell_size as f64;
+                        let ox = m.grid_offset_x as f64;
+                        let oy = m.grid_offset_y as f64;
                         let tokens_data = tokens.get();
 
                         // Hit-test for token under cursor
@@ -944,8 +954,8 @@ pub fn MapCanvas() -> impl IntoView {
                             if !t.visible && !ctx.is_gm.get() {
                                 return false;
                             }
-                            let cx = (t.x as f64 + 0.5) * cell;
-                            let cy = (t.y as f64 + 0.5) * cell;
+                            let cx = ox + (t.x as f64 + 0.5) * cell;
+                            let cy = oy + (t.y as f64 + 0.5) * cell;
                             let radius = cell * t.size as f64 * 0.5;
                             let dx = wx - cx;
                             let dy = wy - cy;
@@ -967,12 +977,12 @@ pub fn MapCanvas() -> impl IntoView {
                             let count = selected_tokens.len() as f64;
                             let center_x = selected_tokens
                                 .iter()
-                                .map(|t| (t.x as f64 + 0.5) * cell)
+                                .map(|t| ox + (t.x as f64 + 0.5) * cell)
                                 .sum::<f64>()
                                 / count;
                             let center_y = selected_tokens
                                 .iter()
-                                .map(|t| (t.y as f64 + 0.5) * cell)
+                                .map(|t| oy + (t.y as f64 + 0.5) * cell)
                                 .sum::<f64>()
                                 / count;
 
@@ -986,8 +996,8 @@ pub fn MapCanvas() -> impl IntoView {
                                         (
                                             t.id,
                                             t.rotation,
-                                            (t.x as f64 + 0.5) * cell,
-                                            (t.y as f64 + 0.5) * cell,
+                                            ox + (t.x as f64 + 0.5) * cell,
+                                            oy + (t.y as f64 + 0.5) * cell,
                                         )
                                     })
                                     .collect(),
@@ -1076,14 +1086,16 @@ pub fn MapCanvas() -> impl IntoView {
                             let map_data = map.get();
                             if let Some(ref m) = map_data {
                                 let cell = m.cell_size as f64;
+                                let ox = m.grid_offset_x as f64;
+                                let oy = m.grid_offset_y as f64;
                                 let snap = snap_to_grid.get();
                                 let mw = if snap {
-                                    ((wx / cell).floor() + 0.5) * cell
+                                    ox + (((wx - ox) / cell).floor() + 0.5) * cell
                                 } else {
                                     wx
                                 };
                                 let mh = if snap {
-                                    ((wy / cell).floor() + 0.5) * cell
+                                    oy + (((wy - oy) / cell).floor() + 0.5) * cell
                                 } else {
                                     wy
                                 };
@@ -1097,7 +1109,7 @@ pub fn MapCanvas() -> impl IntoView {
                             let map_data = map.get();
                             if let Some(ref m) = map_data {
                                 let reveal = tool == MapTool::FogReveal;
-                                paint_fog(wx, wy, reveal, m.width, m.height, m.cell_size);
+                                paint_fog(wx, wy, reveal, m);
                             }
                         }
                     }
@@ -1108,6 +1120,8 @@ pub fn MapCanvas() -> impl IntoView {
                             let map_data = map.get();
                             let Some(m) = map_data else { return };
                             let cell = m.cell_size as f64;
+                            let ox = m.grid_offset_x as f64;
+                            let oy = m.grid_offset_y as f64;
                             let (cx, cy) = rotate_center.get();
                             let current_angle = (wy - cy).atan2(wx - cx);
                             let delta = current_angle - anchor;
@@ -1126,8 +1140,8 @@ pub fn MapCanvas() -> impl IntoView {
                                             let ry = iy - cy;
                                             let new_wx = cx + rx * cos_d - ry * sin_d;
                                             let new_wy = cy + rx * sin_d + ry * cos_d;
-                                            t.x = (new_wx / cell - 0.5) as f32;
-                                            t.y = (new_wy / cell - 0.5) as f32;
+                                            t.x = ((new_wx - ox) / cell - 0.5) as f32;
+                                            t.y = ((new_wy - oy) / cell - 0.5) as f32;
                                         }
                                         t.rotation = init_rot + delta as f32;
                                     }
@@ -1170,6 +1184,8 @@ pub fn MapCanvas() -> impl IntoView {
                             let map_data = map.get();
                             if let Some(ref m) = map_data {
                                 let cell = m.cell_size as f64;
+                                let ox = m.grid_offset_x as f64;
+                                let oy = m.grid_offset_y as f64;
                                 let tokens_data = tokens.get();
                                 let shift = ev.shift_key();
 
@@ -1182,8 +1198,8 @@ pub fn MapCanvas() -> impl IntoView {
                                         if !t.visible && !ctx.is_gm.get() {
                                             continue;
                                         }
-                                        let cx = (t.x as f64 + 0.5) * cell;
-                                        let cy = (t.y as f64 + 0.5) * cell;
+                                        let cx = ox + (t.x as f64 + 0.5) * cell;
+                                        let cy = oy + (t.y as f64 + 0.5) * cell;
                                         if cx >= rx && cx <= rx + rw && cy >= ry && cy <= ry + rh {
                                             ids.insert(t.id);
                                         }
@@ -1374,6 +1390,8 @@ pub fn MapCanvas() -> impl IntoView {
                 let map_data = map.get();
                 let Some(m) = map_data else { return };
                 let cell = m.cell_size as f64;
+                let ox = m.grid_offset_x as f64;
+                let oy = m.grid_offset_y as f64;
                 let zoom = view_zoom.get();
                 let offset = view_offset.get();
 
@@ -1388,8 +1406,8 @@ pub fn MapCanvas() -> impl IntoView {
                     if !t.visible && !ctx.is_gm.get() {
                         return false;
                     }
-                    let cx = (t.x as f64 + 0.5) * cell;
-                    let cy = (t.y as f64 + 0.5) * cell;
+                    let cx = ox + (t.x as f64 + 0.5) * cell;
+                    let cy = oy + (t.y as f64 + 0.5) * cell;
                     let radius = cell * t.size as f64 * 0.5;
                     let dx = wx - cx;
                     let dy = wy - cy;
@@ -1417,21 +1435,14 @@ pub fn MapCanvas() -> impl IntoView {
         }
     };
 
-    let on_bg_select = Callback::new(move |media: crate::models::MediaInfo| {
-        send.send(ClientMessage::SetMapBackground {
-            background_url: Some(media.url.clone()),
-        });
-        show_media_browser.set(false);
-    });
-
     // Center on token helper
     let center_on_token = move |token_id: i32| {
         let tokens_data = tokens.get();
         let map_data = map.get();
         if let (Some(t), Some(m)) = (tokens_data.iter().find(|t| t.id == token_id), &map_data) {
             let cell = m.cell_size as f64;
-            let world_x = (t.x as f64 + 0.5) * cell;
-            let world_y = (t.y as f64 + 0.5) * cell;
+            let world_x = m.grid_offset_x as f64 + (t.x as f64 + 0.5) * cell;
+            let world_y = m.grid_offset_y as f64 + (t.y as f64 + 0.5) * cell;
             #[cfg(feature = "hydrate")]
             if let Some(canvas) = canvas_ref.get() {
                 let canvas_el: &web_sys::HtmlCanvasElement = canvas.as_ref();
@@ -1445,12 +1456,18 @@ pub fn MapCanvas() -> impl IntoView {
     };
 
     // --- Create Map form state ---
+    // The map form is shared between creating a new map and editing the active
+    // map's settings. `editing_map` selects which: false = create, true = edit.
     let show_create_map = RwSignal::new(false);
+    let editing_map = RwSignal::new(false);
     let (new_map_name, set_new_map_name) = signal("Map".to_string());
     let (new_map_width, set_new_map_width) = signal(20i32);
     let (new_map_height, set_new_map_height) = signal(15i32);
     let (new_map_cell_size, set_new_map_cell_size) = signal(40i32);
     let (new_map_bg_url, set_new_map_bg_url) = signal(Option::<String>::None);
+    let (new_map_color, set_new_map_color) = signal("#888888".to_string());
+    let (new_map_off_x, set_new_map_off_x) = signal(0i32);
+    let (new_map_off_y, set_new_map_off_y) = signal(0i32);
     let show_map_image_picker = RwSignal::new(false);
     let session_id = ctx.session_id;
 
@@ -1479,35 +1496,42 @@ pub fn MapCanvas() -> impl IntoView {
             set_new_map_bg_url.set(Some(url.clone()));
             show_map_image_picker.set(false);
 
-            // Load image to get dimensions and estimate grid size
-            #[cfg(feature = "hydrate")]
-            {
-                use wasm_bindgen::JsCast;
-                let img = web_sys::HtmlImageElement::new().unwrap();
-                let img_clone = img.clone();
-                let onload = wasm_bindgen::closure::Closure::<dyn Fn()>::new(move || {
-                    let w = img_clone.natural_width();
-                    let h = img_clone.natural_height();
-                    if w > 0 && h > 0 {
-                        // Estimate: assume ~72 DPI, 1 inch per grid square
-                        // so cell_size ~72px. Clamp grid dimensions to reasonable range.
-                        let dpi_estimate = 72;
-                        let grid_w = (w as i32 / dpi_estimate).clamp(5, 200);
-                        let grid_h = (h as i32 / dpi_estimate).clamp(5, 200);
-                        let cell = dpi_estimate.clamp(10, 200);
-                        set_new_map_width.set(grid_w);
-                        set_new_map_height.set(grid_h);
-                        set_new_map_cell_size.set(cell);
-                    }
+            // When editing the active map, apply the background live and keep the
+            // existing grid dimensions (don't re-estimate them from the image).
+            if editing_map.get() {
+                send.send(ClientMessage::SetMapBackground {
+                    background_url: Some(url.clone()),
                 });
-                img.set_onload(Some(onload.as_ref().unchecked_ref()));
-                onload.forget();
-                img.set_src(&url);
+            } else {
+                // Creating a new map: estimate grid size from the image dimensions.
+                #[cfg(feature = "hydrate")]
+                {
+                    use wasm_bindgen::JsCast;
+                    let img = web_sys::HtmlImageElement::new().unwrap();
+                    let img_clone = img.clone();
+                    let onload = wasm_bindgen::closure::Closure::<dyn Fn()>::new(move || {
+                        let w = img_clone.natural_width();
+                        let h = img_clone.natural_height();
+                        if w > 0 && h > 0 {
+                            // Assume ~72 DPI, 1 inch per grid square (cell ~72px).
+                            let dpi_estimate = 72;
+                            let grid_w = (w as i32 / dpi_estimate).clamp(5, 200);
+                            let grid_h = (h as i32 / dpi_estimate).clamp(5, 200);
+                            let cell = dpi_estimate.clamp(10, 200);
+                            set_new_map_width.set(grid_w);
+                            set_new_map_height.set(grid_h);
+                            set_new_map_cell_size.set(cell);
+                        }
+                    });
+                    img.set_onload(Some(onload.as_ref().unchecked_ref()));
+                    onload.forget();
+                    img.set_src(&url);
+                }
             }
         })
     };
 
-    let do_create_map = move |_| {
+    let submit_map_form = move |_| {
         let name = new_map_name.get().trim().to_string();
         if name.is_empty() {
             return;
@@ -1515,27 +1539,93 @@ pub fn MapCanvas() -> impl IntoView {
         let w = new_map_width.get();
         let h = new_map_height.get();
         let cell = new_map_cell_size.get();
+        let color = new_map_color.get();
+        let off_x = new_map_off_x.get();
+        let off_y = new_map_off_y.get();
+
+        if editing_map.get() {
+            // Editing the active map: broadcast the settings. Background is set
+            // separately via the media browser (SetMapBackground).
+            send.send(ClientMessage::UpdateMapSettings {
+                name,
+                width: w,
+                height: h,
+                cell_size: cell,
+                grid_offset_x: off_x,
+                grid_offset_y: off_y,
+                default_token_color: color,
+            });
+            show_create_map.set(false);
+            return;
+        }
+
         let bg = new_map_bg_url.get();
         let sid = session_id.get();
         let map_signal = map;
         show_create_map.set(false);
         leptos::task::spawn_local(async move {
-            match crate::server::api::create_map(sid, name, w, h, Some(cell), bg).await {
+            match crate::server::api::create_map(sid, name.clone(), w, h, Some(cell), bg).await {
                 Ok(new_map) => {
                     let mid = new_map.id;
                     map_signal.set(Some(new_map));
-                    // Tell server to switch to the new map
+                    // Switch to the new map, then apply the chosen color/offset
+                    // if the GM changed them from the defaults (create_map only
+                    // takes the base fields).
                     send.send(ClientMessage::SetMap { map_id: mid });
+                    if color != "#888888" || off_x != 0 || off_y != 0 {
+                        send.send(ClientMessage::UpdateMapSettings {
+                            name,
+                            width: w,
+                            height: h,
+                            cell_size: cell,
+                            grid_offset_x: off_x,
+                            grid_offset_y: off_y,
+                            default_token_color: color,
+                        });
+                    }
                 }
                 Err(e) => log::error!("Failed to create map: {e}"),
             }
         });
-        // Reset form
+        // Reset form to defaults for the next New Map.
         set_new_map_name.set("Map".to_string());
         set_new_map_width.set(20);
         set_new_map_height.set(15);
         set_new_map_cell_size.set(40);
         set_new_map_bg_url.set(None);
+        set_new_map_color.set("#888888".to_string());
+        set_new_map_off_x.set(0);
+        set_new_map_off_y.set(0);
+    };
+
+    // Open the form to create a new map.
+    let open_new_map = move |_| {
+        editing_map.set(false);
+        set_new_map_name.set("Map".to_string());
+        set_new_map_width.set(20);
+        set_new_map_height.set(15);
+        set_new_map_cell_size.set(40);
+        set_new_map_bg_url.set(None);
+        set_new_map_color.set("#888888".to_string());
+        set_new_map_off_x.set(0);
+        set_new_map_off_y.set(0);
+        show_create_map.set(true);
+    };
+
+    // Open the form to edit the active map's settings.
+    let open_map_settings = move |_| {
+        if let Some(m) = map.get() {
+            editing_map.set(true);
+            set_new_map_name.set(m.name);
+            set_new_map_width.set(m.width);
+            set_new_map_height.set(m.height);
+            set_new_map_cell_size.set(m.cell_size);
+            set_new_map_bg_url.set(m.background_url);
+            set_new_map_color.set(m.default_token_color);
+            set_new_map_off_x.set(m.grid_offset_x);
+            set_new_map_off_y.set(m.grid_offset_y);
+            show_create_map.set(true);
+        }
     };
 
     let cancel_create_map = move |_| {
@@ -1585,6 +1675,7 @@ pub fn MapCanvas() -> impl IntoView {
             // Auto-show create form when no map exists
             {move || {
                 if map.get().is_none() && ctx.is_gm.get() && !show_create_map.get() {
+                    editing_map.set(false);
                     show_create_map.set(true);
                 }
             }}
@@ -1592,7 +1683,13 @@ pub fn MapCanvas() -> impl IntoView {
             // Create Map dialog
             <Show when=move || show_create_map.get() && ctx.is_gm.get()>
                 <div class="create-map-form">
-                    <h4>{move || if map.get().is_none() { "Create Map" } else { "New Map" }}</h4>
+                    <h4>{move || if editing_map.get() {
+                        "Map Settings"
+                    } else if map.get().is_none() {
+                        "Create Map"
+                    } else {
+                        "New Map"
+                    }}</h4>
                     <div class="field-row">
                         <label>"Name"</label>
                         <input
@@ -1652,10 +1749,57 @@ pub fn MapCanvas() -> impl IntoView {
                             min="10" max="200"
                         />
                     </div>
+                    <div class="field-row">
+                        <label>"Default Token Color"</label>
+                        <input
+                            type="color"
+                            prop:value=new_map_color
+                            on:input=move |ev| set_new_map_color.set(event_target_value(&ev))
+                        />
+                    </div>
+                    <div class="field-row">
+                        <label>"Grid Offset X"</label>
+                        <div class="map-offset-row">
+                            <button class="btn-small" on:click=move |_| set_new_map_off_x.update(|v| *v = (*v - 1).clamp(-500, 500))>"-"</button>
+                            <input
+                                type="number"
+                                prop:value=move || new_map_off_x.get().to_string()
+                                on:input=move |ev| {
+                                    if let Ok(v) = event_target_value(&ev).parse::<i32>() {
+                                        set_new_map_off_x.set(v.clamp(-500, 500));
+                                    }
+                                }
+                                min="-500" max="500"
+                            />
+                            <button class="btn-small" on:click=move |_| set_new_map_off_x.update(|v| *v = (*v + 1).clamp(-500, 500))>"+"</button>
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <label>"Grid Offset Y"</label>
+                        <div class="map-offset-row">
+                            <button class="btn-small" on:click=move |_| set_new_map_off_y.update(|v| *v = (*v - 1).clamp(-500, 500))>"-"</button>
+                            <input
+                                type="number"
+                                prop:value=move || new_map_off_y.get().to_string()
+                                on:input=move |ev| {
+                                    if let Ok(v) = event_target_value(&ev).parse::<i32>() {
+                                        set_new_map_off_y.set(v.clamp(-500, 500));
+                                    }
+                                }
+                                min="-500" max="500"
+                            />
+                            <button class="btn-small" on:click=move |_| set_new_map_off_y.update(|v| *v = (*v + 1).clamp(-500, 500))>"+"</button>
+                        </div>
+                    </div>
                     <div class="form-actions">
-                        <button on:click=do_create_map>"Create"</button>
+                        <button on:click=submit_map_form>
+                            {move || if editing_map.get() { "Save" } else { "Create" }}
+                        </button>
                         <Show when=move || map.get().is_some()>
                             <button class="btn-cancel" on:click=cancel_create_map>"Cancel"</button>
+                        </Show>
+                        <Show when=move || editing_map.get()>
+                            <button class="btn-cancel map-settings-danger" on:click=do_delete_map>"Delete Map"</button>
                         </Show>
                     </div>
                 </div>
@@ -2003,79 +2147,20 @@ pub fn MapCanvas() -> impl IntoView {
                     <button
                         class="map-mgmt-btn"
                         data-tooltip="New Map"
-                        on:click=move |_| show_create_map.set(true)
+                        on:click=open_new_map
                     >"+"</button>
                     <Show when=move || map.get().is_some()>
-                        <div class="map-settings-wrapper">
-                            <button
-                                class="map-mgmt-btn"
-                                on:click=move |_| show_map_settings.update(|v| *v = !*v)
-                                data-tooltip="Map Settings"
-                            >
-                                // gear icon
-                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="3"/>
-                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                                </svg>
-                            </button>
-                            <Show when=move || show_map_settings.get()>
-                                <div class="map-settings-panel">
-                                    <button
-                                        class="map-settings-item"
-                                        on:click=move |_| {
-                                            show_media_browser.set(true);
-                                            show_map_settings.set(false);
-                                        }
-                                    >
-                                        // image icon
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                                            <path d="M21 15l-5-5L5 21"/>
-                                        </svg>
-                                        " Set Background"
-                                    </button>
-                                    <div class="map-settings-item">
-                                        <label class="map-settings-color-label">
-                                            // palette icon
-                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                                                <circle cx="12" cy="12" r="10"/>
-                                                <circle cx="12" cy="8" r="1" fill="currentColor"/>
-                                                <circle cx="8" cy="12" r="1" fill="currentColor"/>
-                                                <circle cx="16" cy="12" r="1" fill="currentColor"/>
-                                                <circle cx="12" cy="16" r="1" fill="currentColor"/>
-                                            </svg>
-                                            " Default Token Color "
-                                            <input
-                                                type="color"
-                                                class="map-settings-color-input"
-                                                prop:value=move || map.get().map(|m| m.default_token_color).unwrap_or_else(|| "#888888".to_string())
-                                                on:change=move |ev| {
-                                                    let color: String = leptos::prelude::event_target_value(&ev);
-                                                    send.send(ClientMessage::SetMapDefaultColor { color });
-                                                }
-                                            />
-                                        </label>
-                                    </div>
-                                    <button
-                                        class="map-settings-item map-settings-danger"
-                                        on:click=move |ev| {
-                                            show_map_settings.set(false);
-                                            do_delete_map(ev);
-                                        }
-                                    >
-                                        // trash icon
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polyline points="3 6 5 6 21 6"/>
-                                            <path d="M19 6l-1 14H6L5 6"/>
-                                            <path d="M10 11v6"/><path d="M14 11v6"/>
-                                            <path d="M9 6V4h6v2"/>
-                                        </svg>
-                                        " Delete Map"
-                                    </button>
-                                </div>
-                            </Show>
-                        </div>
+                        <button
+                            class="map-mgmt-btn"
+                            on:click=open_map_settings
+                            data-tooltip="Map Settings"
+                        >
+                            // gear icon
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                        </button>
                     </Show>
                 </div>
             </Show>
@@ -2188,11 +2273,6 @@ pub fn MapCanvas() -> impl IntoView {
                 selected_ids=selected_ids
             />
             <TokenHpPopup selected_ids=selected_ids tokens=tokens />
-            <crate::components::media_browser::MediaBrowser
-                on_select=on_bg_select
-                filter_type="image".to_string()
-                show=show_media_browser
-            />
         </div>
     }
 }

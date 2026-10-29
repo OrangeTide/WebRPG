@@ -122,7 +122,9 @@ pub async fn create_map(
     .get_result(conn)
     .map_err(|e| ServerFnError::new(format!("Failed to get map id: {e}")))?;
 
-    // Update cell_size and background if non-default
+    // Apply cell size and background (NewMap only carries the required columns).
+    // Default token color and grid offset keep their column defaults; the client
+    // sends UpdateMapSettings afterwards if the GM chose non-default values.
     let _ = diesel::update(maps::table.find(map_id))
         .set((
             maps::cell_size.eq(cell),
@@ -145,6 +147,8 @@ pub async fn create_map(
         background_url: map.background_url,
         default_token_color: map.default_token_color,
         fog_enabled: map.fog_enabled,
+        grid_offset_x: map.grid_offset_x,
+        grid_offset_y: map.grid_offset_y,
     })
 }
 
@@ -177,6 +181,8 @@ pub async fn list_maps(session_id: i32) -> Result<Vec<crate::models::MapInfo>, S
             background_url: m.background_url,
             default_token_color: m.default_token_color,
             fog_enabled: m.fog_enabled,
+            grid_offset_x: m.grid_offset_x,
+            grid_offset_y: m.grid_offset_y,
         })
         .collect())
 }

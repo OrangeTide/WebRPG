@@ -87,6 +87,10 @@ pub struct MapInfo {
     pub default_token_color: String,
     #[serde(default)]
     pub fog_enabled: bool,
+    #[serde(default)]
+    pub grid_offset_x: i32,
+    #[serde(default)]
+    pub grid_offset_y: i32,
 }
 
 fn default_token_color() -> String {
@@ -424,6 +428,8 @@ pub mod db_models {
         pub background_url: Option<String>,
         pub default_token_color: String,
         pub fog_enabled: bool,
+        pub grid_offset_x: i32,
+        pub grid_offset_y: i32,
     }
 
     #[derive(Debug, Insertable)]

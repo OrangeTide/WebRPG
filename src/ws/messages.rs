@@ -196,6 +196,18 @@ pub enum ClientMessage {
     SetMapDefaultColor {
         color: String,
     },
+    /// GM edits the active map's settings in one go (name, grid dimensions,
+    /// cell size, grid origin offset, default token color). Background is set
+    /// separately via SetMapBackground.
+    UpdateMapSettings {
+        name: String,
+        width: i32,
+        height: i32,
+        cell_size: i32,
+        grid_offset_x: i32,
+        grid_offset_y: i32,
+        default_token_color: String,
+    },
     /// GM renames a token.
     UpdateTokenLabel {
         token_id: i32,
@@ -331,6 +343,11 @@ pub enum ServerMessage {
     /// Map default token color was changed by the GM.
     MapDefaultColorChanged {
         default_token_color: String,
+    },
+    /// The active map's settings were edited by the GM. Carries the full
+    /// updated map so every client reskins the grid and tokens together.
+    MapSettingsUpdated {
+        map: MapInfo,
     },
     /// Token label was changed.
     TokenLabelUpdated {

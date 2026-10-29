@@ -96,6 +96,8 @@ diesel::table! {
         background_url -> Nullable<Text>,
         default_token_color -> Text,
         fog_enabled -> Bool,
+        grid_offset_x -> Integer,
+        grid_offset_y -> Integer,
     }
 }
 

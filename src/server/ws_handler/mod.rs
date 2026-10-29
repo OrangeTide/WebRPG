@@ -713,6 +713,68 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 }
             }
 
+            ClientMessage::UpdateMapSettings {
+                name,
+                width,
+                height,
+                cell_size,
+                grid_offset_x,
+                grid_offset_y,
+                default_token_color,
+            } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can change map settings".into(),
+                        });
+                        continue;
+                    }
+                    let map_id = SESSION_MANAGER
+                        .sessions
+                        .get(&session_id)
+                        .and_then(|s| s.active_map_id);
+                    if let Some(map_id) = map_id {
+                        use crate::schema::maps;
+                        use diesel::prelude::*;
+                        let name = name.trim();
+                        let width = width.clamp(1, 200);
+                        let height = height.clamp(1, 200);
+                        let cell_size = cell_size.clamp(10, 200);
+                        let conn = &mut crate::db::get_conn();
+                        let updated = diesel::update(maps::table.find(map_id))
+                            .set((
+                                maps::name.eq(name),
+                                maps::width.eq(width),
+                                maps::height.eq(height),
+                                maps::cell_size.eq(cell_size),
+                                maps::grid_offset_x.eq(grid_offset_x),
+                                maps::grid_offset_y.eq(grid_offset_y),
+                                maps::default_token_color.eq(&default_token_color),
+                            ))
+                            .execute(conn);
+                        match updated
+                            .map_err(|e| e.to_string())
+                            .and_then(|_| crate::server::ws_handler::maps::load_map_info(map_id))
+                        {
+                            Ok(map) => {
+                                SESSION_MANAGER.broadcast(
+                                    session_id,
+                                    &ServerMessage::MapSettingsUpdated { map },
+                                    None,
+                                );
+                            }
+                            Err(e) => {
+                                let _ = tx.send(ServerMessage::Error { message: e });
+                            }
+                        }
+                    } else {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "No active map".into(),
+                        });
+                    }
+                }
+            }
+
             ClientMessage::UpdateCharacterField {
                 character_id,
                 field_path,

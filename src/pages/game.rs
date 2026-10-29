@@ -523,6 +523,12 @@ impl GameContext {
                     }
                 });
             }
+            ServerMessage::MapSettingsUpdated { map } => {
+                // Only apply to the map currently in view.
+                if self.map.with_untracked(|m| m.as_ref().map(|m| m.id)) == Some(map.id) {
+                    self.map.set(Some(map));
+                }
+            }
             ServerMessage::TokensMoved { moves } => {
                 self.tokens.update(|tokens| {
                     for (token_id, x, y) in &moves {
