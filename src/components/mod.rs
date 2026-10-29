@@ -12,4 +12,5 @@ pub mod media_browser;
 pub mod members_panel;
 pub mod modules_panel;
 pub mod terminal;
+pub mod theme_toggle;
 pub mod window_manager;

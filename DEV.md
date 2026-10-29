@@ -510,6 +510,31 @@ and every response is the full document:
 for i in $(seq 1 24); do curl -s -b cookies.txt "$BASE/game/1" | wc -c; done
 ```
 
+### Theming (light/dark)
+
+All colors live as CSS custom properties on `:root` in `style/main.css`. The
+default values are the dark blue/red game theme. A sandy brown light palette
+redefines the same `--color-*` tokens under `:root[data-theme="light"]`, and a
+`@media (prefers-color-scheme: light)` block carries the same values for
+visitors with no saved choice and JavaScript disabled. Every rule in the
+stylesheet reads tokens, so switching the `data-theme` attribute on the root
+element reskins the whole app.
+
+Three subsystems keep fixed palettes on purpose and do not flip: the NeXTSTEP
+gray chrome (`--chrome-*` tokens: dock, file browser), the COMMAND.COM terminal
+(a dark console), and the help viewer's white "paper" view. `--color-on-accent`
+is also fixed (text drawn on an accent-filled element stays light in both
+themes).
+
+The effective theme is resolved before first paint by a small inline script in
+the document head (`app::shell`, `THEME_INIT_SCRIPT`): it reads the stored
+preference from `localStorage` (`webrpg_theme`), falling back to the OS color
+scheme, and sets `data-theme` on the root element. This avoids any flash of the
+wrong theme. The `ThemeToggle` component (`components/theme_toggle.rs`) is a
+floating button rendered on every route; clicking it flips the attribute live
+and persists the choice. With no stored choice the app follows the OS setting
+across reloads; an explicit toggle pins the theme until changed again.
+
 ### Multi-Window UI
 
 The game page uses a windowed interface where each feature lives in its own

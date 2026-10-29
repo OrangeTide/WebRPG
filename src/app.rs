@@ -5,11 +5,18 @@ use leptos_router::{
     components::{Route, Router, Routes},
 };
 
+use crate::components::theme_toggle::ThemeToggle;
 use crate::pages::admin::AdminPage;
 use crate::pages::game::GamePage;
 use crate::pages::landing::LandingPage;
 use crate::pages::login::{LoginPage, SignupPage};
 use crate::pages::sessions::SessionsPage;
+
+/// Sets `data-theme` on the document root before first paint, so there is no
+/// flash of the wrong theme. Uses the stored preference, falling back to the
+/// OS color scheme. Kept tiny and dependency-free since it runs inline in the
+/// head. The CSS prefers-color-scheme block is the fallback when JS is off.
+const THEME_INIT_SCRIPT: &str = "(function(){var t;try{t=localStorage.getItem('webrpg_theme');}catch(e){}if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';}document.documentElement.setAttribute('data-theme',t);})();";
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -19,6 +26,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <meta charset="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <link rel="icon" href="/favicon.ico" />
+                <script inner_html=THEME_INIT_SCRIPT></script>
                 <AutoReload options=options.clone() />
                 <HydrationScripts options />
                 <MetaTags />
@@ -49,6 +57,7 @@ pub fn App() -> impl IntoView {
                     <Route path=(StaticSegment("game"), ParamSegment("id")) view=GamePage />
                 </Routes>
             </main>
+            <ThemeToggle />
         </Router>
     }
 }
