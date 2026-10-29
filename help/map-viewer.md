@@ -111,6 +111,16 @@ Tokens show the following visual information:
 - **Selection highlight** as a yellow ring around selected tokens
 - **Size** -- tokens can span multiple grid cells (size 2 = 2x2 cells)
 
+## Bloodied Status
+
+Player character tokens are automatically marked **bloodied** (the 🩸 icon) when
+their HP drops below half of its maximum, and the mark is removed once HP returns
+to half or more. This updates on its own as a character's HP changes.
+
+This automation applies only to player characters. Creature bloodied status is
+left to the Game Master. Players are encouraged to roleplay and ask the GM to
+describe the scene rather than relying on automation for creatures.
+
 ## GM Controls
 
 These controls are only available to the Game Master:

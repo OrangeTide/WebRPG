@@ -316,7 +316,11 @@ All message types are fully implemented:
 - **Initiative:** add/remove entries, advance turn (GM only), roll initiative
   from character sheet or creature panel, lock/unlock initiative rolls
 - **Character sheets:** update fields via dot-path (e.g. `stats.strength`),
-  real-time resource updates via `CharacterResourceUpdated`
+  real-time resource updates via `CharacterResourceUpdated`. When the HP resource
+  changes, the server syncs the character's tokens' HP (`TokenHpUpdated`) and
+  auto-toggles the "bloodied" condition (`TokenConditionsUpdated`) when HP crosses
+  below/at half of max. This applies only to player-character tokens; creature
+  bloodied status is left to the GM.
 - **Inventory:** add, remove, update items
 - **VFS notifications:** `VfsChanged` — server broadcasts file changes on C: drive
 - **Preferences:** `SetSuppressTooltips` — persist tooltip suppression preference

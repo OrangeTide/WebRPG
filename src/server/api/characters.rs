@@ -566,7 +566,152 @@ pub async fn update_character_resource(
         None,
     );
 
+    // When a character's HP changes, sync its tokens' HP and auto-manage the
+    // "bloodied" condition. This applies only to player-character tokens;
+    // creature bloodied status is left to the GM.
+    if resource.name.eq_ignore_ascii_case("hp") {
+        sync_character_token_hp(
+            resource.character_id,
+            character.session_id,
+            current_value,
+            resource.max_value,
+        );
+    }
+
     Ok(())
+}
+
+/// A token is bloodied when its HP is strictly below half of its maximum (so a
+/// character sitting at exactly half is not bloodied). Max HP of zero or less is
+/// never bloodied.
+#[cfg(feature = "ssr")]
+fn is_bloodied(current_hp: i32, max_hp: i32) -> bool {
+    max_hp > 0 && current_hp * 2 < max_hp
+}
+
+/// Given the current conditions and HP, return the updated conditions when the
+/// bloodied state should change, or `None` when nothing changes.
+#[cfg(feature = "ssr")]
+fn bloodied_conditions(conditions: &[String], current_hp: i32, max_hp: i32) -> Option<Vec<String>> {
+    let bloodied = is_bloodied(current_hp, max_hp);
+    let had = conditions.iter().any(|c| c == "bloodied");
+    match (bloodied, had) {
+        (true, false) => {
+            let mut next = conditions.to_vec();
+            next.push("bloodied".to_string());
+            Some(next)
+        }
+        (false, true) => Some(conditions.iter().filter(|c| *c != "bloodied").cloned().collect()),
+        _ => None,
+    }
+}
+
+#[cfg(all(test, feature = "ssr"))]
+mod bloodied_tests {
+    use super::{bloodied_conditions, is_bloodied};
+
+    #[test]
+    fn threshold_is_strictly_below_half() {
+        assert!(!is_bloodied(10, 10));
+        assert!(!is_bloodied(5, 10)); // exactly half is not bloodied
+        assert!(is_bloodied(4, 10));
+        assert!(is_bloodied(0, 10));
+        assert!(!is_bloodied(3, 0)); // no max -> never bloodied
+        assert!(!is_bloodied(0, 0));
+        assert!(!is_bloodied(2, 3)); // ceil(3/2)=2 is not below half
+        assert!(is_bloodied(1, 3));
+    }
+
+    #[test]
+    fn adds_and_removes_only_on_change() {
+        // Not bloodied, none present -> no change.
+        assert_eq!(bloodied_conditions(&[], 10, 10), None);
+        // Drops below half -> add.
+        assert_eq!(
+            bloodied_conditions(&[], 4, 10),
+            Some(vec!["bloodied".to_string()])
+        );
+        // Already bloodied and still hurt -> no change.
+        assert_eq!(bloodied_conditions(&["bloodied".to_string()], 4, 10), None);
+        // Healed to half -> remove, keeping other conditions.
+        assert_eq!(
+            bloodied_conditions(&["poisoned".to_string(), "bloodied".to_string()], 5, 10),
+            Some(vec!["poisoned".to_string()])
+        );
+    }
+}
+
+/// Sync a character's tokens with its current HP and auto-manage the "bloodied"
+/// condition. A token is bloodied when its HP is strictly below half of max.
+/// Broadcasts `TokenHpUpdated` for each token, plus `TokenConditionsUpdated`
+/// when the bloodied state changed. Only character tokens are touched; creatures
+/// are never auto-bloodied.
+#[cfg(feature = "ssr")]
+fn sync_character_token_hp(character_id: i32, session_id: i32, current_hp: i32, max_hp: i32) {
+    use crate::db;
+    use crate::models::db_models::TokenInstance;
+    use crate::schema::{token_instances, tokens};
+    use crate::ws::messages::ServerMessage;
+    use crate::ws::session::SESSION_MANAGER;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    let token_ids: Vec<i32> = tokens::table
+        .filter(tokens::character_id.eq(character_id))
+        .select(tokens::id)
+        .load(conn)
+        .unwrap_or_default();
+
+    for token_id in token_ids {
+        let _ = diesel::update(token_instances::table.filter(token_instances::token_id.eq(token_id)))
+            .set((
+                token_instances::current_hp.eq(current_hp),
+                token_instances::max_hp.eq(max_hp),
+            ))
+            .execute(conn);
+
+        let instance: Option<TokenInstance> = token_instances::table
+            .filter(token_instances::token_id.eq(token_id))
+            .select(TokenInstance::as_select())
+            .first(conn)
+            .optional()
+            .ok()
+            .flatten();
+        let conditions: Vec<String> = instance
+            .and_then(|i| serde_json::from_str(&i.conditions_json).ok())
+            .unwrap_or_default();
+
+        let updated = bloodied_conditions(&conditions, current_hp, max_hp);
+        if let Some(ref new_conditions) = updated {
+            let json = serde_json::to_string(new_conditions).unwrap_or_else(|_| "[]".to_string());
+            let _ = diesel::update(
+                token_instances::table.filter(token_instances::token_id.eq(token_id)),
+            )
+            .set(token_instances::conditions_json.eq(&json))
+            .execute(conn);
+        }
+
+        SESSION_MANAGER.broadcast(
+            session_id,
+            &ServerMessage::TokenHpUpdated {
+                token_id,
+                current_hp,
+                max_hp,
+            },
+            None,
+        );
+        if let Some(new_conditions) = updated {
+            SESSION_MANAGER.broadcast(
+                session_id,
+                &ServerMessage::TokenConditionsUpdated {
+                    token_id,
+                    conditions: new_conditions,
+                },
+                None,
+            );
+        }
+    }
 }
 
 #[server]
