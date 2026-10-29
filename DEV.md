@@ -254,6 +254,44 @@ All message types are fully implemented:
 GM role is enforced server-side for token placement/removal, fog, map,
 initiative list updates, and initiative lock/unlock.
 
+### Server function URLs
+
+Non-realtime calls go through Leptos `#[server]` functions in `server/api/`. Each
+one gets a URL like `/api/<fn_name><suffix>`, where `<suffix>` is a 64-bit
+integer. That suffix is generated at compile time by the `server_fn` macro as:
+
+```text
+xxh64( CARGO_MANIFEST_DIR + ":" + module_path!(), seed = 0 )
+```
+
+Two things determine it, and build profile (debug vs release) is not one of them:
+
+- **`CARGO_MANIFEST_DIR`** — the absolute path of the crate when it was built. A
+  local build in `/home/you/webrpg` and the Docker builder in `/app` produce
+  different suffixes for the same function.
+- **`module_path!()`** — the module the function lives in. Every function in one
+  module shares a suffix, and moving a function to another module changes it. For
+  example, splitting `api.rs` into `server/api/{auth,session,...}.rs` moved these
+  from `webrpg::server::api` into submodules and rewrote all their suffixes.
+
+This has one practical consequence and one non-consequence:
+
+- **Not a deployment risk.** `cargo leptos build` compiles the WASM client and the
+  server binary from the same source in the same directory, so they always agree
+  on the suffix. A tarball or Docker image is internally consistent. The only way
+  to get a mismatch is to pair a client from one build with a server from another
+  build directory, which no build or deploy path does.
+- **URLs are not reproducible across checkout paths.** The same commit built in a
+  different directory yields different `/api/...` URLs. Nothing in this project
+  depends on a fixed URL, but if that were ever needed, `server_fn` reads three
+  compile-time env vars: `SERVER_FN_OVERRIDE_KEY` replaces `CARGO_MANIFEST_DIR`
+  with a fixed string (path-independent suffixes), `SERVER_FN_MOD_PATH` puts the
+  module path in the URL instead of a hash, and `DISABLE_SERVER_FN_HASH` drops the
+  suffix entirely.
+
+`ci/smoke-test-server.sh` never hard-codes a suffix: it extracts each one from the
+freshly built `webrpg.wasm`, so it always matches the server it just built.
+
 ### Game Page Architecture
 
 The game page (`pages/game.rs`) creates a `GameContext` provided via Leptos
