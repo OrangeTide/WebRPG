@@ -3863,3 +3863,25 @@ button.danger:hover {
     font-size: 0.72rem;
     padding: 0.2em 0.5em;
 }
+
+.loading-error-actions {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-reconnect {
+    margin-top: 0.5rem;
+    padding: 0.5rem 1.2rem;
+    background: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    color: var(--color-text);
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.btn-reconnect:hover {
+    background: var(--color-accent-hover);
+}

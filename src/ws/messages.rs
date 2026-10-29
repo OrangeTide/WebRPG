@@ -201,6 +201,13 @@ pub enum ClientMessage {
         token_id: i32,
         visible: bool,
     },
+    /// Periodic client heartbeat. `idle` reports whether the user has been
+    /// inactive; it is carried for future use (presence/idle tracking) and not
+    /// acted on yet. The heartbeat keeps the server's last-active time fresh and
+    /// lets the client notice a dropped connection promptly.
+    Keepalive {
+        idle: bool,
+    },
     /// A GM requests the session's member list (for the GM management panel).
     ListMembers,
     /// The session owner grants or revokes co-GM status for a member.

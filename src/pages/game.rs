@@ -53,6 +53,9 @@ impl LoadingLevel {
 pub struct LoadingState {
     pub message: &'static str,
     pub level: LoadingLevel,
+    /// Whether to offer a "Reconnect now" action (for recoverable connection
+    /// errors, as opposed to a failed login).
+    pub retryable: bool,
 }
 
 // Pre-defined loading states (single source of truth for all messages).
@@ -60,38 +63,60 @@ impl LoadingState {
     pub const INITIALIZING: Self = Self {
         message: "Initializing\u{2026}",
         level: LoadingLevel::Info,
+        retryable: false,
     };
     pub const AUTHENTICATING: Self = Self {
         message: "Authenticating\u{2026}",
         level: LoadingLevel::Info,
+        retryable: false,
     };
     pub const CONNECTING: Self = Self {
         message: "Connecting\u{2026}",
         level: LoadingLevel::Warn,
+        retryable: false,
     };
     pub const JOINING: Self = Self {
         message: "Joining session\u{2026}",
         level: LoadingLevel::Warn,
+        retryable: false,
     };
     pub const CONNECTED: Self = Self {
         message: "Connected",
         level: LoadingLevel::Success,
+        retryable: false,
     };
     pub const AUTH_FAILED: Self = Self {
         message: "Authentication failed",
         level: LoadingLevel::Error,
+        retryable: false,
     };
     pub const CONNECT_FAILED: Self = Self {
         message: "Connection failed",
         level: LoadingLevel::Error,
+        retryable: false,
     };
     pub const CONNECTION_LOST: Self = Self {
         message: "Connection lost",
         level: LoadingLevel::Error,
+        retryable: false,
     };
     pub const CONNECTION_ERROR: Self = Self {
         message: "Connection error",
         level: LoadingLevel::Error,
+        retryable: false,
+    };
+    /// Shown while automatically reconnecting after an unexpected drop.
+    pub const RECONNECTING: Self = Self {
+        message: "Reconnecting\u{2026}",
+        level: LoadingLevel::Warn,
+        retryable: false,
+    };
+    /// Shown after several failed reconnect attempts. Retries continue in the
+    /// background, and the user can also trigger one immediately.
+    pub const DISCONNECTED: Self = Self {
+        message: "Disconnected. Retrying\u{2026}",
+        level: LoadingLevel::Error,
+        retryable: true,
     };
 }
 
@@ -568,6 +593,168 @@ impl GameContext {
     }
 }
 
+/// Open a WebSocket for the session and wire its handlers, with automatic
+/// reconnection (feature 55). Each attempt takes a `generation`: a socket's
+/// handlers only act while they are still the current generation, so a superseded
+/// socket (after a manual retry or a newer attempt) never reconnects or fights
+/// the live one. On an unexpected close it schedules another attempt with
+/// exponential backoff; a successful open resets the attempt counter.
+#[cfg(feature = "hydrate")]
+fn ws_connect(
+    ctx: GameContext,
+    sid: i32,
+    current_ws: StoredValue<Option<web_sys::WebSocket>, LocalStorage>,
+    closing: StoredValue<bool>,
+    attempt: StoredValue<u32>,
+    generation: StoredValue<u32>,
+) {
+    use wasm_bindgen::JsCast;
+    use wasm_bindgen::prelude::*;
+
+    if closing.get_value() {
+        return;
+    }
+    generation.update_value(|g| *g += 1);
+    let my_gen = generation.get_value();
+    let stale = move || closing.get_value() || generation.get_value() != my_gen;
+
+    let first = attempt.get_value() == 0;
+    ctx.loading.set(Some(if first {
+        LoadingState::AUTHENTICATING
+    } else {
+        LoadingState::RECONNECTING
+    }));
+
+    leptos::task::spawn_local(async move {
+        if stale() {
+            return;
+        }
+        let token = match crate::server::api::get_ws_token().await {
+            Ok(t) => t,
+            Err(e) => {
+                log::warn!("WS token fetch failed: {e}");
+                schedule_reconnect(ctx, sid, current_ws, closing, attempt, generation, my_gen);
+                return;
+            }
+        };
+        if stale() {
+            return;
+        }
+        if first {
+            ctx.loading.set(Some(LoadingState::CONNECTING));
+        }
+
+        let window = web_sys::window().expect("no window");
+        let location = window.location();
+        let protocol = location.protocol().unwrap_or_default();
+        let host = location.host().unwrap_or_default();
+        let ws_protocol = if protocol == "https:" { "wss:" } else { "ws:" };
+        let ws_url = format!("{ws_protocol}//{host}/api/ws?token={token}");
+
+        let ws = match web_sys::WebSocket::new(&ws_url) {
+            Ok(ws) => ws,
+            Err(e) => {
+                log::warn!("WebSocket create failed: {e:?}");
+                schedule_reconnect(ctx, sid, current_ws, closing, attempt, generation, my_gen);
+                return;
+            }
+        };
+        current_ws.set_value(Some(ws.clone()));
+
+        let ws_send = ws.clone();
+        let send_fn: SendFn = Box::new(move |msg: ClientMessage| {
+            if let Ok(json) = serde_json::to_string(&msg) {
+                let _ = ws_send.send_with_str(&json);
+            }
+        });
+        ctx.send.connect(send_fn);
+
+        let ctx_open = ctx.clone();
+        let on_open = Closure::<dyn Fn()>::new(move || {
+            attempt.set_value(0);
+            ctx_open.loading.set(Some(LoadingState::JOINING));
+            ctx_open.send_message(ClientMessage::JoinSession { session_id: sid });
+        });
+        ws.set_onopen(Some(on_open.as_ref().unchecked_ref()));
+        on_open.forget();
+
+        let ctx_msg = ctx.clone();
+        let on_message =
+            Closure::<dyn Fn(web_sys::MessageEvent)>::new(move |e: web_sys::MessageEvent| {
+                if let Some(text) = e.data().as_string() {
+                    match serde_json::from_str::<ServerMessage>(&text) {
+                        Ok(msg) => ctx_msg.apply_server_message(msg),
+                        Err(err) => log::warn!("Failed to parse server message: {err}"),
+                    }
+                }
+            });
+        ws.set_onmessage(Some(on_message.as_ref().unchecked_ref()));
+        on_message.forget();
+
+        let ctx_close = ctx.clone();
+        let on_close = Closure::<dyn Fn()>::new(move || {
+            ctx_close.connected.set(false);
+            if stale() {
+                return;
+            }
+            attempt.update_value(|a| *a += 1);
+            schedule_reconnect(
+                ctx_close.clone(),
+                sid,
+                current_ws,
+                closing,
+                attempt,
+                generation,
+                my_gen,
+            );
+        });
+        ws.set_onclose(Some(on_close.as_ref().unchecked_ref()));
+        on_close.forget();
+
+        let on_error = Closure::<dyn Fn()>::new(move || {
+            log::warn!("WebSocket error");
+        });
+        ws.set_onerror(Some(on_error.as_ref().unchecked_ref()));
+        on_error.forget();
+    });
+}
+
+/// Schedule the next reconnection attempt after an unexpected close, with
+/// exponential backoff capped at 15s. After several tries the modal switches to
+/// the disconnected error state, but attempts keep running in the background so
+/// the client recovers on its own once the server returns.
+#[cfg(feature = "hydrate")]
+fn schedule_reconnect(
+    ctx: GameContext,
+    sid: i32,
+    current_ws: StoredValue<Option<web_sys::WebSocket>, LocalStorage>,
+    closing: StoredValue<bool>,
+    attempt: StoredValue<u32>,
+    generation: StoredValue<u32>,
+    sched_gen: u32,
+) {
+    if closing.get_value() || generation.get_value() != sched_gen {
+        return;
+    }
+    let n = attempt.get_value().max(1);
+    ctx.loading.set(Some(if n < 5 {
+        LoadingState::RECONNECTING
+    } else {
+        LoadingState::DISCONNECTED
+    }));
+    let shift = (n - 1).min(4);
+    let delay_ms = (1000u64 << shift).min(15_000);
+    set_timeout(
+        move || {
+            if closing.get_value() || generation.get_value() != sched_gen {
+                return;
+            }
+            ws_connect(ctx, sid, current_ws, closing, attempt, generation);
+        },
+        std::time::Duration::from_millis(delay_ms),
+    );
+}
+
 #[component]
 pub fn GamePage() -> impl IntoView {
     let params = leptos_router::hooks::use_params_map();
@@ -694,14 +881,26 @@ pub fn GamePage() -> impl IntoView {
         });
     }
 
-    // Fetch WS token and connect
+    // Bumped by the "Reconnect now" button on the disconnected modal.
+    let reconnect_now = RwSignal::new(0u32);
+
+    // WebSocket connection with automatic reconnection and a keepalive
+    // heartbeat (features 55 and 56).
     #[cfg(feature = "hydrate")]
     {
         use wasm_bindgen::JsCast;
         use wasm_bindgen::prelude::*;
 
-        let ctx_ws = ctx.clone();
+        // Reconnection state kept across attempts. The socket uses LocalStorage
+        // because web_sys::WebSocket is not Send.
+        let current_ws: StoredValue<Option<web_sys::WebSocket>, LocalStorage> =
+            StoredValue::new_local(None);
+        let closing = StoredValue::new(false);
+        let attempt = StoredValue::new(0u32);
+        let generation = StoredValue::new(0u32);
+        let last_activity = StoredValue::new(js_sys::Date::now());
 
+        let ctx_ws = ctx.clone();
         Effect::new(move |_| {
             let sid = session_id_val();
             if sid == 0 {
@@ -711,8 +910,7 @@ pub fn GamePage() -> impl IntoView {
 
             let ctx = ctx_ws.clone();
 
-            // Which modules this session runs. Needed before the first roll,
-            // but not worth blocking the connection on.
+            // Which modules this session runs. Not worth blocking connect on.
             let modules_signal = ctx.modules;
             leptos::task::spawn_local(async move {
                 match crate::server::modules_api::get_session_modules(sid).await {
@@ -721,92 +919,79 @@ pub fn GamePage() -> impl IntoView {
                 }
             });
 
-            leptos::task::spawn_local(async move {
-                ctx.loading.set(Some(LoadingState::AUTHENTICATING));
+            closing.set_value(false);
+            attempt.set_value(0);
+            ws_connect(
+                ctx_ws.clone(),
+                sid,
+                current_ws,
+                closing,
+                attempt,
+                generation,
+            );
+        });
 
-                let token = match crate::server::api::get_ws_token().await {
-                    Ok(t) => t,
-                    Err(e) => {
-                        log::error!("Failed to get WS token: {e}");
-                        ctx.loading.set(Some(LoadingState::AUTH_FAILED));
-                        return;
-                    }
-                };
+        // Keepalive heartbeat (feature 56): once a minute, carrying an idle flag.
+        {
+            let ctx_ka = ctx.clone();
+            if let Ok(handle) = set_interval_with_handle(
+                move || {
+                    let idle = (js_sys::Date::now() - last_activity.get_value()) > 60_000.0;
+                    ctx_ka.send.send(ClientMessage::Keepalive { idle });
+                },
+                std::time::Duration::from_secs(60),
+            ) {
+                on_cleanup(move || handle.clear());
+            }
+        }
 
-                ctx.loading.set(Some(LoadingState::CONNECTING));
+        // Track user activity so the keepalive can report idle status.
+        {
+            let on_activity = Closure::<dyn Fn()>::new(move || {
+                last_activity.set_value(js_sys::Date::now());
+            });
+            if let Some(win) = web_sys::window() {
+                for ev in ["pointerdown", "keydown", "wheel"] {
+                    let _ = win
+                        .add_event_listener_with_callback(ev, on_activity.as_ref().unchecked_ref());
+                }
+            }
+            on_activity.forget();
+        }
 
-                let window = web_sys::window().expect("no window");
-                let location = window.location();
-                let protocol = location.protocol().unwrap_or_default();
-                let host = location.host().unwrap_or_default();
-                let ws_protocol = if protocol == "https:" { "wss:" } else { "ws:" };
-                let ws_url = format!("{ws_protocol}//{host}/api/ws?token={token}");
-
-                let ws = match web_sys::WebSocket::new(&ws_url) {
-                    Ok(ws) => ws,
-                    Err(e) => {
-                        log::error!("Failed to create WebSocket: {e:?}");
-                        ctx.loading.set(Some(LoadingState::CONNECT_FAILED));
-                        return;
-                    }
-                };
-
-                // Store the send function
-                let ws_clone = ws.clone();
-                let send_fn: SendFn = Box::new(move |msg: ClientMessage| {
-                    if let Ok(json) = serde_json::to_string(&msg) {
-                        let _ = ws_clone.send_with_str(&json);
-                    }
-                });
-                ctx.send.connect(send_fn);
-
-                // On open: send JoinSession
-                let ctx_open = ctx.clone();
-                let on_open = Closure::<dyn Fn()>::new(move || {
-                    ctx_open.loading.set(Some(LoadingState::JOINING));
-                    ctx_open.send_message(ClientMessage::JoinSession { session_id: sid });
-                });
-                ws.set_onopen(Some(on_open.as_ref().unchecked_ref()));
-                on_open.forget();
-
-                // On message: parse and apply
-                let ctx_msg = ctx.clone();
-                let on_message = Closure::<dyn Fn(web_sys::MessageEvent)>::new(
-                    move |e: web_sys::MessageEvent| {
-                        if let Some(text) = e.data().as_string() {
-                            match serde_json::from_str::<ServerMessage>(&text) {
-                                Ok(msg) => ctx_msg.apply_server_message(msg),
-                                Err(err) => log::warn!("Failed to parse server message: {err}"),
-                            }
+        // Manual reconnect from the disconnected modal.
+        let ctx_retry = ctx.clone();
+        let sid_sig = ctx.session_id;
+        Effect::new(move |_| {
+            if reconnect_now.get() > 0 {
+                let sid = sid_sig.get_untracked();
+                if sid != 0 {
+                    closing.set_value(false);
+                    attempt.set_value(0);
+                    current_ws.update_value(|w| {
+                        if let Some(ws) = w.take() {
+                            let _ = ws.close();
                         }
-                    },
-                );
-                ws.set_onmessage(Some(on_message.as_ref().unchecked_ref()));
-                on_message.forget();
+                    });
+                    ws_connect(
+                        ctx_retry.clone(),
+                        sid,
+                        current_ws,
+                        closing,
+                        attempt,
+                        generation,
+                    );
+                }
+            }
+        });
 
-                // On close
-                let ctx_close = ctx.clone();
-                let on_close = Closure::<dyn Fn()>::new(move || {
-                    ctx_close.connected.set(false);
-                    // Only show error if we never successfully connected
-                    // (loading is cleared on successful snapshot)
-                    if ctx_close.loading.get_untracked().is_some() {
-                        ctx_close.loading.set(Some(LoadingState::CONNECTION_LOST));
-                    }
-                });
-                ws.set_onclose(Some(on_close.as_ref().unchecked_ref()));
-                on_close.forget();
-
-                // On error
-                let ctx_err = ctx.clone();
-                let on_error = Closure::<dyn Fn()>::new(move || {
-                    log::error!("WebSocket error");
-                    if ctx_err.loading.get_untracked().is_some() {
-                        ctx_err.loading.set(Some(LoadingState::CONNECTION_ERROR));
-                    }
-                });
-                ws.set_onerror(Some(on_error.as_ref().unchecked_ref()));
-                on_error.forget();
+        // Stop reconnecting and close the socket when leaving the page.
+        on_cleanup(move || {
+            closing.set_value(true);
+            current_ws.update_value(|w| {
+                if let Some(ws) = w.take() {
+                    let _ = ws.close();
+                }
             });
         });
     }
@@ -854,6 +1039,7 @@ pub fn GamePage() -> impl IntoView {
                     Some(ref s) if s.level == LoadingLevel::Error || show_modal => {
                         let css = format!("loading-modal {}", s.level.css_class());
                         let is_error = s.level == LoadingLevel::Error;
+                        let retryable = s.retryable;
                         let msg = s.message.to_string();
                         Some(view! {
                             <div class="loading-overlay">
@@ -863,7 +1049,19 @@ pub fn GamePage() -> impl IntoView {
                                             <div class="loading-error">
                                                 <div class="loading-error-icon">"!"</div>
                                                 <p>{msg}</p>
-                                                <a href="/sessions" class="btn-back-sessions">"Back to Sessions"</a>
+                                                <div class="loading-error-actions">
+                                                    <Show when=move || retryable>
+                                                        <button
+                                                            class="btn-reconnect"
+                                                            on:click=move |_| {
+                                                                reconnect_now.update(|n| *n += 1)
+                                                            }
+                                                        >
+                                                            "Reconnect now"
+                                                        </button>
+                                                    </Show>
+                                                    <a href="/sessions" class="btn-back-sessions">"Back to Sessions"</a>
+                                                </div>
                                             </div>
                                         }.into_any()
                                     } else {

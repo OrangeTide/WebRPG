@@ -1022,6 +1022,14 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 }
             }
 
+            ClientMessage::Keepalive { idle: _ } => {
+                // Refresh the session's last-active time. The idle flag is
+                // carried for future presence tracking and ignored for now.
+                if let Some(session_id) = current_session {
+                    push_session_to_cache(session_id);
+                }
+            }
+
             ClientMessage::ListMembers => {
                 if let Some(session_id) = current_session {
                     if !is_gm(session_id, user_id) {

@@ -309,6 +309,19 @@ user receives a `GmStatusChanged` event and their UI flips live without
 reconnecting, and GM clients get a `MembersChanged` prompt to refetch the list.
 The owner is always a GM and cannot be demoted.
 
+#### Connection lifecycle
+
+The client WebSocket (`src/pages/game.rs`) reconnects automatically. `ws_connect`
+wires the socket; on an unexpected close `schedule_reconnect` retries with
+exponential backoff (1s to a 15s cap), fetching a fresh token each time, and a
+successful open re-sends `JoinSession` so the snapshot restores all state. A
+per-attempt `generation` guard keeps a superseded socket from reconnecting or
+racing the current one. The loading modal shows `RECONNECTING`, then
+`DISCONNECTED` (with a manual "Reconnect now") after several tries, clearing once
+reconnected. The client also sends a `Keepalive { idle }` heartbeat once a
+minute; the server refreshes the session's last-active time and ignores `idle`
+for now (carried for future presence tracking).
+
 ### Server function URLs
 
 Non-realtime calls go through Leptos `#[server]` functions in `server/api/`. Each
