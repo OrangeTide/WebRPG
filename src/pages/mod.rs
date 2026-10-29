@@ -1,3 +1,4 @@
+pub mod admin;
 pub mod game;
 pub mod landing;
 pub mod login;

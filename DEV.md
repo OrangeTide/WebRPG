@@ -195,6 +195,32 @@ deployment:
 - **Development:** With no TLS config and no proxy headers, the server runs
   plain HTTP with no redirects.
 
+### Server Administration
+
+Administrators reach a console at `/admin` for managing accounts, sessions, and
+media storage across the whole server.
+
+- **Who is an admin:** the `users.access_level` column. `ACCESS_LEVEL_ADMIN`
+  (100) and above grant access; `ACCESS_LEVEL_USER` (0) is a normal account
+  (`models.rs`). The `ADMIN_LIST` environment variable, a comma-separated list of
+  usernames, promotes matching accounts to admin at startup
+  (`promote_admins_from_env` in `server/api/admin.rs`, called from `main.rs`).
+  Promotion is additive: it never demotes an account, so admins granted in-app
+  survive a restart, and removing a name from `ADMIN_LIST` does not revoke that
+  account. Revoke in-app instead.
+- **Enforcement:** every admin server function calls `require_admin` first, which
+  loads the request's user and rejects non-admins. The `/admin` page also gates
+  its UI on `current_user_is_admin`, but that is only cosmetic; the server
+  functions are the real boundary.
+- **Deleting sessions and users:** the database does not enable SQLite foreign
+  keys, so most `sessions(id)` references are not enforced and `ON DELETE
+  CASCADE` does not fire. `admin_remove_session` therefore deletes every
+  dependent row (tokens, maps, characters, chat, and so on) in one transaction.
+  `admin_remove_user` refuses to delete an account that still GMs a session (to
+  avoid orphaning it) and otherwise removes the user plus their personal rows.
+- **Scope:** this covers user, session, and media administration. Server restart
+  and database backup/restore are planned but not yet implemented (feature 13).
+
 ### HTTPS / TLS Configuration
 
 | Variable | Default | Description |
@@ -645,8 +671,8 @@ The `ci/` directory contains the test scripts used by both workflows:
   verifies all expected tables and columns exist, tests rollback/redo
 - `ci/smoke-test-server.sh` — builds and starts the server, then exercises page
   routes, CSS serving, signup, session CRUD, WebSocket endpoint, media
-  upload/serve/dedup/tags, invalid input handling, and game page rendering (26
-  checks)
+  upload/serve/dedup/tags, invalid input handling, game page rendering, and
+  server administration (admin guard, user/session/media management)
 
 ## Deployment
 

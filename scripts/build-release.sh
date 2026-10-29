@@ -65,6 +65,9 @@ LEPTOS_SITE_PKG_DIR=pkg
 LEPTOS_SITE_ADDR=0.0.0.0:3000
 DATABASE_URL=database.db
 SECRET_KEY=change-me-in-production
+# Comma-separated usernames promoted to server administrator at startup.
+# Leave empty for none. Promotion is additive and never revokes access.
+ADMIN_LIST=
 EOF
 
 # Tar it up

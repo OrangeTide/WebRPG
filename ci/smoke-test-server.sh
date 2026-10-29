@@ -424,6 +424,111 @@ check "Game page has character sheet" "$(echo "$GAME_HTML" | grep -q 'character-
 check "Game page has CSS link" "$(echo "$GAME_HTML" | grep -q 'webrpg.css' && echo 0 || echo 1)"
 
 echo ""
+echo "=== Server administration ==="
+
+# smoketest is a normal account at this point: admin endpoints must refuse it.
+IS_ADMIN=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url current_user_is_admin)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' --data '')
+check "current_user_is_admin false for normal user" \
+    "$([ "$IS_ADMIN" = "false" ] && echo 0 || echo 1)"
+
+DENY_CODE=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" \
+    -X POST "$(fn_url admin_list_users)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' --data '')
+check "admin_list_users refuses non-admin (not 200)" \
+    "$([ "$DENY_CODE" != "200" ] && echo 0 || echo 1)"
+
+# Promote the account directly, as the ADMIN_LIST startup step would.
+sqlite3 "$TMPDB" "UPDATE users SET access_level = 100 WHERE id = $SMOKE_UID;"
+
+IS_ADMIN=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url current_user_is_admin)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' --data '')
+check "current_user_is_admin true after promotion" \
+    "$([ "$IS_ADMIN" = "true" ] && echo 0 || echo 1)"
+
+ADMIN_USERS=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url admin_list_users)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' --data '')
+check "admin_list_users returns the account" \
+    "$(echo "$ADMIN_USERS" | grep -q '"username":"smoketest"' && echo 0 || echo 1)"
+
+# Add, then remove, a throwaway user (not a GM, so removal is allowed).
+curl -s -b "$COOKIES" -o /dev/null \
+    -X POST "$(fn_url admin_add_user)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data 'username=tempuser&display_name=Temp&email=temp%40test.com&password=temppass123'
+TEMP_UID=$(sqlite3 "$TMPDB" "SELECT id FROM users WHERE username = 'tempuser';")
+check "admin_add_user created an account" "$([ -n "$TEMP_UID" ] && echo 0 || echo 1)"
+
+curl -s -b "$COOKIES" -o /dev/null \
+    -X POST "$(fn_url admin_remove_user)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "id=${TEMP_UID}"
+GONE=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM users WHERE id = $TEMP_UID;")
+check "admin_remove_user deleted the account" "$([ "$GONE" -eq 0 ] && echo 0 || echo 1)"
+
+# An admin cannot remove their own account.
+SELF_CODE=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" \
+    -X POST "$(fn_url admin_remove_user)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "id=${SMOKE_UID}")
+check "admin_remove_user refuses self-removal (not 200)" \
+    "$([ "$SELF_CODE" != "200" ] && echo 0 || echo 1)"
+
+ADMIN_SESSIONS=$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url admin_list_sessions)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' --data '')
+check "admin_list_sessions returns an array" \
+    "$(echo "$ADMIN_SESSIONS" | grep -q '^\[' && echo 0 || echo 1)"
+
+# Make a throwaway session with a child row to test rename, archive, and the
+# cascade delete (foreign keys are not enforced, so the server deletes manually).
+ADMIN_SID=$(echo "$(curl -s -b "$COOKIES" \
+    -X POST "$(fn_url create_session)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data 'name=Admin+Throwaway')" | grep -oP '"id":(\d+)' | grep -oP '\d+')
+sqlite3 "$TMPDB" "INSERT INTO maps (session_id, name, width, height, cell_size) VALUES ($ADMIN_SID, 'Doomed Map', 10, 10, 40);"
+
+curl -s -b "$COOKIES" -o /dev/null \
+    -X POST "$(fn_url admin_rename_session)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "id=${ADMIN_SID}&name=Renamed+Session"
+RENAMED=$(sqlite3 "$TMPDB" "SELECT name FROM sessions WHERE id = $ADMIN_SID;")
+check "admin_rename_session renamed it" \
+    "$([ "$RENAMED" = "Renamed Session" ] && echo 0 || echo 1)"
+
+curl -s -b "$COOKIES" -o /dev/null \
+    -X POST "$(fn_url admin_set_session_active)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "id=${ADMIN_SID}&active=false"
+ARCHIVED=$(sqlite3 "$TMPDB" "SELECT active FROM sessions WHERE id = $ADMIN_SID;")
+check "admin_set_session_active archived it (active=0)" \
+    "$([ "$ARCHIVED" = "0" ] && echo 0 || echo 1)"
+
+curl -s -b "$COOKIES" -o /dev/null \
+    -X POST "$(fn_url admin_remove_session)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "id=${ADMIN_SID}"
+SESSION_GONE=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM sessions WHERE id = $ADMIN_SID;")
+MAP_GONE=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM maps WHERE session_id = $ADMIN_SID;")
+check "admin_remove_session deleted the session" "$([ "$SESSION_GONE" -eq 0 ] && echo 0 || echo 1)"
+check "admin_remove_session cascaded to its maps" "$([ "$MAP_GONE" -eq 0 ] && echo 0 || echo 1)"
+
+echo ""
 echo "========================================"
 echo "Results: $PASS passed, $FAIL failed"
 echo "========================================"

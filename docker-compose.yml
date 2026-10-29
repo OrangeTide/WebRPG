@@ -17,6 +17,8 @@ services:
       - "3000:3000"
     environment:
       SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env (e.g. openssl rand -hex 32)}
+      # Comma-separated usernames promoted to server administrator at startup.
+      ADMIN_LIST: ${ADMIN_LIST:-}
     volumes:
       - webrpg-data:/app/data
     restart: unless-stopped

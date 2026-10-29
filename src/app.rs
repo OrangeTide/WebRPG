@@ -5,6 +5,7 @@ use leptos_router::{
     components::{Route, Router, Routes},
 };
 
+use crate::pages::admin::AdminPage;
 use crate::pages::game::GamePage;
 use crate::pages::landing::LandingPage;
 use crate::pages::login::{LoginPage, SignupPage};
@@ -44,6 +45,7 @@ pub fn App() -> impl IntoView {
                     <Route path=StaticSegment("login") view=LoginPage />
                     <Route path=StaticSegment("signup") view=SignupPage />
                     <Route path=StaticSegment("sessions") view=SessionsPage />
+                    <Route path=StaticSegment("admin") view=AdminPage />
                     <Route path=(StaticSegment("game"), ParamSegment("id")) view=GamePage />
                 </Routes>
             </main>

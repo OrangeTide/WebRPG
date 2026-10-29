@@ -7,6 +7,7 @@ use crate::server::api::{CreateSession, JoinSession};
 #[component]
 pub fn SessionsPage() -> impl IntoView {
     let sessions = Resource::new(|| (), |_| crate::server::api::list_sessions());
+    let is_admin = Resource::new(|| (), |_| crate::server::api::current_user_is_admin());
     let create_action = ServerAction::<CreateSession>::new();
     let join_action = ServerAction::<JoinSession>::new();
 
@@ -20,6 +21,23 @@ pub fn SessionsPage() -> impl IntoView {
     view! {
         <div class="sessions-page">
             <h1>"Game Sessions"</h1>
+
+            <Suspense>
+                {move || {
+                    is_admin
+                        .get()
+                        .map(|result| {
+                            matches!(result, Ok(true))
+                                .then(|| {
+                                    view! {
+                                        <p class="admin-link">
+                                            <a href="/admin">"Server Administration"</a>
+                                        </p>
+                                    }
+                                })
+                        })
+                }}
+            </Suspense>
 
             <div class="create-session">
                 <h2>"Create New Session"</h2>

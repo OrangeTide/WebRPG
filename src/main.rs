@@ -17,6 +17,9 @@ async fn main() {
     webrpg::db::init_pool(&database_url);
     webrpg::db::run_migrations();
 
+    // Promote any accounts named in ADMIN_LIST to administrator access.
+    webrpg::server::api::promote_admins_from_env();
+
     let conf = get_configuration(None).unwrap();
     let addr = conf.leptos_options.site_addr;
     let leptos_options = conf.leptos_options;

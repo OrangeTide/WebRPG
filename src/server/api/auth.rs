@@ -28,6 +28,55 @@ fn clear_jwt_cookie() {
     );
 }
 
+/// Resolve the full `User` row for the request's auth cookie, if any. Returns
+/// `Ok(None)` when the request is unauthenticated or the token is invalid, so
+/// callers can distinguish "not logged in" from a database error. Server-side
+/// helper shared by `get_current_user` and the admin guard.
+#[cfg(feature = "ssr")]
+pub(crate) async fn current_user_full()
+-> Result<Option<crate::models::db_models::User>, ServerFnError> {
+    use crate::auth;
+    use crate::db;
+    use crate::models::db_models::User;
+    use crate::schema::users;
+    use diesel::prelude::*;
+
+    let req_parts: axum::http::request::Parts = leptos_axum::extract().await?;
+
+    let cookie_header = match req_parts.headers.get(axum::http::header::COOKIE) {
+        Some(val) => val.to_str().unwrap_or(""),
+        None => return Ok(None),
+    };
+
+    let token = cookie_header.split(';').find_map(|cookie| {
+        let cookie = cookie.trim();
+        cookie.strip_prefix("token=")
+    });
+
+    let token = match token {
+        Some(t) if !t.is_empty() => t,
+        _ => return Ok(None),
+    };
+
+    let claims = match auth::verify_jwt(token) {
+        Ok(c) => c,
+        Err(_) => return Ok(None),
+    };
+
+    let (user_id, _username) = match auth::parse_claims_sub(&claims.sub) {
+        Some(parsed) => parsed,
+        None => return Ok(None),
+    };
+
+    let conn = &mut db::get_conn();
+    users::table
+        .find(user_id)
+        .select(User::as_select())
+        .first(conn)
+        .optional()
+        .map_err(|e| ServerFnError::new(format!("Database error: {e}")))
+}
+
 #[server]
 pub async fn login(username: String, password: String) -> Result<UserInfo, ServerFnError> {
     use crate::auth;
@@ -148,47 +197,7 @@ pub async fn logout() -> Result<(), ServerFnError> {
 
 #[server]
 pub async fn get_current_user() -> Result<Option<UserInfo>, ServerFnError> {
-    use crate::auth;
-    use crate::db;
-    use crate::models::db_models::User;
-    use crate::schema::users;
-    use diesel::prelude::*;
-
-    let req_parts: axum::http::request::Parts = leptos_axum::extract().await?;
-
-    let cookie_header = match req_parts.headers.get(axum::http::header::COOKIE) {
-        Some(val) => val.to_str().unwrap_or(""),
-        None => return Ok(None),
-    };
-
-    let token = cookie_header.split(';').find_map(|cookie| {
-        let cookie = cookie.trim();
-        cookie.strip_prefix("token=")
-    });
-
-    let token = match token {
-        Some(t) if !t.is_empty() => t,
-        _ => return Ok(None),
-    };
-
-    let claims = match auth::verify_jwt(token) {
-        Ok(c) => c,
-        Err(_) => return Ok(None),
-    };
-
-    let (user_id, _username) = match auth::parse_claims_sub(&claims.sub) {
-        Some(parsed) => parsed,
-        None => return Ok(None),
-    };
-
-    let conn = &mut db::get_conn();
-    let user = users::table
-        .find(user_id)
-        .select(User::as_select())
-        .first(conn)
-        .optional()
-        .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
-
+    let user = current_user_full().await?;
     Ok(user.map(|u| UserInfo {
         id: u.id,
         username: u.username,

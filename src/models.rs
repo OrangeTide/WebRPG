@@ -2,11 +2,45 @@ use serde::{Deserialize, Serialize};
 
 // ===== Shared DTOs (compiled for both server and client) =====
 
+/// Access level for a normal (non-privileged) account.
+pub const ACCESS_LEVEL_USER: i32 = 0;
+/// Access level that grants server administration privileges.
+pub const ACCESS_LEVEL_ADMIN: i32 = 100;
+
+/// True if an `access_level` value grants administration privileges.
+pub fn is_admin_level(access_level: i32) -> bool {
+    access_level >= ACCESS_LEVEL_ADMIN
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserInfo {
     pub id: i32,
     pub username: String,
     pub display_name: String,
+}
+
+/// A user account as shown on the server administration page.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdminUserInfo {
+    pub id: i32,
+    pub username: String,
+    pub display_name: String,
+    pub email: String,
+    pub access_level: i32,
+    pub locked: bool,
+}
+
+/// A game session as shown on the server administration page. Unlike
+/// `SessionInfo`, this includes inactive (archived) sessions and extra
+/// bookkeeping fields.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdminSessionInfo {
+    pub id: i32,
+    pub name: String,
+    pub gm_username: String,
+    pub active: bool,
+    pub created_at: String,
+    pub player_count: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
