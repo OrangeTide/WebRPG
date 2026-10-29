@@ -7,12 +7,15 @@ options.
 
 ## Plan
 
-Large file splits, each roughly a half-day refactor:
+The large file splits are complete. Remaining work is opportunistic,
+review-driven cleanup as subsystems are touched.
 
-1. **Split `terminal.rs`** (1890 lines) by extracting `terminal/commands.rs`
-   for the cmd_* handlers and `terminal/parser.rs`.
-
-Already done (prior sessions):
+Already done:
+- Split `terminal.rs` (1890 lines) into a `components/terminal/` module
+  directory: `parser.rs` (command-line tokenizing), `commands.rs` (the cmd_*
+  handlers, execute dispatch, and tab completion), and `mod.rs` (the
+  `TerminalPanel` component, color themes, and `ShellState`). Pure code move,
+  no behavior change.
 - Split `api.rs` (2159 lines) into a `server/api/` module directory grouped by
   area (`auth.rs`, `session.rs`, `characters.rs`, `media.rs`, `vfs.rs`, plus
   `mod.rs` re-exporting each). Leptos derives server-function URL suffixes per
