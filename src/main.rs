@@ -39,6 +39,14 @@ async fn main() {
             axum::routing::get(webrpg::server::media_handler::serve_media),
         )
         .route(
+            "/api/admin/backup",
+            axum::routing::get(webrpg::server::admin_handler::download_backup),
+        )
+        .route(
+            "/api/admin/restore",
+            axum::routing::post(webrpg::server::admin_handler::restore_backup),
+        )
+        .route(
             "/api/modules/{module_id}/assets/{*asset}",
             axum::routing::get(webrpg::server::module_assets::serve_module_asset),
         )

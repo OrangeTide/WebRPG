@@ -3,6 +3,9 @@ pub mod api;
 pub mod modules_api;
 
 #[cfg(feature = "ssr")]
+pub mod admin_handler;
+
+#[cfg(feature = "ssr")]
 pub mod media_handler;
 
 #[cfg(feature = "ssr")]

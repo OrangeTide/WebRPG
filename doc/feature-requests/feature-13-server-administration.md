@@ -14,10 +14,11 @@ On the administration page the following actions are possible:
 - Download backup dump of database
 - Restore database from an uploaded backup
 
-## Status: In Progress
+## Status: Done
 
-Administrator identity, the `/admin` console, and user/session/media management
-are implemented. Server restart and database backup/restore are not yet built.
+Administrator identity, the `/admin` console, and every listed action (user,
+session, and media management, server restart, and database backup/restore) are
+implemented.
 
 ### Done
 
@@ -40,16 +41,29 @@ are implemented. Server restart and database backup/restore are not yet built.
   dependent table.
 - Media: browse, search by tag, preview, and remove from storage
   (`admin_delete_media`, which also deletes the file on disk).
-- `ci/smoke-test-server.sh` covers the admin guard (non-admin rejection),
-  promotion, and the user/session/media operations.
+- Server control (`src/server/admin_handler.rs`, admin page "Server" tab):
+  - Restart (`admin_restart_server`): exits the process after responding, relying
+    on a supervisor to restart it. Hard `process::exit` so the pool cannot
+    checkpoint stale WAL pages during shutdown.
+  - Backup (`GET /api/admin/backup`): streams a `VACUUM INTO` SQLite snapshot as
+    a download.
+  - Restore (`POST /api/admin/restore`): validates the SQLite upload, saves the
+    current database as a timestamped `.bak`, writes the upload over the database
+    path, clears stale WAL sidecars, and restarts onto it.
+- `ci/smoke-test-server.sh` covers the admin guard (non-admin rejection) across
+  all endpoints, promotion, the user/session/media operations, backup download,
+  and restore validation. (A successful restore or restart would terminate the
+  test server, so those are verified manually, not in the suite.)
 - `ADMIN_LIST` documented in the release `env.example`, `docker-compose.yml`, and
-  DEV.md ("Server Administration").
+  DEV.md ("Server Administration"), which also documents the server-control
+  endpoints and the supervisor requirement.
 
-### Remaining
+## Future enhancements
 
-- Restart server from the admin page.
-- Download a backup dump of the database.
-- Restore the database from an uploaded backup.
+- Restart and restore need a process supervisor to bring the server back; a bare
+  `./webrpg` just stops. A built-in self-respawn could remove that requirement.
+- Restore ties downtime to a restart; a live in-place swap (SQLite backup API)
+  would avoid it but is riskier with an active pool.
 
 ## Findings
 

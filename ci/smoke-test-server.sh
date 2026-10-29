@@ -441,6 +441,22 @@ DENY_CODE=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" \
 check "admin_list_users refuses non-admin (not 200)" \
     "$([ "$DENY_CODE" != "200" ] && echo 0 || echo 1)"
 
+BK_DENY=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" "$BASE/api/admin/backup")
+check "backup refuses non-admin (403)" "$([ "$BK_DENY" = "403" ] && echo 0 || echo 1)"
+
+# A small body: the handler rejects a non-admin before draining the upload, so a
+# large one would race the connection close and fail curl under set -e.
+RS_DENY=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" \
+    -X POST "$BASE/api/admin/restore" -F "file=@/dev/null")
+check "restore refuses non-admin (not 200)" "$([ "$RS_DENY" != "200" ] && echo 0 || echo 1)"
+
+RST_DENY=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" \
+    -X POST "$(fn_url admin_restart_server)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' --data '')
+check "admin_restart_server refuses non-admin (not 200)" \
+    "$([ "$RST_DENY" != "200" ] && echo 0 || echo 1)"
+
 # Promote the account directly, as the ADMIN_LIST startup step would.
 sqlite3 "$TMPDB" "UPDATE users SET access_level = 100 WHERE id = $SMOKE_UID;"
 
@@ -527,6 +543,30 @@ SESSION_GONE=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM sessions WHERE id = $ADMIN
 MAP_GONE=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM maps WHERE session_id = $ADMIN_SID;")
 check "admin_remove_session deleted the session" "$([ "$SESSION_GONE" -eq 0 ] && echo 0 || echo 1)"
 check "admin_remove_session cascaded to its maps" "$([ "$MAP_GONE" -eq 0 ] && echo 0 || echo 1)"
+
+# Backup download: a consistent SQLite snapshot. (Restore and restart are not
+# exercised here: a successful restore or restart would terminate this server.)
+BK_FILE=$(mktemp /tmp/webrpg-smoke-bk-XXXXXX.db)
+BK_CODE=$(curl -s -b "$COOKIES" -o "$BK_FILE" -w "%{http_code}" "$BASE/api/admin/backup")
+check "admin backup returns 200" "$([ "$BK_CODE" = "200" ] && echo 0 || echo 1)"
+check "admin backup is a SQLite file" \
+    "$([ "$(head -c 15 "$BK_FILE")" = "SQLite format 3" ] && echo 0 || echo 1)"
+BK_USERS=$(sqlite3 "$BK_FILE" "SELECT COUNT(*) FROM users;" 2>/dev/null || echo 0)
+check "admin backup is a readable database ($BK_USERS users)" \
+    "$([ "$BK_USERS" -gt 0 ] && echo 0 || echo 1)"
+rm -f "$BK_FILE"
+
+# Restore validates the upload before doing anything destructive.
+BAD_FILE=$(mktemp /tmp/webrpg-smoke-bad-XXXXXX.txt)
+echo "this is not a database" > "$BAD_FILE"
+BAD_RESTORE=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" \
+    -X POST "$BASE/api/admin/restore" -F "file=@$BAD_FILE")
+check "admin restore rejects a non-SQLite upload (415)" \
+    "$([ "$BAD_RESTORE" = "415" ] && echo 0 || echo 1)"
+rm -f "$BAD_FILE"
+ALIVE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/")
+check "server still running after a rejected restore" \
+    "$([ "$ALIVE" = "200" ] && echo 0 || echo 1)"
 
 echo ""
 echo "========================================"

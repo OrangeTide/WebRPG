@@ -460,6 +460,19 @@ fn cascade_delete_session(
     Ok(())
 }
 
+// ===== Server control =====
+
+/// Restart the server process. Admin only. The process exits shortly after this
+/// responds and relies on a supervisor (systemd, docker restart policy) to start
+/// it again; run bare, it simply stops. Pending database migrations are applied
+/// on the next startup.
+#[server]
+pub async fn admin_restart_server() -> Result<(), ServerFnError> {
+    require_admin().await?;
+    crate::server::admin_handler::schedule_restart();
+    Ok(())
+}
+
 // ===== Media storage =====
 
 /// Permanently remove a media object from storage. Admin only. Deletes the

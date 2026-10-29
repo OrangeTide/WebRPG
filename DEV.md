@@ -218,8 +218,22 @@ media storage across the whole server.
   dependent row (tokens, maps, characters, chat, and so on) in one transaction.
   `admin_remove_user` refuses to delete an account that still GMs a session (to
   avoid orphaning it) and otherwise removes the user plus their personal rows.
-- **Scope:** this covers user, session, and media administration. Server restart
-  and database backup/restore are planned but not yet implemented (feature 13).
+- **Server control** (the admin page's "Server" tab, `server/admin_handler.rs`):
+  - *Restart* (`admin_restart_server`) exits the process after flushing the
+    response. It relies on a supervisor (systemd, docker restart policy) to start
+    the server again; run bare, it simply stops. The exit is a hard
+    `process::exit`, which skips destructors so the connection pool cannot
+    checkpoint stale WAL pages during shutdown.
+  - *Backup* (`GET /api/admin/backup`) streams a `VACUUM INTO` snapshot of the
+    database as a SQLite file download, consistent even with a live WAL.
+  - *Restore* (`POST /api/admin/restore`, multipart) validates the upload is a
+    SQLite file, copies the current database aside as a timestamped `.bak`,
+    writes the upload over the configured database path, clears stale WAL
+    sidecars, and restarts onto the restored database. It overwrites all current
+    data, so like restart it needs a supervisor to come back up.
+
+  Backup and restore are plain Axum routes rather than server functions because
+  they move raw file bytes; both authenticate the cookie and require admin.
 
 ### HTTPS / TLS Configuration
 

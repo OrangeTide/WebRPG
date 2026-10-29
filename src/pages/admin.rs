@@ -3,8 +3,8 @@ use leptos::prelude::*;
 use crate::models::{ACCESS_LEVEL_ADMIN, ACCESS_LEVEL_USER, is_admin_level};
 use crate::server::api::{
     AdminAddUser, AdminDeleteMedia, AdminRemoveSession, AdminRemoveUser, AdminRenameSession,
-    AdminSetSessionActive, AdminUpdateUser, admin_list_sessions, admin_list_users,
-    current_user_is_admin, list_media,
+    AdminRestartServer, AdminSetSessionActive, AdminUpdateUser, admin_list_sessions,
+    admin_list_users, current_user_is_admin, list_media,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -12,6 +12,7 @@ enum Tab {
     Users,
     Sessions,
     Media,
+    Server,
 }
 
 /// Server administration console. The whole page is gated on the caller being an
@@ -51,6 +52,12 @@ pub fn AdminPage() -> impl IntoView {
                                         >
                                             "Media"
                                         </button>
+                                        <button
+                                            class:active=move || active.get() == Tab::Server
+                                            on:click=move |_| active.set(Tab::Server)
+                                        >
+                                            "Server"
+                                        </button>
                                     </div>
                                     <Show when=move || active.get() == Tab::Users>
                                         <UsersTab />
@@ -60,6 +67,9 @@ pub fn AdminPage() -> impl IntoView {
                                     </Show>
                                     <Show when=move || active.get() == Tab::Media>
                                         <MediaTab />
+                                    </Show>
+                                    <Show when=move || active.get() == Tab::Server>
+                                        <ServerTab />
                                     </Show>
                                 }
                                     .into_any()
@@ -364,6 +374,90 @@ fn SessionsTab() -> impl IntoView {
                         })
                 }}
             </Suspense>
+        </div>
+    }
+}
+
+#[component]
+fn ServerTab() -> impl IntoView {
+    let restart = ServerAction::<AdminRestartServer>::new();
+    let restarting = move || restart.version().get() > 0 && restart.value().get().is_some();
+
+    view! {
+        <div class="admin-section">
+            <h2>"Server Control"</h2>
+
+            <div class="admin-maint">
+                <h3>"Restart"</h3>
+                <p class="admin-hint">
+                    "Restarts the server process. It only comes back if a supervisor "
+                    "(systemd or a container restart policy) is managing it; run bare, it stops."
+                </p>
+                <Show
+                    when=move || !restarting()
+                    fallback=|| {
+                        view! {
+                            <p class="admin-notice">
+                                "The server is restarting. Reload this page in a few seconds."
+                            </p>
+                        }
+                    }
+                >
+                    <button
+                        class="danger"
+                        on:click=move |_| {
+                            if leptos::prelude::window()
+                                .confirm_with_message("Restart the server now?")
+                                .unwrap_or(false)
+                            {
+                                restart.dispatch(AdminRestartServer {});
+                            }
+                        }
+                    >
+                        "Restart server"
+                    </button>
+                </Show>
+            </div>
+
+            <div class="admin-maint">
+                <h3>"Backup"</h3>
+                <p class="admin-hint">
+                    "Download a consistent snapshot of the database as a SQLite file."
+                </p>
+                <a class="admin-download" href="/api/admin/backup" download>
+                    "Download database backup"
+                </a>
+            </div>
+
+            <div class="admin-maint">
+                <h3>"Restore"</h3>
+                <p class="admin-hint">
+                    "Replace the database with an uploaded SQLite backup. The current database is "
+                    "saved alongside it as a .bak file, then the server restarts onto the uploaded "
+                    "one. This overwrites all current data."
+                </p>
+                <form
+                    class="admin-restore"
+                    method="post"
+                    action="/api/admin/restore"
+                    enctype="multipart/form-data"
+                    on:submit=move |ev| {
+                        if !leptos::prelude::window()
+                            .confirm_with_message(
+                                "Restore from this file? It overwrites the current database and restarts the server.",
+                            )
+                            .unwrap_or(false)
+                        {
+                            ev.prevent_default();
+                        }
+                    }
+                >
+                    <input type="file" name="file" accept=".db,.sqlite,.sqlite3" required />
+                    <button type="submit" class="danger">
+                        "Upload and restore"
+                    </button>
+                </form>
+            </div>
         </div>
     }
 }
