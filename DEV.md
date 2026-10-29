@@ -235,6 +235,25 @@ media storage across the whole server.
   Backup and restore are plain Axum routes rather than server functions because
   they move raw file bytes; both authenticate the cookie and require admin.
 
+### Server status screen (TUI)
+
+When the release binary's stdout is a TTY, it runs a full-screen ratatui status
+screen (`server/tui.rs`), a Renegade BBS "Waiting for Caller" style console:
+live stats (users online, 24h peak, active sessions, WebSocket connections),
+request/message rate averages (EWMA, like Unix load), server info (uptime,
+version, port, DB size), and scrollable active and recent session lists. Arrow
+keys scroll, `q` quits (with a confirmation), and it redraws each tick so it
+adapts to terminal resize. A panic hook restores the terminal.
+
+The HTTP/WS server runs on tokio tasks while the TUI runs on a `spawn_blocking`
+thread (`main.rs`). When stdout is not a TTY (for example under `cargo leptos
+watch`), it falls back to plain logging and no TUI. The render path is DB-free:
+it reads atomic counters and EWMA ring buffers plus an ephemeral session cache
+in `server/metrics.rs` (`SERVER_METRICS`), which the hot paths update alongside
+normal work (request middleware, WS connect/disconnect/message, and the
+keepalive heartbeat refresh the session's last-active time). The cache may be
+briefly out of sync with the database, which is acceptable for a sysop display.
+
 ### HTTPS / TLS Configuration
 
 | Variable | Default | Description |

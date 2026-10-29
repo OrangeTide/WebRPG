@@ -95,7 +95,21 @@ Inspired by the Renegade BBS WFC screen layout:
 
 (none)
 
-## Status: Not Started
+## Status: Done
+
+Implemented as described: `server/metrics.rs` (atomic counters, EWMA ring
+buffers, 24h peak, ephemeral session cache) and `server/tui.rs` (the ratatui WFC
+screen with all panels, arrow-key scrolling, `q`-to-quit with confirmation, a
+panic hook that restores the terminal, and redraw-per-tick resize handling).
+`main.rs` runs the HTTP/WS server on tokio tasks and the TUI on `spawn_blocking`,
+falling back to plain logging when stdout is not a TTY. The hot paths (request
+middleware, WS connect/disconnect/message, and the feature-56 keepalive) feed the
+metrics, and the render path is DB-free. Documented in DEV.md ("Server status
+screen (TUI)").
+
+Verified by running the server under a PTY: the full screen renders (title bar,
+Live Stats, Averages, Server Info, Active/Recent Sessions, status line) and `q`
+then `y` quits cleanly, restoring the terminal.
 
 ## Plan
 
