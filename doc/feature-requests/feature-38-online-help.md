@@ -94,7 +94,7 @@ Help documents link to each other using a `help:` URI scheme: `[link text](help:
 
 (none — this is a standalone window. Feature 36's `HELP` command consumes this system, not the other way around.)
 
-## Status: In Progress
+## Status: Done
 
 ### Completed
 - HelpViewer WindowId with dock icon (📖), title "Help", default layouts (all tiers, minimized)
@@ -108,12 +108,23 @@ Help documents link to each other using a `help:` URI scheme: `[link text](help:
 - HelpContext for cross-window navigation
 - `?` help button in window title bars (shown when `help_topic()` returns Some)
 - CSS: gray toolbar, inset content panel, green underlined help links
-- `help_topic()` method on WindowId mapping FileBrowser → "file-viewer"
+- `help_topic()` method on WindowId mapping FileBrowser → "file-viewer",
+  Map → "map-viewer", Terminal → "command-com"
+- COMMAND.COM `HELP` command integration: a static command→slug whitelist
+  (`command_help_slug`), `HELP <command>` extracts and prints the document's
+  `## Command Usage` section inline (`usage_lines`), `HELP <topic>` and bare
+  `HELP` open the GUI browser (empty slug jumps to the index). This also fixed
+  a latent bug where `HELP` fell through to the async dispatch and printed a
+  spurious "Bad command" line.
+- Help topic files: `getting-started`, `command-com`, `vfs`, and per-command
+  usage pages (`cmd-dir`, `cmd-cd`, `cmd-cls`, `cmd-copy`, `cmd-del`,
+  `cmd-exit`, `cmd-get`, `cmd-help`, `cmd-mkdir`, `cmd-put`, `cmd-rmdir`,
+  `cmd-type`, `cmd-ver`, `cmd-attrib`).
 
-### Remaining
-- COMMAND.COM `HELP` command integration
-- More help topic files (vfs, command-com, getting-started, etc.)
-- Add `help_topic()` mappings as more help files are written
+### Future enhancements (out of scope for this feature)
+- Re-theme toolbar buttons from emoji glyphs to the full NeXTSTEP raised style.
+- Full-text search over help content (the Search button is a placeholder; the
+  Index lists all topics for now).
 
 ## Plan
 
@@ -123,8 +134,8 @@ Help documents link to each other using a `help:` URI scheme: `[link text](help:
 2. ~~Server functions for help content retrieval~~ ✓
 3. ~~? button in window title bars~~ ✓
 4. ~~CSS styling~~ ✓
-5. COMMAND.COM HELP command integration (Feature 36)
-6. Write additional help topic files
+5. ~~COMMAND.COM HELP command integration (Feature 36)~~ ✓
+6. ~~Write additional help topic files~~ ✓
 
 ## Findings
 

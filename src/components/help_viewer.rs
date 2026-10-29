@@ -281,7 +281,12 @@ pub fn HelpViewerPanel() -> impl IntoView {
     Effect::new(move |_| {
         if let Some(slug) = help_ctx.navigate_to.get() {
             help_ctx.navigate_to.set(None);
-            do_navigate(HelpLocation::Topic(slug));
+            // An empty slug jumps to the index; otherwise show the topic.
+            if slug.is_empty() {
+                do_navigate(HelpLocation::Index(String::new()));
+            } else {
+                do_navigate(HelpLocation::Topic(slug));
+            }
         }
     });
 

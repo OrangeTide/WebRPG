@@ -9,9 +9,11 @@ mod parser;
 
 pub use commands::vfs_file_icon;
 
-use commands::{cmd_cd, cmd_help, cmd_ver};
 #[cfg(feature = "hydrate")]
-use commands::{execute_command, tab_complete};
+use crate::components::help_viewer::get_help_content;
+use commands::{cmd_cd, cmd_ver};
+#[cfg(feature = "hydrate")]
+use commands::{command_help_slug, execute_command, tab_complete, usage_lines};
 use parser::{parse_args, parse_command_line};
 
 /// Terminal color theme.
@@ -175,6 +177,16 @@ pub fn TerminalPanel() -> impl IntoView {
     let scratch_drives =
         expect_context::<RwSignal<crate::scratch_drive::ScratchDrives, LocalStorage>>();
 
+    // Open the GUI help browser to a topic slug (empty string jumps to the index).
+    #[cfg(feature = "hydrate")]
+    let open_help_topic = move |slug: String| {
+        expect_context::<crate::components::help_viewer::HelpContext>()
+            .navigate_to
+            .set(Some(slug));
+        expect_context::<crate::components::window_manager::WindowManagerContext>()
+            .restore_window(crate::components::window_manager::WindowId::HelpViewer);
+    };
+
     // Auto-scroll to bottom when output changes
     #[cfg(feature = "hydrate")]
     Effect::new(move |_| {
@@ -308,14 +320,47 @@ pub fn TerminalPanel() -> impl IntoView {
         }
 
         if cmd == "HELP" {
-            let (_, positional) = parse_args(&args_str);
-            let result = cmd_help(positional.first().map(|s| s.as_str()));
-            output.update(|lines| {
-                for line in result {
-                    lines.push(TermLine { text: line });
+            let topic = parse_args(&args_str).1.into_iter().next();
+            #[cfg(feature = "hydrate")]
+            match topic {
+                // Bare HELP opens the GUI help browser at the index.
+                None => {
+                    open_help_topic(String::new());
+                    shell.with_value(|s| set_prompt.set(s.prompt()));
                 }
-            });
-            shell.with_value(|s| set_prompt.set(s.prompt()));
+                Some(arg) => {
+                    if let Some(slug) = command_help_slug(&arg.to_uppercase()) {
+                        // A known command: print its usage inline in the terminal.
+                        let slug = slug.to_string();
+                        leptos::task::spawn_local(async move {
+                            let lines = match get_help_content(slug).await {
+                                Ok(md) => usage_lines(&md).unwrap_or_else(|| {
+                                    vec![format!("No usage information for {arg}.")]
+                                }),
+                                Err(_) => vec![format!("No help available for {arg}.")],
+                            };
+                            output.update(|out| {
+                                for line in lines {
+                                    out.push(TermLine { text: line });
+                                }
+                            });
+                            shell.with_value(|s| set_prompt.set(s.prompt()));
+                        });
+                    } else {
+                        // Not a command: open the GUI help browser to that topic.
+                        open_help_topic(arg);
+                        shell.with_value(|s| set_prompt.set(s.prompt()));
+                    }
+                }
+            }
+            #[cfg(not(feature = "hydrate"))]
+            {
+                let _ = topic;
+                shell.with_value(|s| set_prompt.set(s.prompt()));
+            }
+            // Handled above; don't fall through to the async dispatch below.
+            #[cfg(feature = "hydrate")]
+            return;
         }
 
         // Async commands — spawn

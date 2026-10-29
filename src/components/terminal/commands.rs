@@ -125,74 +125,61 @@ pub(super) fn cmd_ver() -> Vec<String> {
     ]
 }
 
-pub(super) fn cmd_help(topic: Option<&str>) -> Vec<String> {
-    match topic.map(|s| s.to_uppercase()).as_deref() {
-        Some("CD") | Some("CHDIR") => vec![
-            "CD [d:][path]".to_string(),
-            "  Change or display working directory.".to_string(),
-            "  CD alone shows the current directory.".to_string(),
-            "  CD d: switches to drive d: root.".to_string(),
-        ],
-        Some("CLS") => vec!["CLS".to_string(), "  Clear terminal output.".to_string()],
-        Some("COPY") => vec![
-            "COPY source dest".to_string(),
-            "  Copy a file between drives or paths.".to_string(),
-        ],
-        Some("DEL") | Some("ERASE") => vec![
-            "DEL filespec".to_string(),
-            "  Delete files matching filespec.".to_string(),
-        ],
-        Some("DIR") => vec![
-            "DIR [-w] [filespec]".to_string(),
-            "  List directory contents.".to_string(),
-            "  -w  Wide format".to_string(),
-        ],
-        Some("HELP") => vec![
-            "HELP [command]".to_string(),
-            "  Show help for a command or list all.".to_string(),
-        ],
-        Some("MD") | Some("MKDIR") => vec![
-            "MKDIR [d:]path".to_string(),
-            "  Create a directory.".to_string(),
-        ],
-        Some("RD") | Some("RMDIR") => vec![
-            "RMDIR path".to_string(),
-            "  Remove an empty directory.".to_string(),
-        ],
-        Some("TYPE") | Some("CAT") => vec![
-            "TYPE filespec".to_string(),
-            "  Display file contents as text.".to_string(),
-        ],
-        Some("EXIT") => vec![
-            "EXIT".to_string(),
-            "  Close the terminal window.".to_string(),
-        ],
-        Some("VER") => vec!["VER".to_string(), "  Show version info.".to_string()],
-        Some("ATTRIB") | Some("CHMOD") => vec![
-            "ATTRIB [+|-attr ...] filespec".to_string(),
-            "  Display or change file permissions (GM-only to modify).".to_string(),
-            "  Scopes: U (owner), G (group), O (other)".to_string(),
-            "  Bits: R (read), W (write), X (execute)".to_string(),
-            "  Example: ATTRIB O-W C:/maps/dungeon.png".to_string(),
-        ],
-        Some("GET") => vec![
-            "GET filespec".to_string(),
-            "  Download file to browser.".to_string(),
-            "  If filespec is a directory, downloads as ZIP (not yet implemented).".to_string(),
-        ],
-        Some("PUT") => vec![
-            "PUT [dest]".to_string(),
-            "  Open browser file picker to upload file(s).".to_string(),
-            "  dest defaults to the current working directory.".to_string(),
-        ],
-        _ => vec![
-            "Commands:".to_string(),
-            "  ATTRIB  CD  CLS  COPY  DEL  DIR  EXIT  GET".to_string(),
-            "  HELP  MKDIR  PUT  RMDIR  TYPE  VER".to_string(),
-            String::new(),
-            "Type HELP command for details.".to_string(),
-        ],
+/// Map a COMMAND.COM command (uppercased, including aliases) to its help topic
+/// slug. Commands in this whitelist get their usage printed inline in the
+/// terminal; anything else is treated as a GUI help topic.
+#[cfg(feature = "hydrate")]
+pub(super) fn command_help_slug(cmd: &str) -> Option<&'static str> {
+    Some(match cmd {
+        "DIR" => "cmd-dir",
+        "CD" | "CHDIR" => "cmd-cd",
+        "CLS" => "cmd-cls",
+        "COPY" => "cmd-copy",
+        "DEL" | "ERASE" => "cmd-del",
+        "EXIT" => "cmd-exit",
+        "GET" => "cmd-get",
+        "HELP" => "cmd-help",
+        "MD" | "MKDIR" => "cmd-mkdir",
+        "PUT" => "cmd-put",
+        "RD" | "RMDIR" => "cmd-rmdir",
+        "TYPE" | "CAT" => "cmd-type",
+        "VER" => "cmd-ver",
+        "ATTRIB" | "CHMOD" => "cmd-attrib",
+        _ => return None,
+    })
+}
+
+/// Extract the `## Command Usage` section from a help document as plain
+/// terminal lines, dropping the Markdown code-fence markers and trimming
+/// surrounding blank lines. Returns None if the document has no such section.
+#[cfg(feature = "hydrate")]
+pub(super) fn usage_lines(md: &str) -> Option<Vec<String>> {
+    let mut lines = Vec::new();
+    let mut in_section = false;
+    for line in md.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("## ") {
+            // A new level-2 heading ends the usage section.
+            if in_section {
+                break;
+            }
+            in_section = trimmed
+                .trim_start_matches('#')
+                .trim()
+                .eq_ignore_ascii_case("Command Usage");
+            continue;
+        }
+        if in_section && !trimmed.starts_with("```") {
+            lines.push(line.to_string());
+        }
     }
+    while lines.first().is_some_and(|l| l.trim().is_empty()) {
+        lines.remove(0);
+    }
+    while lines.last().is_some_and(|l| l.trim().is_empty()) {
+        lines.pop();
+    }
+    (!lines.is_empty()).then_some(lines)
 }
 
 pub(super) fn cmd_cd(shell: &mut ShellState, args: &[String]) -> Vec<String> {
