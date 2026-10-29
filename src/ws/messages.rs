@@ -74,6 +74,11 @@ pub enum ClientMessage {
     HideFog {
         cells: Vec<(i32, i32)>,
     },
+    /// GM turns fog of war on or off for the active map. When on, unrevealed
+    /// cells are covered; when off, the whole map is shown.
+    SetFogEnabled {
+        enabled: bool,
+    },
     SetMap {
         map_id: i32,
     },
@@ -267,6 +272,10 @@ pub enum ServerMessage {
     FogUpdated {
         revealed: Vec<(i32, i32)>,
         hidden: Vec<(i32, i32)>,
+    },
+    /// Fog of war was turned on or off for the active map.
+    FogEnabledChanged {
+        enabled: bool,
     },
     MapChanged {
         map: MapInfo,

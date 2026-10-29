@@ -295,7 +295,12 @@ All message types are fully implemented:
   status condition icons on tokens
 - **Character placement:** `PlaceToken` with optional `character_id`/`creature_id`;
   `PlaceAllPlayerTokens` for GM bulk placement of all player characters
-- **Fog of war:** reveal/hide cells (GM only)
+- **Fog of war:** `SetFogEnabled` turns fog on/off per map; `RevealFog`/`HideFog`
+  edit revealed cells (all GM only). When fog is on, unrevealed cells are covered;
+  players see an opaque overlay, the GM sees it faint and can hide it in their own
+  view while editing. Revealed cells persist in the `fog_of_war` table (reveal
+  inserts, hide deletes); `maps.fog_enabled` stores the per-map toggle. The GM
+  paints with the Reveal and Cover brush tools, or Reveal/Cover the entire map.
 - **Map:** switch active map (`SetMap`), set background (`SetMapBackground`).
   Map create/delete/list via server functions (not WebSocket).
 - **Ping:** `Ping`/`PingBroadcast` — collaborative map pings with per-user

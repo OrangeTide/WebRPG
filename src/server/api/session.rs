@@ -144,6 +144,7 @@ pub async fn create_map(
         cell_size: map.cell_size,
         background_url: map.background_url,
         default_token_color: map.default_token_color,
+        fog_enabled: map.fog_enabled,
     })
 }
 
@@ -175,6 +176,7 @@ pub async fn list_maps(session_id: i32) -> Result<Vec<crate::models::MapInfo>, S
             cell_size: m.cell_size,
             background_url: m.background_url,
             default_token_color: m.default_token_color,
+            fog_enabled: m.fog_enabled,
         })
         .collect())
 }

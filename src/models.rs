@@ -85,6 +85,8 @@ pub struct MapInfo {
     pub background_url: Option<String>,
     #[serde(default = "default_token_color")]
     pub default_token_color: String,
+    #[serde(default)]
+    pub fog_enabled: bool,
 }
 
 fn default_token_color() -> String {
@@ -421,6 +423,7 @@ pub mod db_models {
         pub cell_size: i32,
         pub background_url: Option<String>,
         pub default_token_color: String,
+        pub fog_enabled: bool,
     }
 
     #[derive(Debug, Insertable)]

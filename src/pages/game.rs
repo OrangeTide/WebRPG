@@ -387,6 +387,13 @@ impl GameContext {
                     }
                 });
             }
+            ServerMessage::FogEnabledChanged { enabled } => {
+                self.map.update(|m| {
+                    if let Some(map) = m {
+                        map.fog_enabled = enabled;
+                    }
+                });
+            }
             ServerMessage::MapChanged { map, tokens, fog } => {
                 self.map.set(Some(map));
                 self.tokens.set(tokens);

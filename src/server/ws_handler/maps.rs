@@ -33,6 +33,7 @@ pub fn load_map_with_tokens(map_id: i32) -> Result<MapWithTokens, String> {
         cell_size: m.cell_size,
         background_url: m.background_url,
         default_token_color: m.default_token_color,
+        fog_enabled: m.fog_enabled,
     };
 
     let db_tokens: Vec<Token> = tokens::table
@@ -140,6 +141,7 @@ pub fn build_snapshot(session_id: i32, user_id: i32) -> GameStateSnapshot {
             cell_size: m.cell_size,
             background_url: m.background_url,
             default_token_color: m.default_token_color,
+        fog_enabled: m.fog_enabled,
         };
 
         let db_tokens: Vec<Token> = tokens::table
@@ -284,4 +286,56 @@ pub fn build_snapshot(session_id: i32, user_id: i32) -> GameStateSnapshot {
                 != 0
         },
     }
+}
+
+/// Persist newly revealed fog cells for a map. Idempotent thanks to the
+/// UNIQUE(map_id, x, y) constraint, so re-revealing a cell is a no-op.
+pub fn persist_reveal_fog(map_id: i32, cells: &[(i32, i32)]) {
+    use crate::db;
+    use crate::schema::fog_of_war;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+    for (x, y) in cells {
+        let _ = diesel::insert_into(fog_of_war::table)
+            .values((
+                fog_of_war::map_id.eq(map_id),
+                fog_of_war::x.eq(*x),
+                fog_of_war::y.eq(*y),
+            ))
+            .on_conflict_do_nothing()
+            .execute(conn);
+    }
+}
+
+/// Remove revealed fog cells for a map, re-covering them.
+pub fn persist_hide_fog(map_id: i32, cells: &[(i32, i32)]) {
+    use crate::db;
+    use crate::schema::fog_of_war;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+    for (x, y) in cells {
+        let _ = diesel::delete(
+            fog_of_war::table
+                .filter(fog_of_war::map_id.eq(map_id))
+                .filter(fog_of_war::x.eq(*x))
+                .filter(fog_of_war::y.eq(*y)),
+        )
+        .execute(conn);
+    }
+}
+
+/// Toggle whether a map covers unrevealed cells with fog.
+pub fn set_fog_enabled(map_id: i32, enabled: bool) -> Result<(), String> {
+    use crate::db;
+    use crate::schema::maps;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+    diesel::update(maps::table.find(map_id))
+        .set(maps::fog_enabled.eq(enabled))
+        .execute(conn)
+        .map(|_| ())
+        .map_err(|e| format!("Failed to update fog setting: {e}"))
 }

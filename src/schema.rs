@@ -95,6 +95,7 @@ diesel::table! {
         cell_size -> Integer,
         background_url -> Nullable<Text>,
         default_token_color -> Text,
+        fog_enabled -> Bool,
     }
 }
 

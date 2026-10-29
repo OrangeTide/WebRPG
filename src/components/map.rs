@@ -32,6 +32,10 @@ enum MapTool {
     Measure,
     Ping,
     Rotate,
+    /// GM brush that reveals fog cells (makes them visible to players).
+    FogReveal,
+    /// GM brush that re-covers fog cells.
+    FogCover,
 }
 
 // ===== Coordinate transforms =====
@@ -96,6 +100,14 @@ pub fn MapCanvas() -> impl IntoView {
     // --- Tool state ---
     let active_tool = RwSignal::new(MapTool::Select);
     let snap_to_grid = RwSignal::new(true);
+
+    // --- Fog editing state (GM) ---
+    // True while a fog brush drag is in progress.
+    let fog_painting = RwSignal::new(false);
+    // Cells already painted in the current stroke, so we send each cell once.
+    let fog_stroke_cells = RwSignal::new(std::collections::HashSet::<(i32, i32)>::new());
+    // GM-only: temporarily hide the fog overlay to see the full map while editing.
+    let gm_hide_fog = RwSignal::new(false);
 
     // --- Measurement state ---
     let measure_start = RwSignal::new(Option::<(f64, f64)>::None);
@@ -354,6 +366,8 @@ pub fn MapCanvas() -> impl IntoView {
             let _tool = active_tool.get();
             let _pings = ctx.pings.get();
             let _canvas_size = canvas_size_tick.get();
+            let _gm_hide_fog = gm_hide_fog.get();
+            let _is_gm = ctx.is_gm.get();
 
             let Some(canvas) = canvas_ref.get() else {
                 return;
@@ -597,10 +611,18 @@ pub fn MapCanvas() -> impl IntoView {
                     ctx2d.set_line_dash(&js_sys::Array::new()).ok();
                 }
 
-                // Fog of war — only draw if GM has revealed at least one cell
-                // (empty fog = no fog system active, so show full map)
-                if !fog_data.is_empty() {
-                    ctx2d.set_fill_style_str("rgba(0, 0, 0, 0.85)");
+                // Fog of war. Unrevealed cells are covered when the map has fog
+                // enabled. Players see opaque fog; the GM sees it faint so they
+                // can edit over it, and can hide it entirely while editing.
+                let is_gm = ctx.is_gm.get_untracked();
+                let draw_fog = m.fog_enabled && !(is_gm && gm_hide_fog.get_untracked());
+                if draw_fog {
+                    let fill = if is_gm {
+                        "rgba(0, 0, 0, 0.45)"
+                    } else {
+                        "rgba(0, 0, 0, 0.92)"
+                    };
+                    ctx2d.set_fill_style_str(fill);
                     let revealed = &fog_data;
                     for gx in 0..m.width {
                         for gy in 0..m.height {
@@ -743,6 +765,43 @@ pub fn MapCanvas() -> impl IntoView {
         });
     }
 
+    // Paint one fog cell under a world coordinate during a GM brush stroke.
+    // Each cell is sent once per stroke; the local fog signal is updated
+    // optimistically so the brush feels immediate (the server echo is a no-op).
+    #[cfg(feature = "hydrate")]
+    let paint_fog = move |wx: f64, wy: f64, reveal: bool, width: i32, height: i32, cell_size: i32| {
+        if cell_size <= 0 {
+            return;
+        }
+        let gx = (wx / cell_size as f64).floor() as i32;
+        let gy = (wy / cell_size as f64).floor() as i32;
+        if gx < 0 || gy < 0 || gx >= width || gy >= height {
+            return;
+        }
+        let key = (gx, gy);
+        let fresh = fog_stroke_cells
+            .try_update(|s| s.insert(key))
+            .unwrap_or(false);
+        if !fresh {
+            return;
+        }
+        fog.update(|f| {
+            if reveal {
+                if !f.contains(&key) {
+                    f.push(key);
+                }
+            } else {
+                f.retain(|c| c != &key);
+            }
+        });
+        let cells = vec![key];
+        if reveal {
+            send.send(ClientMessage::RevealFog { cells });
+        } else {
+            send.send(ClientMessage::HideFog { cells });
+        }
+    };
+
     // --- Mouse event handlers ---
 
     let on_mousedown = {
@@ -867,6 +926,14 @@ pub fn MapCanvas() -> impl IntoView {
                     MapTool::Ping => {
                         // Send ping at world position
                         send.send(ClientMessage::Ping { x: wx, y: wy });
+                    }
+                    MapTool::FogReveal | MapTool::FogCover => {
+                        if ctx.is_gm.get() {
+                            fog_painting.set(true);
+                            fog_stroke_cells.update(|s| s.clear());
+                            let reveal = tool == MapTool::FogReveal;
+                            paint_fog(wx, wy, reveal, m.width, m.height, m.cell_size);
+                        }
                     }
                     MapTool::Rotate => {
                         let cell = m.cell_size as f64;
@@ -1025,6 +1092,15 @@ pub fn MapCanvas() -> impl IntoView {
                         }
                     }
                     MapTool::Ping => {}
+                    MapTool::FogReveal | MapTool::FogCover => {
+                        if fog_painting.get() && ctx.is_gm.get() {
+                            let map_data = map.get();
+                            if let Some(ref m) = map_data {
+                                let reveal = tool == MapTool::FogReveal;
+                                paint_fog(wx, wy, reveal, m.width, m.height, m.cell_size);
+                            }
+                        }
+                    }
                     MapTool::Rotate => {
                         if dragging.get()
                             && let Some(anchor) = rotate_anchor_angle.get()
@@ -1162,6 +1238,12 @@ pub fn MapCanvas() -> impl IntoView {
                     rotate_anchor_angle.set(None);
                     rotate_initial_state.set(Vec::new());
                     set_dragging.set(false);
+                }
+
+                // Finish a fog brush stroke
+                if fog_painting.get() {
+                    fog_painting.set(false);
+                    fog_stroke_cells.update(|s| s.clear());
                 }
             }
         }
@@ -1753,6 +1835,122 @@ pub fn MapCanvas() -> impl IntoView {
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                             <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </Show>
+
+                // GM: Fog of war controls
+                <Show when=move || ctx.is_gm.get()>
+                    <div class="map-tool-separator"/>
+                    // Fog on/off for the active map
+                    <button
+                        class=move || if map.get().map(|m| m.fog_enabled).unwrap_or(false) { "map-tool-btn active" } else { "map-tool-btn" }
+                        on:click=move |_| {
+                            let enabled = !map.get().map(|m| m.fog_enabled).unwrap_or(false);
+                            send.send(ClientMessage::SetFogEnabled { enabled });
+                            map.update(|mm| if let Some(m) = mm { m.fog_enabled = enabled; });
+                        }
+                        data-tooltip="Fog of War on/off"
+                    >
+                        // cloud icon
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 18a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1.3A4 4 0 0 1 18 18z"/>
+                        </svg>
+                    </button>
+                    // Reveal brush
+                    <button
+                        class=move || if active_tool.get() == MapTool::FogReveal { "map-tool-btn active" } else { "map-tool-btn" }
+                        on:click=move |_| {
+                            if !map.get().map(|m| m.fog_enabled).unwrap_or(false) {
+                                send.send(ClientMessage::SetFogEnabled { enabled: true });
+                                map.update(|mm| if let Some(m) = mm { m.fog_enabled = true; });
+                            }
+                            active_tool.set(MapTool::FogReveal);
+                        }
+                        data-tooltip="Reveal fog (brush)"
+                    >
+                        // eye icon
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                    // Cover brush
+                    <button
+                        class=move || if active_tool.get() == MapTool::FogCover { "map-tool-btn active" } else { "map-tool-btn" }
+                        on:click=move |_| {
+                            if !map.get().map(|m| m.fog_enabled).unwrap_or(false) {
+                                send.send(ClientMessage::SetFogEnabled { enabled: true });
+                                map.update(|mm| if let Some(m) = mm { m.fog_enabled = true; });
+                            }
+                            active_tool.set(MapTool::FogCover);
+                        }
+                        data-tooltip="Cover fog (brush)"
+                    >
+                        // eye-off icon
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17.9 17.9A10.4 10.4 0 0 1 12 20C5 20 1 12 1 12a18.5 18.5 0 0 1 5.1-5.9m3.3-1.6A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.2 3.2"/>
+                            <line x1="2" y1="2" x2="22" y2="22"/>
+                        </svg>
+                    </button>
+                    // Reveal entire map
+                    <button
+                        class="map-tool-btn"
+                        on:click=move |_| {
+                            if let Some(m) = map.get() {
+                                let cells: Vec<(i32, i32)> = (0..m.width)
+                                    .flat_map(|x| (0..m.height).map(move |y| (x, y)))
+                                    .collect();
+                                if !m.fog_enabled {
+                                    send.send(ClientMessage::SetFogEnabled { enabled: true });
+                                    map.update(|mm| if let Some(mm) = mm { mm.fog_enabled = true; });
+                                }
+                                fog.set(cells.clone());
+                                send.send(ClientMessage::RevealFog { cells });
+                            }
+                        }
+                        data-tooltip="Reveal entire map"
+                    >
+                        // grid-all icon
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="1"/>
+                            <path d="M8 12l3 3 5-6"/>
+                        </svg>
+                    </button>
+                    // Cover entire map
+                    <button
+                        class="map-tool-btn"
+                        on:click=move |_| {
+                            if let Some(m) = map.get() {
+                                let cells: Vec<(i32, i32)> = (0..m.width)
+                                    .flat_map(|x| (0..m.height).map(move |y| (x, y)))
+                                    .collect();
+                                if !m.fog_enabled {
+                                    send.send(ClientMessage::SetFogEnabled { enabled: true });
+                                    map.update(|mm| if let Some(mm) = mm { mm.fog_enabled = true; });
+                                }
+                                fog.set(vec![]);
+                                send.send(ClientMessage::HideFog { cells });
+                            }
+                        }
+                        data-tooltip="Cover entire map"
+                    >
+                        // filled cloud icon
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                            <path d="M6 18a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1.3A4 4 0 0 1 18 18z"/>
+                        </svg>
+                    </button>
+                    // Toggle fog overlay in the GM's own view while editing
+                    <button
+                        class=move || if gm_hide_fog.get() { "map-tool-btn active" } else { "map-tool-btn" }
+                        on:click=move |_| gm_hide_fog.update(|v| *v = !*v)
+                        data-tooltip="Hide fog in your view"
+                    >
+                        // crossed-eye (view) icon
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                            <line x1="3" y1="21" x2="21" y2="3"/>
                         </svg>
                     </button>
                 </Show>

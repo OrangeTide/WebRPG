@@ -444,10 +444,17 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                         });
                         continue;
                     }
-                    if let Some(mut session) = SESSION_MANAGER.sessions.get_mut(&session_id) {
-                        for cell in &cells {
-                            session.revealed_fog.insert(*cell);
-                        }
+                    let active_map = SESSION_MANAGER
+                        .sessions
+                        .get_mut(&session_id)
+                        .and_then(|mut session| {
+                            for cell in &cells {
+                                session.revealed_fog.insert(*cell);
+                            }
+                            session.active_map_id
+                        });
+                    if let Some(map_id) = active_map {
+                        maps::persist_reveal_fog(map_id, &cells);
                     }
                     SESSION_MANAGER.broadcast(
                         session_id,
@@ -468,10 +475,17 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                         });
                         continue;
                     }
-                    if let Some(mut session) = SESSION_MANAGER.sessions.get_mut(&session_id) {
-                        for cell in &cells {
-                            session.revealed_fog.remove(cell);
-                        }
+                    let active_map = SESSION_MANAGER
+                        .sessions
+                        .get_mut(&session_id)
+                        .and_then(|mut session| {
+                            for cell in &cells {
+                                session.revealed_fog.remove(cell);
+                            }
+                            session.active_map_id
+                        });
+                    if let Some(map_id) = active_map {
+                        maps::persist_hide_fog(map_id, &cells);
                     }
                     SESSION_MANAGER.broadcast(
                         session_id,
@@ -481,6 +495,35 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                         },
                         None,
                     );
+                }
+            }
+
+            ClientMessage::SetFogEnabled { enabled } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can modify fog".into(),
+                        });
+                        continue;
+                    }
+                    let active_map = SESSION_MANAGER
+                        .sessions
+                        .get(&session_id)
+                        .and_then(|session| session.active_map_id);
+                    if let Some(map_id) = active_map {
+                        match maps::set_fog_enabled(map_id, enabled) {
+                            Ok(()) => {
+                                SESSION_MANAGER.broadcast(
+                                    session_id,
+                                    &ServerMessage::FogEnabledChanged { enabled },
+                                    None,
+                                );
+                            }
+                            Err(e) => {
+                                let _ = tx.send(ServerMessage::Error { message: e });
+                            }
+                        }
+                    }
                 }
             }
 
