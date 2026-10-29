@@ -9,12 +9,15 @@ options.
 
 Large file splits, each roughly a half-day refactor:
 
-1. **Split `api.rs`** (2159 lines, ~80 server functions) into `api/auth.rs`,
-   `api/session.rs`, `api/characters.rs`, `api/vfs.rs`, `api/media.rs`.
-2. **Split `terminal.rs`** (1890 lines) by extracting `terminal/commands.rs`
+1. **Split `terminal.rs`** (1890 lines) by extracting `terminal/commands.rs`
    for the cmd_* handlers and `terminal/parser.rs`.
 
 Already done (prior sessions):
+- Split `api.rs` (2159 lines) into a `server/api/` module directory grouped by
+  area (`auth.rs`, `session.rs`, `characters.rs`, `media.rs`, `vfs.rs`, plus
+  `mod.rs` re-exporting each). Leptos derives server-function URL suffixes per
+  module, so the split changed the endpoint URLs; `ci/smoke-test-server.sh`
+  looks each one up in the WASM rather than reusing a single suffix.
 - Split `ws_handler.rs` into a `server/ws_handler/` module directory
   (`chat.rs`, `initiative.rs`, `inventory.rs`, `maps.rs`, `tokens.rs`,
   `character.rs`, plus `mod.rs`).

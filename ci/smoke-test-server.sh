@@ -102,21 +102,42 @@ if [ -z "$SUFFIX" ]; then
     exit 1
 fi
 
-# Leptos hashes server function URLs per function, so a function's suffix is
-# not always the one signup got. Look each one up in the WASM.
+# Leptos derives a server function's URL suffix from its module path, so every
+# function in one module shares a suffix, and functions in different modules get
+# different suffixes. Look each one up in the WASM rather than reusing signup's.
+#
+# `strings` prints adjacent Rust &str literals with no separator between them,
+# so the digit run after a path can swallow the first characters of the next
+# literal (list_media_tags shows "...88557" followed by a stray "2"). The real
+# suffix is the one its module shares, so the canonical set is the suffixes that
+# appear on two or more functions, longest first; a function's true suffix is
+# the canonical one that its raw digit run starts with.
 #
 # A missing name means the bundle is older than the function, and the checks
 # that follow would test nothing: an unknown /api/ path falls through to the
 # SPA handler, which answers 200 with HTML. Fail loudly instead.
+WASM=target/site/pkg/webrpg.wasm
+CANONICAL_SUFFIXES=$(strings "$WASM" 2>/dev/null \
+    | grep -oP '(?<=/api/)[a-z_]+[0-9]+' | grep -oP '[0-9]+$' \
+    | sort | uniq -d | awk '{ print length, $0 }' | sort -rn | cut -d' ' -f2-)
+
 fn_url() {
-    local name="$1" found
-    found=$(strings target/site/pkg/webrpg.wasm 2>/dev/null \
-        | grep -oP "(?<=/api/${name})\d+" | head -1)
-    if [ -z "$found" ]; then
+    local name="$1" run s
+    run=$(strings "$WASM" 2>/dev/null | grep -oP "(?<=/api/${name})[0-9]+" | head -1)
+    if [ -z "$run" ]; then
         echo "FAIL: server fn '$name' not found in the WASM bundle; rebuild with cargo leptos build" >&2
         exit 1
     fi
-    printf '%s/api/%s%s' "$BASE" "$name" "$found"
+    for s in $CANONICAL_SUFFIXES; do
+        case "$run" in
+        "$s"*)
+            printf '%s/api/%s%s' "$BASE" "$name" "$s"
+            return 0
+            ;;
+        esac
+    done
+    echo "FAIL: could not resolve URL suffix for server fn '$name' (digit run: $run)" >&2
+    exit 1
 }
 
 # A server function answered, rather than the SPA fallback returning a page.
@@ -132,7 +153,7 @@ echo ""
 echo "=== Auth (suffix: $SUFFIX) ==="
 
 SIGNUP_RESP=$(curl -s -c "$COOKIES" \
-    -X POST "$BASE/api/signup${SUFFIX}" \
+    -X POST "$(fn_url signup)" \
     -H 'Content-Type: application/x-www-form-urlencoded' \
     -H 'Accept: application/json' \
     --data 'username=smoketest&password=smokepass123&display_name=Smoke+Tester&email=smoke%40test.com')
@@ -145,7 +166,7 @@ echo ""
 echo "=== Session CRUD ==="
 
 CREATE_RESP=$(curl -s -b "$COOKIES" \
-    -X POST "$BASE/api/create_session${SUFFIX}" \
+    -X POST "$(fn_url create_session)" \
     -H 'Content-Type: application/x-www-form-urlencoded' \
     -H 'Accept: application/json' \
     --data 'name=Smoke+Test+Session')
@@ -153,7 +174,7 @@ SESSION_ID=$(echo "$CREATE_RESP" | grep -oP '"id":(\d+)' | grep -oP '\d+')
 check "Create session (id=$SESSION_ID)" "$([ -n "$SESSION_ID" ] && echo 0 || echo 1)"
 
 LIST_RESP=$(curl -s -b "$COOKIES" \
-    -X POST "$BASE/api/list_sessions${SUFFIX}" \
+    -X POST "$(fn_url list_sessions)" \
     -H 'Content-Type: application/x-www-form-urlencoded' \
     -H 'Accept: application/json' --data '')
 check "List sessions returns array" "$(echo "$LIST_RESP" | grep -q '^\[' && echo 0 || echo 1)"
@@ -162,7 +183,7 @@ echo ""
 echo "=== WebSocket endpoint ==="
 
 WS_TOKEN=$(curl -s -b "$COOKIES" \
-    -X POST "$BASE/api/get_ws_token${SUFFIX}" \
+    -X POST "$(fn_url get_ws_token)" \
     -H 'Content-Type: application/x-www-form-urlencoded' \
     -H 'Accept: application/json' --data '')
 # WS token is returned as a JSON string (quoted)
@@ -212,7 +233,7 @@ else
 
     # list_media
     LIST_MEDIA=$(curl -s -b "$COOKIES" \
-        -X POST "$BASE/api/list_media${SUFFIX}" \
+        -X POST "$(fn_url list_media)" \
         -H 'Content-Type: application/x-www-form-urlencoded' \
         -H 'Accept: application/json' \
         --data 'media_type=image')
@@ -220,7 +241,7 @@ else
 
     # list_media_tags
     LIST_TAGS=$(curl -s -b "$COOKIES" \
-        -X POST "$BASE/api/list_media_tags${SUFFIX}" \
+        -X POST "$(fn_url list_media_tags)" \
         -H 'Content-Type: application/x-www-form-urlencoded' \
         -H 'Accept: application/json' \
         --data 'prefix=smoke')
