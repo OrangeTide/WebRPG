@@ -13,15 +13,18 @@ fn vfs_session_scope(
     user_id: i32,
     conn: &mut diesel::SqliteConnection,
 ) -> Result<crate::vfs::VfsScope, ServerFnError> {
-    use crate::models::db_models::Session;
     use crate::schema::{session_players, sessions};
     use diesel::prelude::*;
 
-    let session: Session = sessions::table
+    let exists: bool = sessions::table
         .find(session_id)
-        .select(Session::as_select())
-        .first(conn)
-        .map_err(|_| ServerFnError::new("Session not found"))?;
+        .count()
+        .get_result::<i64>(conn)
+        .unwrap_or(0)
+        > 0;
+    if !exists {
+        return Err(ServerFnError::new("Session not found"));
+    }
 
     let is_player: bool = session_players::table
         .filter(session_players::session_id.eq(session_id))
@@ -34,7 +37,7 @@ fn vfs_session_scope(
     Ok(crate::vfs::VfsScope {
         session_id: Some(session_id),
         user_id: Some(user_id),
-        is_gm: session.gm_user_id == user_id,
+        is_gm: crate::server::gm::is_session_gm(conn, session_id, user_id),
         is_player,
         umask: crate::vfs::DEFAULT_UMASK,
     })

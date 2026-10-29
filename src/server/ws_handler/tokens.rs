@@ -30,16 +30,16 @@ pub fn resolve_facing_color(
             .select(characters::user_id)
             .first::<i32>(conn)
         {
-            if char_user_id != gm_user_id {
+            if crate::server::gm::is_session_gm(conn, session_id, char_user_id) {
+                // NPC (GM-owned character, owner or co-GM) → token's own color
+                return token_color.to_string();
+            } else {
                 // Player-owned character → player's ping color
                 return users::table
                     .find(char_user_id)
                     .select(users::ping_color)
                     .first::<String>(conn)
                     .unwrap_or_else(|_| token_color.to_string());
-            } else {
-                // NPC (GM-owned character) → token's own color
-                return token_color.to_string();
             }
         }
     }

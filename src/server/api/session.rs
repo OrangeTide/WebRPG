@@ -90,7 +90,7 @@ pub async fn create_map(
     background_url: Option<String>,
 ) -> Result<crate::models::MapInfo, ServerFnError> {
     use crate::db;
-    use crate::schema::{maps, sessions};
+    use crate::schema::maps;
     use diesel::prelude::*;
 
     let user = get_current_user()
@@ -98,13 +98,7 @@ pub async fn create_map(
         .ok_or_else(|| ServerFnError::new("Not logged in"))?;
     let conn = &mut db::get_conn();
 
-    let gm_id: i32 = sessions::table
-        .find(session_id)
-        .select(sessions::gm_user_id)
-        .first(conn)
-        .map_err(|_| ServerFnError::new("Session not found"))?;
-
-    if gm_id != user.id {
+    if !crate::server::gm::is_session_gm(conn, session_id, user.id) {
         return Err(ServerFnError::new("Only the GM can create maps"));
     }
 
@@ -188,7 +182,7 @@ pub async fn list_maps(session_id: i32) -> Result<Vec<crate::models::MapInfo>, S
 #[server]
 pub async fn delete_map(map_id: i32) -> Result<(), ServerFnError> {
     use crate::db;
-    use crate::schema::{fog_of_war, maps, sessions, token_instances, tokens};
+    use crate::schema::{fog_of_war, maps, token_instances, tokens};
     use diesel::prelude::*;
 
     let user = get_current_user()
@@ -203,13 +197,7 @@ pub async fn delete_map(map_id: i32) -> Result<(), ServerFnError> {
         .first(conn)
         .map_err(|_| ServerFnError::new("Map not found"))?;
 
-    let gm_id: i32 = sessions::table
-        .find(session_id)
-        .select(sessions::gm_user_id)
-        .first(conn)
-        .map_err(|_| ServerFnError::new("Session not found"))?;
-
-    if gm_id != user.id {
+    if !crate::server::gm::is_session_gm(conn, session_id, user.id) {
         return Err(ServerFnError::new("Only the GM can delete maps"));
     }
 

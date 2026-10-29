@@ -60,6 +60,17 @@ impl SessionManager {
         }
     }
 
+    /// Send a message to a single client by username, if connected. Returns
+    /// true if a connected client received it.
+    pub fn send_to(&self, session_id: i32, username: &str, message: &ServerMessage) -> bool {
+        if let Some(session) = self.sessions.get(&session_id)
+            && let Some(tx) = session.clients.get(username)
+        {
+            return tx.send(message.clone()).is_ok();
+        }
+        false
+    }
+
     pub fn add_client(
         &self,
         session_id: i32,

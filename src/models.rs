@@ -337,6 +337,13 @@ pub mod db_models {
         pub role: String,
     }
 
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::session_gms)]
+    pub struct NewSessionGm {
+        pub session_id: i32,
+        pub user_id: i32,
+    }
+
     #[derive(Debug, Queryable, Selectable)]
     #[diesel(table_name = crate::schema::rpg_templates)]
     pub struct RpgTemplate {

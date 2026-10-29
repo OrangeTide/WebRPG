@@ -19,6 +19,7 @@ pub enum WindowId {
     Initiative,
     Inventory,
     Creatures,
+    Members,
     Terminal,
     FileBrowser,
     HelpViewer,
@@ -38,6 +39,7 @@ impl WindowId {
             WindowId::Initiative => "Initiative",
             WindowId::Inventory => "Inventory",
             WindowId::Creatures => "Creatures",
+            WindowId::Members => "Members",
             WindowId::Terminal => "COMMAND.COM",
             WindowId::FileBrowser => "File Viewer",
             WindowId::HelpViewer => "Help",
@@ -56,6 +58,7 @@ impl WindowId {
             WindowId::Initiative,
             WindowId::Inventory,
             WindowId::Creatures,
+            WindowId::Members,
             WindowId::Terminal,
             WindowId::FileBrowser,
             WindowId::HelpViewer,
@@ -72,6 +75,7 @@ impl WindowId {
             WindowId::Initiative => (220.0, 150.0),
             WindowId::Inventory => (250.0, 150.0),
             WindowId::Creatures => (280.0, 250.0),
+            WindowId::Members => (260.0, 220.0),
             WindowId::Terminal => (500.0, 300.0),
             WindowId::FileBrowser => (450.0, 350.0),
             WindowId::HelpViewer => (400.0, 300.0),
@@ -98,6 +102,7 @@ impl WindowId {
             WindowId::Initiative => "\u{2694}",           // ⚔ crossed swords
             WindowId::Inventory => "\u{1f392}",           // 🎒 backpack
             WindowId::Creatures => "\u{1f409}",           // 🐉 dragon
+            WindowId::Members => "\u{1f465}",             // 👥 busts in silhouette
             WindowId::Terminal => "\u{1f4bb}",            // 💻 personal computer
             WindowId::FileBrowser => "\u{1f4c2}",         // 📂 open file folder
             WindowId::HelpViewer => "\u{1f4d6}",          // 📖 open book
@@ -130,6 +135,7 @@ impl WindowId {
             WindowId::Initiative => "Init",
             WindowId::Inventory => "Items",
             WindowId::Creatures => "Beasts",
+            WindowId::Members => "GMs",
             WindowId::Terminal => "Term",
             WindowId::FileBrowser => "Files",
             WindowId::HelpViewer => "Help",
@@ -587,6 +593,16 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 minimized: true,
             },
             WindowState {
+                id: WindowId::Members,
+                title: None,
+                x: pad,
+                y: pad,
+                width: win_w.min(300.0),
+                height: 240.0,
+                z_index: 6,
+                minimized: true,
+            },
+            WindowState {
                 id: WindowId::Terminal,
                 title: None,
                 x: pad,
@@ -693,6 +709,16 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 y: 50.0,
                 width: 350.0,
                 height: 400.0,
+                z_index: 6,
+                minimized: true,
+            },
+            WindowState {
+                id: WindowId::Members,
+                title: None,
+                x: 50.0,
+                y: 50.0,
+                width: 300.0,
+                height: 240.0,
                 z_index: 6,
                 minimized: true,
             },
@@ -805,6 +831,16 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 y: 50.0,
                 width: 380.0,
                 height: 450.0,
+                z_index: 6,
+                minimized: true,
+            },
+            WindowState {
+                id: WindowId::Members,
+                title: None,
+                x: 50.0,
+                y: 50.0,
+                width: 300.0,
+                height: 240.0,
                 z_index: 6,
                 minimized: true,
             },

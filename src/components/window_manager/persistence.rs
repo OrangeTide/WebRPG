@@ -19,6 +19,7 @@ pub(super) const STATIC_WINDOWS: &[(WindowId, &str)] = &[
     (WindowId::Initiative, "Initiative"),
     (WindowId::Inventory, "Inventory"),
     (WindowId::Creatures, "Creatures"),
+    (WindowId::Members, "Members"),
     (WindowId::Terminal, "COMMAND.COM"),
     (WindowId::FileBrowser, "File Viewer"),
     (WindowId::HelpViewer, "Help"),

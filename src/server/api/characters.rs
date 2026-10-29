@@ -596,7 +596,7 @@ pub async fn delete_character(character_id: i32) -> Result<(), ServerFnError> {
             .first(conn)
             .map_err(|_| ServerFnError::new("Session not found"))?;
 
-        if session.gm_user_id != user.id {
+        if !crate::server::gm::is_session_gm(conn, session.id, user.id) {
             return Err(ServerFnError::new("Not your character"));
         }
     }
@@ -691,7 +691,7 @@ pub async fn create_creature(
         .first(conn)
         .map_err(|_| ServerFnError::new("Session not found"))?;
 
-    if session.gm_user_id != user.id {
+    if !crate::server::gm::is_session_gm(conn, session.id, user.id) {
         return Err(ServerFnError::new("Only the GM can create creatures"));
     }
 
@@ -751,7 +751,7 @@ pub async fn update_creature(
         .first(conn)
         .map_err(|_| ServerFnError::new("Session not found"))?;
 
-    if session.gm_user_id != user.id {
+    if !crate::server::gm::is_session_gm(conn, session.id, user.id) {
         return Err(ServerFnError::new("Only the GM can edit creatures"));
     }
 
@@ -794,7 +794,7 @@ pub async fn delete_creature(creature_id: i32) -> Result<(), ServerFnError> {
         .first(conn)
         .map_err(|_| ServerFnError::new("Session not found"))?;
 
-    if session.gm_user_id != user.id {
+    if !crate::server::gm::is_session_gm(conn, session.id, user.id) {
         return Err(ServerFnError::new("Only the GM can delete creatures"));
     }
 
@@ -858,7 +858,7 @@ pub async fn update_creature_image(
         .first(conn)
         .map_err(|_| ServerFnError::new("Session not found"))?;
 
-    if session.gm_user_id != user.id {
+    if !crate::server::gm::is_session_gm(conn, session.id, user.id) {
         return Err(ServerFnError::new("Only the GM can edit creatures"));
     }
 

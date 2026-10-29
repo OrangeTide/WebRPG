@@ -128,6 +128,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    session_gms (id) {
+        id -> Integer,
+        session_id -> Integer,
+        user_id -> Integer,
+    }
+}
+
+diesel::table! {
     session_players (id) {
         id -> Integer,
         session_id -> Integer,
@@ -227,6 +235,8 @@ diesel::joinable!(inventory_items -> sessions (session_id));
 diesel::joinable!(maps -> sessions (session_id));
 diesel::joinable!(media -> users (uploaded_by));
 diesel::joinable!(media_tags -> media (media_id));
+diesel::joinable!(session_gms -> sessions (session_id));
+diesel::joinable!(session_gms -> users (user_id));
 diesel::joinable!(session_players -> sessions (session_id));
 diesel::joinable!(session_players -> users (user_id));
 diesel::joinable!(sessions -> rpg_templates (template_id));
@@ -251,6 +261,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     media,
     media_tags,
     rpg_templates,
+    session_gms,
     session_players,
     sessions,
     token_instances,

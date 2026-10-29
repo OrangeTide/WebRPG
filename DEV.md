@@ -294,6 +294,21 @@ All message types are fully implemented:
 GM role is enforced server-side for token placement/removal, fog, map,
 initiative list updates, and initiative lock/unlock.
 
+#### Game masters
+
+A session has one owner (`sessions.gm_user_id`) plus any number of additional
+GMs listed in the `session_gms` table. A user has GM privileges if they are the
+owner or an additional GM. Every GM check routes through
+`crate::server::gm::is_session_gm`, so the rule lives in one place; server
+functions and WebSocket handlers both call it.
+
+The owner manages co-GMs from the in-session Members window (GM-only; the
+grant/revoke controls show only for the owner). It uses the `ListMembers` and
+`SetMemberGm` client messages. When the owner grants or revokes GM, the affected
+user receives a `GmStatusChanged` event and their UI flips live without
+reconnecting, and GM clients get a `MembersChanged` prompt to refetch the list.
+The owner is always a GM and cannot be demoted.
+
 ### Server function URLs
 
 Non-realtime calls go through Leptos `#[server]` functions in `server/api/`. Each

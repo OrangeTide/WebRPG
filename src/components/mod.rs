@@ -9,6 +9,7 @@ pub mod initiative;
 pub mod inventory;
 pub mod map;
 pub mod media_browser;
+pub mod members_panel;
 pub mod modules_panel;
 pub mod terminal;
 pub mod window_manager;

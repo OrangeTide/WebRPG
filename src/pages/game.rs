@@ -162,6 +162,11 @@ pub struct GameContext {
     /// Modules this session runs, and the roll model that comes with them.
     /// Empty until the fetch after join completes.
     pub modules: RwSignal<crate::server::modules_api::SessionModules>,
+    /// Session members for the GM management panel, populated on demand when the
+    /// Members window requests the list.
+    pub members: RwSignal<Vec<crate::ws::messages::SessionMemberInfo>>,
+    /// Whether the current user may manage the GM list (the session owner only).
+    pub can_manage_gms: RwSignal<bool>,
     /// Decremented for each locally-created message to avoid ID collisions with DB rows.
     next_local_id: std::sync::Arc<std::sync::atomic::AtomicI32>,
 }
@@ -261,6 +266,22 @@ impl GameContext {
             }
             ServerMessage::PlayerLeft { username } => {
                 self.players.update(|p| p.retain(|u| u != &username));
+            }
+            ServerMessage::MemberList {
+                members,
+                can_manage,
+            } => {
+                self.members.set(members);
+                self.can_manage_gms.set(can_manage);
+            }
+            ServerMessage::GmStatusChanged { is_gm } => {
+                self.is_gm.set(is_gm);
+            }
+            ServerMessage::MembersChanged => {
+                // Only GMs see the member list; refetch it if we are one.
+                if self.is_gm.get_untracked() {
+                    self.send.send(ClientMessage::ListMembers);
+                }
             }
             ServerMessage::ChatBroadcast { message } => {
                 self.chat_messages.update(|msgs| msgs.push(message));
@@ -589,6 +610,8 @@ pub fn GamePage() -> impl IntoView {
         active_initiative_token_id: RwSignal::new(None),
         initiative_round: RwSignal::new(1),
         modules: RwSignal::new(Default::default()),
+        members: RwSignal::new(vec![]),
+        can_manage_gms: RwSignal::new(false),
         next_local_id: std::sync::Arc::new(std::sync::atomic::AtomicI32::new(-1)),
     };
 
@@ -893,6 +916,11 @@ pub fn GamePage() -> impl IntoView {
                 <Show when=move || ctx.is_gm.get()>
                     <GameWindow id=WindowId::Creatures>
                         <CreaturePanel />
+                    </GameWindow>
+                </Show>
+                <Show when=move || ctx.is_gm.get()>
+                    <GameWindow id=WindowId::Members>
+                        <crate::components::members_panel::MembersPanel />
                     </GameWindow>
                 </Show>
                 <GameWindow id=WindowId::Terminal>

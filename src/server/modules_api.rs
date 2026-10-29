@@ -26,16 +26,7 @@ fn require_gm(
     session_id: i32,
     user_id: i32,
 ) -> Result<(), ServerFnError> {
-    use crate::schema::sessions;
-    use diesel::prelude::*;
-
-    let gm_id: i32 = sessions::table
-        .find(session_id)
-        .select(sessions::gm_user_id)
-        .first(conn)
-        .map_err(|_| ServerFnError::new("Session not found"))?;
-
-    if gm_id != user_id {
+    if !crate::server::gm::is_session_gm(conn, session_id, user_id) {
         return Err(ServerFnError::new("Only the GM can install modules"));
     }
     Ok(())

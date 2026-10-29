@@ -43,16 +43,53 @@ pub async fn ws_upgrade(ws: WebSocketUpgrade, Query(query): Query<WsQuery>) -> i
 
 fn is_gm(session_id: i32, user_id: i32) -> bool {
     use crate::db;
-    use crate::schema::sessions;
-    use diesel::prelude::*;
-
     let conn = &mut db::get_conn();
-    sessions::table
-        .find(session_id)
-        .select(sessions::gm_user_id)
-        .first::<i32>(conn)
-        .map(|gm_id| gm_id == user_id)
-        .unwrap_or(false)
+    crate::server::gm::is_session_gm(conn, session_id, user_id)
+}
+
+/// Build the member list for a session's GM management panel: the owner plus
+/// everyone who has joined, each flagged with their owner and GM status.
+fn session_members(
+    conn: &mut diesel::SqliteConnection,
+    session_id: i32,
+) -> Vec<crate::ws::messages::SessionMemberInfo> {
+    use crate::schema::{session_players, users};
+    use diesel::prelude::*;
+    use std::collections::BTreeSet;
+
+    let owner = crate::server::gm::session_owner_id(conn, session_id);
+    let additional: BTreeSet<i32> = crate::server::gm::additional_gm_ids(conn, session_id)
+        .into_iter()
+        .collect();
+    let players: Vec<i32> = session_players::table
+        .filter(session_players::session_id.eq(session_id))
+        .select(session_players::user_id)
+        .load::<i32>(conn)
+        .unwrap_or_default();
+
+    let mut ids: BTreeSet<i32> = BTreeSet::new();
+    if let Some(o) = owner {
+        ids.insert(o);
+    }
+    ids.extend(players);
+    ids.extend(additional.iter().copied());
+
+    ids.into_iter()
+        .map(|id| {
+            let username = users::table
+                .find(id)
+                .select(users::username)
+                .first::<String>(conn)
+                .unwrap_or_else(|_| format!("user {id}"));
+            let is_owner = owner == Some(id);
+            crate::ws::messages::SessionMemberInfo {
+                user_id: id,
+                username,
+                is_owner,
+                is_gm: is_owner || additional.contains(&id),
+            }
+        })
+        .collect()
 }
 
 async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
@@ -982,6 +1019,83 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                         &ServerMessage::TokenVisibilityUpdated { token_id, visible },
                         None,
                     );
+                }
+            }
+
+            ClientMessage::ListMembers => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only a GM can view the member list".into(),
+                        });
+                        continue;
+                    }
+                    let conn = &mut crate::db::get_conn();
+                    let members = session_members(conn, session_id);
+                    let can_manage = crate::server::gm::is_session_owner(conn, session_id, user_id);
+                    let _ = tx.send(ServerMessage::MemberList {
+                        members,
+                        can_manage,
+                    });
+                }
+            }
+
+            ClientMessage::SetMemberGm {
+                user_id: target_id,
+                make_gm,
+            } => {
+                if let Some(session_id) = current_session {
+                    let conn = &mut crate::db::get_conn();
+                    if !crate::server::gm::is_session_owner(conn, session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the session owner can manage GMs".into(),
+                        });
+                        continue;
+                    }
+                    if crate::server::gm::session_owner_id(conn, session_id) == Some(target_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "The session owner is always a GM".into(),
+                        });
+                        continue;
+                    }
+                    {
+                        use crate::schema::session_gms;
+                        use diesel::prelude::*;
+                        if make_gm {
+                            let _ = diesel::insert_or_ignore_into(session_gms::table)
+                                .values(&crate::models::db_models::NewSessionGm {
+                                    session_id,
+                                    user_id: target_id,
+                                })
+                                .execute(conn);
+                        } else {
+                            let _ = diesel::delete(
+                                session_gms::table
+                                    .filter(session_gms::session_id.eq(session_id))
+                                    .filter(session_gms::user_id.eq(target_id)),
+                            )
+                            .execute(conn);
+                        }
+                    }
+                    // Flip the affected user's UI live, if they are connected.
+                    let target_username: Option<String> = {
+                        use crate::schema::users;
+                        use diesel::prelude::*;
+                        users::table
+                            .find(target_id)
+                            .select(users::username)
+                            .first::<String>(conn)
+                            .ok()
+                    };
+                    if let Some(uname) = target_username {
+                        SESSION_MANAGER.send_to(
+                            session_id,
+                            &uname,
+                            &ServerMessage::GmStatusChanged { is_gm: make_gm },
+                        );
+                    }
+                    // Prompt GM clients to refetch the member list.
+                    SESSION_MANAGER.broadcast(session_id, &ServerMessage::MembersChanged, None);
                 }
             }
         }

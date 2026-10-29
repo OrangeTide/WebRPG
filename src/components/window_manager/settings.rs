@@ -33,7 +33,7 @@ pub(super) fn SettingsDialog(#[prop(into)] on_close: Callback<()>) -> impl IntoV
         let is_gm = ctx.is_gm.get_untracked();
         STATIC_WINDOWS
             .iter()
-            .filter(|(id, _)| *id != WindowId::Creatures || is_gm)
+            .filter(|(id, _)| (*id != WindowId::Creatures && *id != WindowId::Members) || is_gm)
             .map(|(id, _title)| {
                 let checked = match &saved {
                     Some(open_ids) => open_ids.contains(id),

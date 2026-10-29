@@ -14,7 +14,7 @@ cleanup() {
         kill "$SERVER_PID" 2>/dev/null || true
         wait "$SERVER_PID" 2>/dev/null || true
     fi
-    rm -f "$TMPDB" /tmp/smoke-cookies.txt
+    rm -f "$TMPDB" /tmp/smoke-cookies.txt /tmp/smoke-cookies2.txt
 }
 trap cleanup EXIT
 
@@ -422,6 +422,55 @@ check "Game page has map tool palette" "$(echo "$GAME_HTML" | grep -q 'map-tool-
 check "Game page has chat panel" "$(echo "$GAME_HTML" | grep -q 'chat-panel' && echo 0 || echo 1)"
 check "Game page has character sheet" "$(echo "$GAME_HTML" | grep -q 'character-sheet-panel' && echo 0 || echo 1)"
 check "Game page has CSS link" "$(echo "$GAME_HTML" | grep -q 'webrpg.css' && echo 0 || echo 1)"
+
+echo ""
+echo "=== Multiple GMs ==="
+# A second user joins the session owned by smoketest. They are not a GM until
+# added to session_gms, which is exactly what the in-session GM panel does.
+COOKIES2=/tmp/smoke-cookies2.txt
+curl -s -c "$COOKIES2" \
+    -X POST "$(fn_url signup)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data 'username=coplayer&password=coplaypass123&display_name=Co+Player&email=co%40test.com' \
+    >/dev/null
+CO_UID=$(sqlite3 "$TMPDB" "SELECT id FROM users WHERE username='coplayer';")
+check "second user created (id=$CO_UID)" "$([ -n "$CO_UID" ] && echo 0 || echo 1)"
+
+curl -s -b "$COOKIES2" -o /dev/null \
+    -X POST "$(fn_url join_session)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}"
+
+# A non-GM member cannot create a map (create_map is GM-gated).
+DENY=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES2" \
+    -X POST "$(fn_url create_map)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}&name=Nope&width=10&height=10")
+check "non-GM member cannot create a map (not 200)" \
+    "$([ "$DENY" != "200" ] && echo 0 || echo 1)"
+
+# Grant co-GM, as the in-session owner control does, then the same call works.
+sqlite3 "$TMPDB" "INSERT INTO session_gms (session_id, user_id) VALUES ($SESSION_ID, $CO_UID);"
+CO_MAP=$(curl -s -b "$COOKIES2" \
+    -X POST "$(fn_url create_map)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}&name=CoGM+Map&width=10&height=10")
+check "co-GM can create a map" \
+    "$(echo "$CO_MAP" | grep -q '"id"' && echo 0 || echo 1)"
+
+# Revoking co-GM restores the restriction.
+sqlite3 "$TMPDB" "DELETE FROM session_gms WHERE session_id=$SESSION_ID AND user_id=$CO_UID;"
+DENY2=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES2" \
+    -X POST "$(fn_url create_map)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "session_id=${SESSION_ID}&name=Nope2&width=10&height=10")
+check "revoked co-GM cannot create a map (not 200)" \
+    "$([ "$DENY2" != "200" ] && echo 0 || echo 1)"
 
 echo ""
 echo "=== Server administration ==="

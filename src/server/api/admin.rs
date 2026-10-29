@@ -232,7 +232,8 @@ pub async fn admin_update_user(
 pub async fn admin_remove_user(id: i32) -> Result<(), ServerFnError> {
     use crate::db;
     use crate::schema::{
-        character_resources, characters, chat_messages, session_players, sessions, users, vfs_files,
+        character_resources, characters, chat_messages, session_gms, session_players, sessions,
+        users, vfs_files,
     };
     use diesel::prelude::*;
 
@@ -276,6 +277,7 @@ pub async fn admin_remove_user(id: i32) -> Result<(), ServerFnError> {
         diesel::delete(characters::table.filter(characters::user_id.eq(id))).execute(conn)?;
         diesel::delete(session_players::table.filter(session_players::user_id.eq(id)))
             .execute(conn)?;
+        diesel::delete(session_gms::table.filter(session_gms::user_id.eq(id))).execute(conn)?;
         diesel::delete(chat_messages::table.filter(chat_messages::user_id.eq(id))).execute(conn)?;
         diesel::delete(vfs_files::table.filter(vfs_files::user_id.eq(Some(id)))).execute(conn)?;
         diesel::delete(users::table.find(id)).execute(conn)?;
@@ -452,6 +454,8 @@ fn cascade_delete_session(
     diesel::delete(chat_messages::table.filter(chat_messages::session_id.eq(session_id)))
         .execute(conn)?;
     diesel::delete(session_players::table.filter(session_players::session_id.eq(session_id)))
+        .execute(conn)?;
+    diesel::delete(session_gms::table.filter(session_gms::session_id.eq(session_id)))
         .execute(conn)?;
     diesel::delete(vfs_files::table.filter(vfs_files::session_id.eq(Some(session_id))))
         .execute(conn)?;

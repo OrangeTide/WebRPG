@@ -201,6 +201,13 @@ pub enum ClientMessage {
         token_id: i32,
         visible: bool,
     },
+    /// A GM requests the session's member list (for the GM management panel).
+    ListMembers,
+    /// The session owner grants or revokes co-GM status for a member.
+    SetMemberGm {
+        user_id: i32,
+        make_gm: bool,
+    },
 }
 
 // ===== Server -> Client messages =====
@@ -326,6 +333,31 @@ pub enum ServerMessage {
         /// What happened: "write", "delete", "mkdir", "rename", "chmod".
         action: String,
     },
+    /// The session member list, sent in reply to `ListMembers`. `can_manage`
+    /// is true only when the receiving client is the session owner.
+    MemberList {
+        members: Vec<SessionMemberInfo>,
+        can_manage: bool,
+    },
+    /// Tells a single client its own GM status changed, so it can flip its UI
+    /// live without reconnecting.
+    GmStatusChanged {
+        is_gm: bool,
+    },
+    /// Broadcast when the GM list changed, prompting GM clients to refetch the
+    /// member list.
+    MembersChanged,
+}
+
+/// A session member as shown in the GM management panel.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionMemberInfo {
+    pub user_id: i32,
+    pub username: String,
+    /// The session owner (primary GM); always a GM and cannot be demoted.
+    pub is_owner: bool,
+    /// Whether this member currently has GM privileges.
+    pub is_gm: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
