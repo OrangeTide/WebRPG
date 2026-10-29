@@ -15,6 +15,7 @@ async fn main() {
     let database_url =
         std::env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file");
     webrpg::db::init_pool(&database_url);
+    webrpg::db::run_migrations();
 
     let conf = get_configuration(None).unwrap();
     let addr = conf.leptos_options.site_addr;

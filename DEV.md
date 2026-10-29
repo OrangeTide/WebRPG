@@ -642,14 +642,48 @@ into the release, so they persist across deploys.
 1. Run `scripts/build-release.sh` locally
 2. Run `scripts/deploy.sh user@host`
 3. SSH in and copy `~/webrpg/current/env.example` to `~/webrpg/.env`, edit it
-4. Install Diesel CLI on the server and run `cd ~/webrpg/current && diesel migration run`
-5. Start the server: `cd ~/webrpg/current && ./webrpg`
+4. Start the server: `cd ~/webrpg/current && ./webrpg`
+
+The server applies any pending Diesel migrations at startup (migrations are
+compiled into the binary), so a fresh `database.db` is created and brought up to
+schema on first run. No manual `diesel migration run` is needed. The Diesel CLI
+is still useful for rolling a migration back.
 
 **Subsequent deploys:**
 
 1. Run `scripts/build-release.sh`
 2. Run `scripts/deploy.sh user@host`
 3. Restart the server
+
+### Running with Docker
+
+A multi-stage [Dockerfile](Dockerfile) builds the static musl server and the
+WASM client, then copies them into a minimal Alpine runtime image. The database
+and uploaded media live under `/app/data`, exposed as a volume, so they survive
+image upgrades. Migrations run at startup.
+
+The simplest path is Docker Compose:
+
+```sh
+echo "SECRET_KEY=$(openssl rand -hex 32)" >> .env   # signs auth cookies, keep it stable
+docker compose up -d --build
+```
+
+The app is then on `http://localhost:3000`. To run the image directly instead:
+
+```sh
+docker build -t webrpg .
+docker run -d -p 3000:3000 \
+    -e SECRET_KEY="$(openssl rand -hex 32)" \
+    -v webrpg-data:/app/data \
+    webrpg
+```
+
+`SECRET_KEY` has no default and must be supplied; keep it stable across restarts
+or existing login cookies stop validating. For TLS, terminate at a reverse proxy
+in front of the container, or set `TLS_CERT_PATH`, `TLS_KEY_PATH`, and `TLS_PORT`
+(see [HTTPS / TLS Configuration](#https--tls-configuration)) and publish that
+port. Publishing images to a registry is not set up yet.
 
 ## Feature Requests
 

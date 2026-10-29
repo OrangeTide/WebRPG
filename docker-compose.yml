@@ -1,0 +1,25 @@
+# Self-host WebRPG with a persistent data volume.
+#
+#   SECRET_KEY must be set and kept stable (it signs auth cookies). Generate one
+#   and put it in a .env file next to this compose file:
+#
+#     echo "SECRET_KEY=$(openssl rand -hex 32)" >> .env
+#
+#   Then:  docker compose up -d
+#
+# The database and uploaded media persist in the webrpg-data volume, so they
+# survive  docker compose pull  /  up  with a new image.
+services:
+  webrpg:
+    build: .
+    image: webrpg:latest
+    ports:
+      - "3000:3000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env (e.g. openssl rand -hex 32)}
+    volumes:
+      - webrpg-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  webrpg-data:

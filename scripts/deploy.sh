@@ -88,8 +88,8 @@ echo ""
 echo "To run:"
 echo "  cd ~/${DEPLOY_DIR}/current && ./webrpg"
 echo ""
-echo "To run migrations (first deploy or after schema changes):"
-echo "  cd ~/${DEPLOY_DIR}/current && diesel migration run"
+echo "Pending migrations are applied automatically at startup."
+echo "The Diesel CLI is only needed to roll a migration back."
 REMOTE_SCRIPT
 
 echo "Done."

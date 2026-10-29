@@ -1,0 +1,26 @@
+# Build artifacts and caches (rebuilt inside the image).
+target/
+dist/
+
+# VCS and CI.
+.git/
+.github/
+
+# Local secrets and state.
+.env
+*.pem
+database.db
+database.db.*.bak
+uploads/
+testing/
+
+# Release packaging and docs not needed to build.
+*.tar.gz
+doc/
+WIP/
+REF/inv-cards/png/
+
+# Adventure art is fetched, not committed, and is not redistributed in the
+# image (mirrors .gitignore and scripts/build-release.sh).
+modules/sky-blind-spire/assets/*
+!modules/sky-blind-spire/assets/README.md
