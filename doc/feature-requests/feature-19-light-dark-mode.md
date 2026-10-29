@@ -29,3 +29,19 @@ Before implementing light/dark toggle, develop a **theme system** first:
 3. **Then** adding light mode becomes straightforward — just define an alternate set of variable values under a `.light-mode` class or `prefers-color-scheme` media query.
 
 Doing it in this order avoids converting 49 colors to variables only to realize half of them should have been the same color. The palette consolidation pays for itself in long-term maintainability regardless of whether light mode ships.
+
+### Audit (2026-10-29)
+
+Step 1 and most of step 2 of the recommendation above have since landed. The
+"zero CSS custom properties" finding from 2026-03-16 is now stale.
+
+- `style/main.css` defines a semantic token palette on `:root` (around
+  `style/main.css:10-37`): `--color-*`, `--chrome-*`, and related tokens.
+- Roughly 387 `var()` references now consume those tokens across the stylesheet.
+- Still missing for this feature: the toggle control, a second (sandy brown
+  light) palette, a `data-theme` selector or `prefers-color-scheme` media query,
+  and persistence of the choice.
+
+Remaining work is small relative to the original scope: add the light palette
+values and a switch that flips `data-theme`, reusing the existing token layer.
+This is one of the cheaper features to finish.

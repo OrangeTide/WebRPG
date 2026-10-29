@@ -25,4 +25,13 @@ Change the map settings from a popup to a full window. Each map can have its own
 
 ## Findings
 
-(none yet)
+### Audit (2026-10-29)
+
+A minimal settings popup exists; the full-window rework does not.
+
+- A gear popup on the map provides the default token color
+  (`SetMapDefaultColor`) and a delete action (`components/map.rs:1814-1865`).
+- Missing: promoting the popup to a full, per-map window; grid offset (origin)
+  +/- controls on both New Map and Map Settings; shared code between New Map and
+  Map Settings for the overlapping fields; and the live-update broadcast for
+  setting changes beyond the existing default-color path.

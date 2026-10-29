@@ -27,5 +27,18 @@ Database schema exists. Server loads fog data. No UI or player-side filtering.
 
 - `fog_of_war` table exists in schema with `(id, map_id, x, y)` columns
 - `GameContext.fog` signal exists and is populated from server
-- Map render effect receives fog data but only draws it as semi-transparent overlay for GM
-- No fog editing tools or player-side culling exist
+
+### Audit (2026-10-29)
+
+More of the player-facing half exists than the earlier findings implied. The
+GM editing UI is the real gap.
+
+- Player-side fog overlay renders on the map canvas
+  (`components/map.rs:602-616`), and tokens flagged hidden are culled for
+  non-GM players (`components/map.rs:445`, `:449`).
+- The server already handles `RevealFog` and `HideFog` requests and broadcasts
+  the result (`server/ws_handler/mod.rs:439-480`).
+- The missing piece is the GM paint/erase UI: no client code ever *sends*
+  `RevealFog` or `HideFog`, and there is no brush toolbar or
+  reveal/hide/toggle control. Wiring a GM fog tool onto the existing server
+  handlers is the bulk of the remaining work.

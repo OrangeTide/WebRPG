@@ -32,3 +32,12 @@ Once a clearer picture of the architecture is reached, refactor to consolidate t
 - Creature tokens get unique labels ("Wolf", "Wolf 2", etc.) server-side
 - Cascade deletes prevent orphaned records
 - `token_instances` has both `character_id` and `creature_id` (nullable)
+
+### Audit (2026-10-29)
+
+Only the groundwork above is in place. The `token_instances` design still holds
+(`src/schema.rs:161-169`). The holistic review and consolidation refactor across
+Map View, Initiative Tracker, Creatures, Character Selection, and Character Sheet
+has not been done. This feature remains effectively Not Started beyond that data
+model; treat the bullets above as prerequisites that already shipped, not as
+partial delivery of the consolidation itself.

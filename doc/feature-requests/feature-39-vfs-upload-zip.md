@@ -53,4 +53,16 @@ Shared UI components (gas gauge progress bar, drag-and-drop handling) are define
 
 ## Findings
 
-(none yet)
+### Audit (2026-10-29)
+
+Partially implemented on the client side; the ZIP half is untouched.
+
+- Client multi-file upload exists (`components/file_browser.rs:1766`,
+  `upload_files`) and folder upload via `webkitdirectory` preserves relative
+  paths (`components/file_browser.rs:1882`, `upload_folder`;
+  `components/browser_helpers.rs:61`). Both enforce quota and file-count checks.
+- Missing: the single multipart POST endpoint described above (uploads currently
+  go file-by-file), ZIP download, ZIP extraction, and the `zip` crate dependency
+  for either server or WASM.
+- The 250 hard / 25 soft file-count limits and the store-method ZIP are not yet
+  implemented.

@@ -26,4 +26,17 @@ None (but related to Feature 31: Pascal Compiler).
 - Current template system is in `src/models.rs` (`TemplateInfo`, `TemplateField`)
 - Templates define fields with types (Number, Text, Boolean) and categories
 - Session creation picks a template; creatures and characters use it
-- The current system is static — no computed fields or rule automation
+- The current system is static, with no computed fields or rule automation
+
+### Audit (2026-10-29)
+
+The data-driven half of this feature has since been built; the scripting/plugin
+half has not.
+
+- A JSON-based module system exists (`src/modules/mod.rs`, `ModuleKind::System`)
+  with declarative roll rules (`RollRules`, around `src/modules/mod.rs:107`) and
+  a loader (`src/modules/loader.rs`). RPG systems can be described as data.
+- Missing: the scripting or plug-in layer the description calls for (JavaScript,
+  AssemblyScript, a custom DSL, or Compact Pascal) to implement rules that pure
+  static data cannot express, such as computed fields and rule automation. The
+  options listed above have not been evaluated or chosen.
