@@ -170,7 +170,7 @@ pub(super) fn usage_lines(md: &str) -> Option<Vec<String>> {
             continue;
         }
         if in_section && !trimmed.starts_with("```") {
-            lines.push(line.to_string());
+            lines.push(plain_usage_line(line));
         }
     }
     while lines.first().is_some_and(|l| l.trim().is_empty()) {
@@ -180,6 +180,19 @@ pub(super) fn usage_lines(md: &str) -> Option<Vec<String>> {
         lines.pop();
     }
     (!lines.is_empty()).then_some(lines)
+}
+
+/// Turn one Markdown usage line into plain terminal text: drop inline-code
+/// backticks, and indent a `-`/`*` list item instead of showing the marker.
+#[cfg(feature = "hydrate")]
+fn plain_usage_line(line: &str) -> String {
+    let stripped = line.replace('`', "");
+    let body = stripped.trim_start();
+    let indent = &stripped[..stripped.len() - body.len()];
+    match body.strip_prefix("- ").or_else(|| body.strip_prefix("* ")) {
+        Some(rest) => format!("{indent}  {rest}"),
+        None => stripped,
+    }
 }
 
 pub(super) fn cmd_cd(shell: &mut ShellState, args: &[String]) -> Vec<String> {
