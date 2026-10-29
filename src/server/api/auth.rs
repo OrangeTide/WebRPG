@@ -143,6 +143,7 @@ pub async fn signup(
     if password.len() < 8 {
         return Err(ServerFnError::new("Password must be at least 8 characters"));
     }
+    let email = crate::models::validate_email(&email).map_err(ServerFnError::new)?;
 
     let conn = &mut db::get_conn();
 

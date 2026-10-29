@@ -159,6 +159,15 @@ SIGNUP_RESP=$(curl -s -c "$COOKIES" \
     --data 'username=smoketest&password=smokepass123&display_name=Smoke+Tester&email=smoke%40test.com')
 check "Signup returns user" "$(echo "$SIGNUP_RESP" | grep -q '"username":"smoketest"' && echo 0 || echo 1)"
 
+# Signup with a malformed email is rejected (server-side validation).
+BAD_EMAIL_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+    -X POST "$(fn_url signup)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data 'username=bademailuser&password=smokepass123&display_name=Bad+Email&email=not-an-email')
+check "Signup with malformed email rejected (not 200)" \
+    "$([ "$BAD_EMAIL_CODE" != "200" ] && echo 0 || echo 1)"
+
 HAS_TOKEN=$(grep -c "token" "$COOKIES" 2>/dev/null || echo 0)
 check "JWT cookie set" "$([ "$HAS_TOKEN" -gt 0 ] && echo 0 || echo 1)"
 

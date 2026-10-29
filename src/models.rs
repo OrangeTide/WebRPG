@@ -57,6 +57,78 @@ pub struct SignupRequest {
     pub email: String,
 }
 
+/// Validate an email address with a pragmatic, dependency-free format check and
+/// return the trimmed address. This is deliberately permissive. It rejects the
+/// obvious mistakes (no @, no domain, spaces, missing TLD) without trying to
+/// implement the full RFC, so valid addresses are not turned away.
+pub fn validate_email(email: &str) -> Result<String, String> {
+    let email = email.trim();
+    if email.len() < 3 || email.len() > 254 {
+        return Err("Email must be between 3 and 254 characters".into());
+    }
+    if email.chars().any(char::is_whitespace) {
+        return Err("Email must not contain spaces".into());
+    }
+
+    let mut parts = email.split('@');
+    let local = parts.next().unwrap_or("");
+    let domain = parts.next().unwrap_or("");
+    if parts.next().is_some() {
+        return Err("Email must contain exactly one @".into());
+    }
+    if local.is_empty() || local.len() > 64 {
+        return Err("Email is missing a valid name before the @".into());
+    }
+
+    // Domain: dot-separated labels, each non-empty, with a TLD of 2+ characters.
+    let labels: Vec<&str> = domain.split('.').collect();
+    if labels.len() < 2 || labels.iter().any(|label| label.is_empty()) {
+        return Err("Email must have a valid domain after the @".into());
+    }
+    if labels.last().is_none_or(|tld| tld.len() < 2) {
+        return Err("Email must have a valid domain after the @".into());
+    }
+
+    Ok(email.to_string())
+}
+
+#[cfg(test)]
+mod email_tests {
+    use super::validate_email;
+
+    #[test]
+    fn accepts_valid_addresses() {
+        for e in [
+            "a@b.co",
+            "jon.mayo@gmail.com",
+            "user+tag@sub.example.org",
+            "  trimmed@example.com  ",
+        ] {
+            assert!(validate_email(e).is_ok(), "should accept {e:?}");
+        }
+        assert_eq!(validate_email("  trimmed@example.com  ").unwrap(), "trimmed@example.com");
+    }
+
+    #[test]
+    fn rejects_invalid_addresses() {
+        for e in [
+            "",
+            "plainaddress",
+            "no@domain",
+            "@example.com",
+            "user@",
+            "user@.com",
+            "user@example.",
+            "user@example.c",
+            "two@@example.com",
+            "spaces in@example.com",
+            "user@exam ple.com",
+        ] {
+            assert!(validate_email(e).is_err(), "should reject {e:?}");
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionInfo {
     pub id: i32,

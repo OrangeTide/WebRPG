@@ -126,7 +126,6 @@ pub async fn admin_add_user(
 
     let username = username.trim();
     let display_name = display_name.trim();
-    let email = email.trim();
     if username.len() < 3 || username.len() > 50 {
         return Err(ServerFnError::new(
             "Username must be between 3 and 50 characters",
@@ -138,6 +137,7 @@ pub async fn admin_add_user(
     if display_name.is_empty() {
         return Err(ServerFnError::new("Display name is required"));
     }
+    let email = crate::models::validate_email(&email).map_err(ServerFnError::new)?;
 
     let conn = &mut db::get_conn();
 
@@ -155,7 +155,7 @@ pub async fn admin_add_user(
     let new_user = NewUser {
         username,
         display_name,
-        email,
+        email: &email,
         passcrypt: &hash,
     };
     diesel::insert_into(users::table)
@@ -197,10 +197,10 @@ pub async fn admin_update_user(
     let me = require_admin().await?;
 
     let display_name = display_name.trim();
-    let email = email.trim();
     if display_name.is_empty() {
         return Err(ServerFnError::new("Display name is required"));
     }
+    let email = crate::models::validate_email(&email).map_err(ServerFnError::new)?;
 
     if id == me.id && (locked || !crate::models::is_admin_level(access_level)) {
         return Err(ServerFnError::new(
