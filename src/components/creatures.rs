@@ -4,6 +4,22 @@ use crate::models::{CreatureInfo, FieldType, TemplateField, TemplateInfo};
 use crate::pages::game::GameContext;
 use crate::ws::messages::ClientMessage;
 
+/// One reversible action on the Creatures table. The undo stack holds these so
+/// the most recent table-local action (delete, field change, rename) can be
+/// reversed. Place on map and roll initiative are not tracked yet.
+#[derive(Clone)]
+enum CreatureUndo {
+    /// A creature was deleted; undo recreates it from this snapshot. The new
+    /// row gets a fresh id, so the undo handler remaps later stack entries.
+    Deleted(CreatureInfo),
+    /// A creature was edited; undo restores these previous name and stats.
+    Updated {
+        id: i32,
+        name: String,
+        stat_data: serde_json::Value,
+    },
+}
+
 #[component]
 pub fn CreaturePanel() -> impl IntoView {
     let ctx = expect_context::<GameContext>();
@@ -41,6 +57,18 @@ pub fn CreaturePanel() -> impl IntoView {
     }
 
     let trigger_refetch = move || refetch.update(|n| *n += 1);
+
+    // Undo stack for the Creatures table (feature 58). Capped so it cannot grow
+    // without bound over a long session.
+    let undo_stack = RwSignal::new(Vec::<CreatureUndo>::new());
+    let push_undo = move |action: CreatureUndo| {
+        undo_stack.update(|s| {
+            s.push(action);
+            if s.len() > 50 {
+                s.remove(0);
+            }
+        });
+    };
 
     let (editing, set_editing) = signal(Option::<i32>::None);
 
@@ -87,9 +115,58 @@ pub fn CreaturePanel() -> impl IntoView {
         set_new_name.set(String::new());
     };
 
-    let delete_creature = move |creature_id: i32| {
+    let delete_creature = move |creature: CreatureInfo| {
+        let creature_id = creature.id;
+        push_undo(CreatureUndo::Deleted(creature));
         leptos::task::spawn_local(async move {
             let _ = crate::server::api::delete_creature(creature_id).await;
+            trigger_refetch();
+        });
+    };
+
+    // Reverse the most recent table-local action.
+    let undo_last = move |_| {
+        let Some(action) = undo_stack.try_update(|s| s.pop()).flatten() else {
+            return;
+        };
+        let sid = session_id.get();
+        leptos::task::spawn_local(async move {
+            match action {
+                CreatureUndo::Deleted(info) => {
+                    let old_id = info.id;
+                    let image = info.image_url.clone();
+                    match crate::server::api::create_creature(sid, info.name, info.stat_data).await
+                    {
+                        Ok(c) => {
+                            if let Some(url) = image {
+                                let _ = crate::server::api::update_creature_image(c.id, Some(url))
+                                    .await;
+                            }
+                            // The recreated creature has a new id. Point any
+                            // later undo entries for the old id at the new one.
+                            undo_stack.update(|s| {
+                                for a in s.iter_mut() {
+                                    if let CreatureUndo::Updated { id, .. } = a
+                                        && *id == old_id
+                                    {
+                                        *id = c.id;
+                                    }
+                                }
+                            });
+                        }
+                        Err(e) => log::error!("Failed to undo creature delete: {e}"),
+                    }
+                }
+                CreatureUndo::Updated {
+                    id,
+                    name,
+                    stat_data,
+                } => {
+                    if let Err(e) = crate::server::api::update_creature(id, name, stat_data).await {
+                        log::error!("Failed to undo creature edit: {e}");
+                    }
+                }
+            }
             trigger_refetch();
         });
     };
@@ -118,14 +195,28 @@ pub fn CreaturePanel() -> impl IntoView {
         <div class="creature-panel">
             <div class="panel-header">
                 <h3>"Creatures"</h3>
-                <button
-                    class="btn-add"
-                    data-tooltip="New Creature"
-                    on:click=move |_| {
-                        set_show_create_form.set(true);
-                        set_editing.set(None);
-                    }
-                >"+"</button>
+                <div class="panel-header-actions">
+                    {move || (!undo_stack.get().is_empty()).then(|| view! {
+                        <button
+                            class="btn-undo"
+                            data-tooltip="Undo last action"
+                            on:click=undo_last
+                        >
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 7v6h6"/>
+                                <path d="M3 13a9 9 0 103-7l-3 3"/>
+                            </svg>
+                        </button>
+                    })}
+                    <button
+                        class="btn-add"
+                        data-tooltip="New Creature"
+                        on:click=move |_| {
+                            set_show_create_form.set(true);
+                            set_editing.set(None);
+                        }
+                    >"+"</button>
+                </div>
             </div>
 
             // Create creature form
@@ -160,10 +251,10 @@ pub fn CreaturePanel() -> impl IntoView {
                 let editing_id = editing.get();
                 editing_id.and_then(|edit_id| {
                     creature_list.into_iter().find(|c| c.id == edit_id).map(|creature| {
-                        let cid = creature.id;
                         let dup_name = creature.name.clone();
                         let dup_stats = creature.stat_data.clone();
                         let dup_image = creature.image_url.clone();
+                        let del_info = creature.clone();
                         view! {
                             <div>
                                 <div class="editor-toolbar">
@@ -190,7 +281,7 @@ pub fn CreaturePanel() -> impl IntoView {
                                         class="btn-delete"
                                         title="Delete creature"
                                         on:click=move |_| {
-                                            delete_creature(cid);
+                                            delete_creature(del_info.clone());
                                             set_editing.set(None);
                                         }
                                     >
@@ -205,6 +296,7 @@ pub fn CreaturePanel() -> impl IntoView {
                                 <CreatureEditor
                                     creature=creature
                                     template=tmpl
+                                    undo_stack=undo_stack
                                     on_saved=move || {
                                         trigger_refetch();
                                     }
@@ -230,6 +322,7 @@ pub fn CreaturePanel() -> impl IntoView {
                         let cid = creature.id;
                         let name = creature.name.clone();
                         let image = creature.image_url.clone();
+                        let del_info = creature.clone();
                         let stats_summary = {
                             let d = &creature.stat_data;
                             let mut parts = Vec::new();
@@ -293,7 +386,10 @@ pub fn CreaturePanel() -> impl IntoView {
                                     <button
                                         class="btn-delete"
                                         data-tooltip="Delete creature"
-                                        on:click:stopPropagation=move |_: leptos::ev::MouseEvent| delete_creature(cid)
+                                        on:click=move |ev: leptos::ev::MouseEvent| {
+                                            ev.stop_propagation();
+                                            delete_creature(del_info.clone());
+                                        }
                                     >
                                         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
                                             <polyline points="3 6 5 6 21 6"/>
@@ -329,9 +425,13 @@ pub fn CreaturePanel() -> impl IntoView {
 fn CreatureEditor(
     creature: CreatureInfo,
     template: Option<TemplateInfo>,
+    undo_stack: RwSignal<Vec<CreatureUndo>>,
     #[prop(into)] on_saved: Callback<()>,
 ) -> impl IntoView {
     let creature_id = creature.id;
+    // The creature's values when this editor opened, used as the "before" state
+    // for the undo stack on the next save.
+    let prev_snapshot = RwSignal::new((creature.name.clone(), creature.stat_data.clone()));
     let (name, set_name) = signal(creature.name.clone());
     let show_image_picker = RwSignal::new(false);
     let (image, set_image) = signal(creature.image_url.clone());
@@ -402,17 +502,39 @@ fn CreatureEditor(
             };
             stat_data.insert(field.name.clone(), json_val);
         }
+        let new_stats = serde_json::Value::Object(stat_data);
+
+        let (prev_name, prev_stats) = prev_snapshot.get();
+        let changed = new_name != prev_name || new_stats != prev_stats;
+        let name_for_update = new_name.clone();
+        let stats_for_update = new_stats.clone();
 
         let on_saved = on_saved;
         leptos::task::spawn_local(async move {
             match crate::server::api::update_creature(
                 creature_id,
-                new_name,
-                serde_json::Value::Object(stat_data),
+                name_for_update,
+                stats_for_update,
             )
             .await
             {
-                Ok(()) => on_saved.run(()),
+                Ok(()) => {
+                    // Record the previous values so this edit can be undone.
+                    if changed {
+                        undo_stack.update(|s| {
+                            s.push(CreatureUndo::Updated {
+                                id: creature_id,
+                                name: prev_name,
+                                stat_data: prev_stats,
+                            });
+                            if s.len() > 50 {
+                                s.remove(0);
+                            }
+                        });
+                        prev_snapshot.set((new_name, new_stats));
+                    }
+                    on_saved.run(());
+                }
                 Err(e) => log::error!("Failed to save creature: {e}"),
             }
         });
