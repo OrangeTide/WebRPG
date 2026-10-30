@@ -374,6 +374,7 @@ pub async fn create_character(
         data: default_data,
         resources: vec![],
         portrait_url: None,
+        temp_hp: 0,
     })
 }
 
@@ -417,6 +418,7 @@ pub async fn list_characters(session_id: i32) -> Result<Vec<CharacterInfo>, Serv
                 })
                 .collect(),
             portrait_url: c.portrait_url,
+            temp_hp: c.temp_hp,
         });
     }
 
@@ -581,6 +583,115 @@ pub async fn update_character_resource(
     Ok(())
 }
 
+/// Set a character's temporary hit points. Temp HP sits on top of normal HP and
+/// is spent by damage before normal HP. It has no maximum; negative values are
+/// clamped to zero. Broadcasts the change and syncs the character's tokens.
+#[server]
+pub async fn set_character_temp_hp(
+    character_id: i32,
+    temp_hp: i32,
+) -> Result<(), ServerFnError> {
+    use crate::db;
+    use crate::models::db_models::*;
+    use crate::schema::*;
+    use diesel::prelude::*;
+
+    let _user = get_current_user()
+        .await?
+        .ok_or_else(|| ServerFnError::new("Not logged in"))?;
+
+    let conn = &mut db::get_conn();
+
+    let character: Character = characters::table
+        .find(character_id)
+        .select(Character::as_select())
+        .first(conn)
+        .map_err(|_| ServerFnError::new("Character not found"))?;
+
+    // Any session member can adjust temp HP (GM applies damage, etc.)
+    let is_member = session_players::table
+        .filter(session_players::session_id.eq(character.session_id))
+        .filter(session_players::user_id.eq(_user.id))
+        .count()
+        .get_result::<i64>(conn)
+        .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?
+        > 0;
+    if !is_member {
+        return Err(ServerFnError::new("Not a member of this session"));
+    }
+
+    let temp_hp = temp_hp.max(0);
+
+    diesel::update(characters::table.find(character_id))
+        .set(characters::temp_hp.eq(temp_hp))
+        .execute(conn)
+        .map_err(|e| ServerFnError::new(format!("Failed to update temp HP: {e}")))?;
+
+    use crate::ws::messages::ServerMessage;
+    use crate::ws::session::SESSION_MANAGER;
+    SESSION_MANAGER.broadcast(
+        character.session_id,
+        &ServerMessage::CharacterTempHpUpdated {
+            character_id,
+            temp_hp,
+        },
+        None,
+    );
+
+    sync_character_token_temp_hp(character_id, character.session_id, temp_hp);
+
+    Ok(())
+}
+
+/// Mirror a character's temp HP onto its tokens and broadcast each token's HP
+/// (current, max, temp) so the graphical bars update live. Only character tokens
+/// are touched; creatures manage their own temp HP.
+#[cfg(feature = "ssr")]
+fn sync_character_token_temp_hp(character_id: i32, session_id: i32, temp_hp: i32) {
+    use crate::db;
+    use crate::models::db_models::TokenInstance;
+    use crate::schema::{token_instances, tokens};
+    use crate::ws::messages::ServerMessage;
+    use crate::ws::session::SESSION_MANAGER;
+    use diesel::prelude::*;
+
+    let conn = &mut db::get_conn();
+
+    let token_ids: Vec<i32> = tokens::table
+        .filter(tokens::character_id.eq(character_id))
+        .select(tokens::id)
+        .load(conn)
+        .unwrap_or_default();
+
+    for token_id in token_ids {
+        let _ = diesel::update(
+            token_instances::table.filter(token_instances::token_id.eq(token_id)),
+        )
+        .set(token_instances::temp_hp.eq(temp_hp))
+        .execute(conn);
+
+        let instance: Option<TokenInstance> = token_instances::table
+            .filter(token_instances::token_id.eq(token_id))
+            .select(TokenInstance::as_select())
+            .first(conn)
+            .optional()
+            .ok()
+            .flatten();
+        let Some(instance) = instance else { continue };
+
+        SESSION_MANAGER.broadcast(
+            session_id,
+            &ServerMessage::TokenHpUpdated {
+                token_id,
+                current_hp: instance.current_hp,
+                max_hp: instance.max_hp,
+                temp_hp: instance.temp_hp,
+            },
+            None,
+        );
+    }
+}
+
 /// A token is bloodied when its HP is strictly below half of its maximum (so a
 /// character sitting at exactly half is not bloodied). Max HP of zero or less is
 /// never bloodied.
@@ -678,6 +789,7 @@ fn sync_character_token_hp(character_id: i32, session_id: i32, current_hp: i32, 
             .optional()
             .ok()
             .flatten();
+        let token_temp_hp = instance.as_ref().map(|i| i.temp_hp).unwrap_or(0);
         let conditions: Vec<String> = instance
             .and_then(|i| serde_json::from_str(&i.conditions_json).ok())
             .unwrap_or_default();
@@ -698,6 +810,7 @@ fn sync_character_token_hp(character_id: i32, session_id: i32, current_hp: i32, 
                 token_id,
                 current_hp,
                 max_hp,
+                temp_hp: token_temp_hp,
             },
             None,
         );

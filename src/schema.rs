@@ -19,6 +19,7 @@ diesel::table! {
         data_json -> Text,
         created_at -> Timestamp,
         portrait_url -> Nullable<Text>,
+        temp_hp -> Integer,
     }
 }
 
@@ -169,6 +170,7 @@ diesel::table! {
         current_hp -> Integer,
         max_hp -> Integer,
         conditions_json -> Text,
+        temp_hp -> Integer,
     }
 }
 

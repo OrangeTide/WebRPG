@@ -368,6 +368,7 @@ fn CharacterEditor(character: CharacterInfo, template: Option<TemplateInfo>) -> 
 
     let data = character.data.clone();
     let resources = character.resources.clone();
+    let char_temp_hp = character.temp_hp;
     let show_portrait_picker = RwSignal::new(false);
     let (portrait, set_portrait) = signal(character.portrait_url.clone());
 
@@ -464,7 +465,23 @@ fn CharacterEditor(character: CharacterInfo, template: Option<TemplateInfo>) -> 
                     key=|r| r.id
                     let:resource
                 >
-                    <ResourceBar resource=resource />
+                    {
+                        let name_lower = resource.name.to_lowercase();
+                        let is_hp = name_lower.contains("hp")
+                            || name_lower.contains("hit points");
+                        if is_hp {
+                            view! {
+                                <HpResourceBar
+                                    resource=resource
+                                    character_id=char_id
+                                    temp_hp=char_temp_hp
+                                />
+                            }
+                            .into_any()
+                        } else {
+                            view! { <ResourceBar resource=resource /> }.into_any()
+                        }
+                    }
                 </For>
             </div>
 
@@ -714,6 +731,228 @@ fn ResourceBar(resource: ResourceInfo) -> impl IntoView {
                     title=format!("Undo (restore to {})", old)
                 >
                     "undo (" {old} ")"
+                </button>
+            })}
+        </div>
+    }
+}
+
+/// Apply `damage` to a current HP / temp HP pair. Temp HP absorbs damage first,
+/// then the remainder reduces normal HP, which never drops below zero. Returns
+/// the new (hp, temp) pair.
+fn split_damage(current_hp: i32, temp_hp: i32, damage: i32) -> (i32, i32) {
+    let temp = temp_hp.max(0);
+    let dmg = damage.max(0);
+    let absorbed = temp.min(dmg);
+    let new_temp = temp - absorbed;
+    let spill = dmg - absorbed;
+    let new_hp = (current_hp - spill).max(0);
+    (new_hp, new_temp)
+}
+
+#[cfg(test)]
+mod temp_hp_tests {
+    use super::split_damage;
+
+    #[test]
+    fn temp_absorbs_before_hp() {
+        // Damage within temp pool: only temp drops.
+        assert_eq!(split_damage(20, 5, 3), (20, 2));
+        // Damage equal to temp: temp emptied, HP untouched.
+        assert_eq!(split_damage(20, 5, 5), (20, 0));
+    }
+
+    #[test]
+    fn overflow_spills_into_hp() {
+        // 5 temp absorbs 5, remaining 4 hits HP.
+        assert_eq!(split_damage(20, 5, 9), (16, 0));
+        // No temp: all damage hits HP.
+        assert_eq!(split_damage(20, 0, 7), (13, 0));
+    }
+
+    #[test]
+    fn hp_floors_at_zero() {
+        assert_eq!(split_damage(3, 2, 100), (0, 0));
+        assert_eq!(split_damage(0, 0, 5), (0, 0));
+    }
+}
+
+/// HP bar with temporary hit points. The minus button applies damage, which is
+/// absorbed by temp HP first and spills into normal HP. The plus button heals
+/// normal HP only, up to the maximum. A separate control sets temp HP directly.
+#[component]
+fn HpResourceBar(
+    resource: ResourceInfo,
+    character_id: i32,
+    temp_hp: i32,
+) -> impl IntoView {
+    let rid = resource.id;
+    let cid = character_id;
+    let max = resource.max_value;
+    let (current, set_current) = signal(resource.current_value);
+    let (temp, set_temp) = signal(temp_hp.max(0));
+    let (amount, set_amount) = signal(1i32);
+    let (temp_input, set_temp_input) = signal(temp_hp.max(0));
+    // Undo restores the (hp, temp) pair recorded before the last change.
+    let (prev_value, set_prev_value) = signal(Option::<(i32, i32)>::None);
+
+    let apply_damage = move || {
+        let amt = amount.get().max(1);
+        let old_hp = current.get();
+        let old_temp = temp.get();
+        let (new_hp, new_temp) = split_damage(old_hp, old_temp, amt);
+        if new_temp == old_temp && new_hp == old_hp {
+            return;
+        }
+        set_prev_value.set(Some((old_hp, old_temp)));
+        set_temp.set(new_temp);
+        set_temp_input.set(new_temp);
+        set_current.set(new_hp);
+        leptos::task::spawn_local(async move {
+            if new_temp != old_temp {
+                let _ = crate::server::api::set_character_temp_hp(cid, new_temp).await;
+            }
+            if new_hp != old_hp {
+                let _ = crate::server::api::update_character_resource(rid, new_hp).await;
+            }
+        });
+    };
+
+    let apply_heal = move || {
+        let amt = amount.get().max(1);
+        let old_hp = current.get();
+        let new_hp = (old_hp + amt).min(max);
+        if new_hp == old_hp {
+            return;
+        }
+        set_prev_value.set(Some((old_hp, temp.get())));
+        set_current.set(new_hp);
+        leptos::task::spawn_local(async move {
+            let _ = crate::server::api::update_character_resource(rid, new_hp).await;
+        });
+    };
+
+    let set_temp_value = move |value: i32| {
+        let new_temp = value.max(0);
+        let old_temp = temp.get();
+        if new_temp == old_temp {
+            return;
+        }
+        set_prev_value.set(Some((current.get(), old_temp)));
+        set_temp.set(new_temp);
+        set_temp_input.set(new_temp);
+        leptos::task::spawn_local(async move {
+            let _ = crate::server::api::set_character_temp_hp(cid, new_temp).await;
+        });
+    };
+
+    let undo = move |_| {
+        if let Some((old_hp, old_temp)) = prev_value.get() {
+            let restore_hp = old_hp.max(0).min(max);
+            set_current.set(restore_hp);
+            set_temp.set(old_temp);
+            set_temp_input.set(old_temp);
+            set_prev_value.set(None);
+            leptos::task::spawn_local(async move {
+                let _ = crate::server::api::update_character_resource(rid, restore_hp).await;
+                let _ = crate::server::api::set_character_temp_hp(cid, old_temp).await;
+            });
+        }
+    };
+
+    view! {
+        <div class="resource-bar resource-hp">
+            <div class="resource-header">
+                <span class="resource-name">{resource.name.clone()}</span>
+                <span class="resource-value">
+                    {move || current.get()} " / " {max}
+                    {move || (temp.get() > 0).then(|| view! {
+                        <span class="resource-temp-value">" +" {temp.get()} " temp"</span>
+                    })}
+                </span>
+            </div>
+            <div class="resource-bar-visual">
+                <div
+                    class="resource-bar-fill"
+                    style=move || {
+                        let scale = max as f64 + temp.get() as f64;
+                        let pct = if scale > 0.0 {
+                            (current.get() as f64 / scale * 100.0).clamp(0.0, 100.0)
+                        } else {
+                            0.0
+                        };
+                        format!("width: {pct}%")
+                    }
+                />
+                <div
+                    class="resource-bar-temp"
+                    style=move || {
+                        let scale = max as f64 + temp.get() as f64;
+                        if scale <= 0.0 || temp.get() <= 0 {
+                            return "width: 0%; left: 0%".to_string();
+                        }
+                        let left = (current.get() as f64 / scale * 100.0).clamp(0.0, 100.0);
+                        let width = (temp.get() as f64 / scale * 100.0).clamp(0.0, 100.0 - left);
+                        format!("width: {width}%; left: {left}%")
+                    }
+                />
+            </div>
+            <div class="resource-controls">
+                <button
+                    class="resource-btn resource-btn-minus"
+                    on:click=move |_| apply_damage()
+                    data-tooltip="Damage (temp HP first)"
+                >"-"</button>
+                <input
+                    type="number"
+                    class="resource-amount"
+                    prop:value=move || amount.get().to_string()
+                    on:input=move |ev| {
+                        if let Ok(n) = event_target_value(&ev).parse::<i32>() {
+                            set_amount.set(n.max(1));
+                        }
+                    }
+                    min="1"
+                />
+                <button
+                    class="resource-btn resource-btn-plus"
+                    on:click=move |_| apply_heal()
+                    data-tooltip="Heal"
+                >"+"</button>
+            </div>
+            <div class="resource-temp-controls">
+                <span class="resource-temp-label">"Temp HP"</span>
+                <input
+                    type="number"
+                    class="resource-amount"
+                    prop:value=move || temp_input.get().to_string()
+                    on:input=move |ev| {
+                        if let Ok(n) = event_target_value(&ev).parse::<i32>() {
+                            set_temp_input.set(n.max(0));
+                        }
+                    }
+                    min="0"
+                />
+                <button
+                    class="resource-btn"
+                    on:click=move |_| set_temp_value(temp_input.get())
+                    data-tooltip="Set temporary HP"
+                >"Set"</button>
+                {move || (temp.get() > 0).then(|| view! {
+                    <button
+                        class="resource-btn"
+                        on:click=move |_| set_temp_value(0)
+                        data-tooltip="Clear temporary HP"
+                    >"Clear"</button>
+                })}
+            </div>
+            {move || prev_value.get().map(|(old_hp, old_temp)| view! {
+                <button
+                    class="resource-undo"
+                    on:click=undo
+                    title=format!("Undo (restore HP {} / temp {})", old_hp, old_temp)
+                >
+                    "undo (" {old_hp} {(old_temp > 0).then(|| format!(" +{old_temp}"))} ")"
                 </button>
             })}
         </div>

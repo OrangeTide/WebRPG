@@ -577,6 +577,13 @@ pub fn MapCanvas() -> impl IntoView {
                         ctx2d.set_fill_style_str("#333333");
                         ctx2d.fill_rect(bar_x, bar_y, bar_w, bar_h);
 
+                        // Temp HP sits on top of normal HP. The bar scale is
+                        // max + temp, so the fixed-width bar shows current HP in
+                        // red, temp HP in blue immediately after it, and the
+                        // remainder (missing HP) empty. As temp drops the scale
+                        // shrinks, so the red portion grows to fill the bar.
+                        let temp = t.temp_hp.max(0) as f64;
+                        let scale = max as f64 + temp;
                         let ratio = (cur as f64 / max as f64).clamp(0.0, 1.0);
                         let color = if ratio > 0.5 {
                             "#22cc22"
@@ -585,8 +592,20 @@ pub fn MapCanvas() -> impl IntoView {
                         } else {
                             "#cc2222"
                         };
+                        let cur_frac = (cur as f64 / scale).clamp(0.0, 1.0);
                         ctx2d.set_fill_style_str(color);
-                        ctx2d.fill_rect(bar_x, bar_y, bar_w * ratio, bar_h);
+                        ctx2d.fill_rect(bar_x, bar_y, bar_w * cur_frac, bar_h);
+
+                        if temp > 0.0 {
+                            let temp_frac = (temp / scale).clamp(0.0, 1.0 - cur_frac);
+                            ctx2d.set_fill_style_str("#3b82f6");
+                            ctx2d.fill_rect(
+                                bar_x + bar_w * cur_frac,
+                                bar_y,
+                                bar_w * temp_frac,
+                                bar_h,
+                            );
+                        }
                     }
                     // Reset alpha after drawing hidden tokens
                     if !t.visible {
@@ -2517,6 +2536,7 @@ fn TokenHpPopup(
             let has_hp = t.current_hp.is_some() && t.max_hp.is_some();
             let hp = t.current_hp.unwrap_or(0);
             let max = t.max_hp.unwrap_or(0);
+            let temp_hp = t.temp_hp.max(0);
             let current_conditions = t.conditions.clone();
 
             let char_id = t.character_id;
@@ -2560,6 +2580,9 @@ fn TokenHpPopup(
                         Some(view! {
                             <div class="token-popup-hp">
                                 <span>"HP: " {hp} "/" {max}</span>
+                                {(temp_hp > 0).then(|| view! {
+                                    <span class="token-popup-temp">" +" {temp_hp} " temp"</span>
+                                })}
                             </div>
                         })
                     } else {

@@ -1248,6 +1248,11 @@ h1, h2, h3, h4 {
     gap: 0.4rem;
 }
 
+.token-popup-temp {
+    color: #3b82f6;
+    font-weight: 600;
+}
+
 .token-popup-hp button {
     width: 24px;
     height: 24px;
@@ -1714,6 +1719,7 @@ h1, h2, h3, h4 {
 }
 
 .resource-bar-visual {
+    position: relative;
     height: 8px;
     background: var(--color-bg-panel);
     border-radius: 4px;
@@ -1725,6 +1731,35 @@ h1, h2, h3, h4 {
     background: var(--color-accent);
     border-radius: 4px;
     transition: width 0.2s ease;
+}
+
+/* Temporary HP shown in blue, placed immediately after the current-HP fill. */
+.resource-bar-temp {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: #3b82f6;
+    transition: width 0.2s ease, left 0.2s ease;
+}
+
+.resource-temp-value {
+    color: #3b82f6;
+    font-size: 0.85rem;
+}
+
+.resource-temp-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.3rem;
+}
+
+.resource-temp-label {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: auto;
 }
 
 .resource-controls {

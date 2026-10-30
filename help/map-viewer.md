@@ -105,7 +105,7 @@ Tokens show the following visual information:
 
 - **Colored circle** or **image** clipped to a circle
 - **Label** text centered on the token
-- **HP bar** below the token (green > 50%, yellow > 25%, red below)
+- **HP bar** below the token (green > 50%, yellow > 25%, red below). Temporary HP, when present, is shown in blue to the right of the current HP.
 - **Condition icons** displayed above the token as emoji
 - **Facing arrow** (when enabled) as a small triangle outside the token border
 - **Selection highlight** as a yellow ring around selected tokens
@@ -120,6 +120,19 @@ to half or more. This updates on its own as a character's HP changes.
 This automation applies only to player characters. Creature bloodied status is
 left to the Game Master. Players are encouraged to roleplay and ask the GM to
 describe the scene rather than relying on automation for creatures.
+
+## Temporary Hit Points
+
+The HP bar on the character sheet handles temporary hit points. Temp HP sits on
+top of normal HP and has no maximum. Use the **Temp HP** control to set or clear
+the pool. The minus button applies damage, which is spent from temp HP first and
+only spills into normal HP once temp HP is gone. The plus button heals normal HP
+only, up to the maximum.
+
+On both the character sheet and the token, the bar shows current HP in red and
+temp HP in blue, scaled so that max HP plus temp HP fills the bar. As temp HP is
+spent the red portion grows to fill the bar, with no gap between the red and blue
+sections.
 
 ## GM Controls
 

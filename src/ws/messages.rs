@@ -275,6 +275,8 @@ pub enum ServerMessage {
         token_id: i32,
         current_hp: i32,
         max_hp: i32,
+        #[serde(default)]
+        temp_hp: i32,
     },
     /// Token image changed (e.g. character portrait or creature icon updated).
     TokenImageUpdated {
@@ -307,6 +309,13 @@ pub enum ServerMessage {
         resource_id: i32,
         current_value: i32,
         max_value: i32,
+    },
+    /// A character's temporary hit points changed. Temp HP sits on top of normal
+    /// HP and is consumed by damage first. Broadcast so open sheets and the
+    /// character list update live.
+    CharacterTempHpUpdated {
+        character_id: i32,
+        temp_hp: i32,
     },
     InventoryUpdated {
         items: Vec<InventoryItemInfo>,

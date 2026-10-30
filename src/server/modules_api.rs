@@ -764,5 +764,6 @@ pub async fn create_character_from_pregen(
         data: data_value,
         resources: vec![],
         portrait_url: None,
+        temp_hp: 0,
     })
 }

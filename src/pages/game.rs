@@ -357,11 +357,13 @@ impl GameContext {
                 token_id,
                 current_hp,
                 max_hp,
+                temp_hp,
             } => {
                 self.tokens.update(|tokens| {
                     if let Some(t) = tokens.iter_mut().find(|t| t.id == token_id) {
                         t.current_hp = Some(current_hp);
                         t.max_hp = Some(max_hp);
+                        t.temp_hp = temp_hp;
                     }
                 });
             }
@@ -498,6 +500,16 @@ impl GameContext {
                     {
                         r.current_value = current_value;
                         r.max_value = max_value;
+                    }
+                });
+            }
+            ServerMessage::CharacterTempHpUpdated {
+                character_id,
+                temp_hp,
+            } => {
+                self.characters.update(|chars| {
+                    if let Some(c) = chars.iter_mut().find(|c| c.id == character_id) {
+                        c.temp_hp = temp_hp;
                     }
                 });
             }

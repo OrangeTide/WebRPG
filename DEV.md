@@ -321,6 +321,11 @@ All message types are fully implemented:
   auto-toggles the "bloodied" condition (`TokenConditionsUpdated`) when HP crosses
   below/at half of max. This applies only to player-character tokens; creature
   bloodied status is left to the GM.
+- **Temporary hit points:** `set_character_temp_hp` sets a character's temp HP
+  (stored on `characters.temp_hp`, no maximum). The server mirrors it onto the
+  character's tokens and broadcasts `CharacterTempHpUpdated` plus `TokenHpUpdated`
+  (which now carries `temp_hp`). Damage spends temp HP before normal HP; the HP
+  bars draw current HP in red and temp HP in blue, scaled to max HP + temp HP.
 - **Inventory:** add, remove, update items
 - **VFS notifications:** `VfsChanged` — server broadcasts file changes on C: drive
 - **Preferences:** `SetSuppressTooltips` — persist tooltip suppression preference

@@ -180,6 +180,8 @@ pub struct TokenInfo {
     pub visible: bool,
     pub current_hp: Option<i32>,
     pub max_hp: Option<i32>,
+    #[serde(default)]
+    pub temp_hp: i32,
     pub image_url: Option<String>,
     #[serde(default)]
     pub rotation: f32,
@@ -244,6 +246,8 @@ pub struct CharacterInfo {
     pub data: serde_json::Value,
     pub resources: Vec<ResourceInfo>,
     pub portrait_url: Option<String>,
+    #[serde(default)]
+    pub temp_hp: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -449,6 +453,7 @@ pub mod db_models {
         pub data_json: String,
         pub created_at: String,
         pub portrait_url: Option<String>,
+        pub temp_hp: i32,
     }
 
     #[derive(Debug, Insertable)]
@@ -551,6 +556,7 @@ pub mod db_models {
         pub current_hp: i32,
         pub max_hp: i32,
         pub conditions_json: String,
+        pub temp_hp: i32,
     }
 
     #[derive(Debug, Queryable, Selectable)]

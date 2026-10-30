@@ -321,6 +321,17 @@ PREGEN_ITEMS=$(sqlite3 "$TMPDB" "SELECT COUNT(*) FROM inventory_items WHERE sess
 check "Pregen gear dealt with slots ($PREGEN_ITEMS items)" \
     "$([ "$PREGEN_ITEMS" -gt 0 ] && echo 0 || echo 1)"
 
+# Temporary hit points: set_character_temp_hp persists temp HP on the character.
+GROG_ID=$(sqlite3 "$TMPDB" "SELECT id FROM characters WHERE session_id = $SESSION_ID AND name = 'Grog the Smasher' ORDER BY id DESC LIMIT 1;")
+curl -s -b "$COOKIES" \
+    -X POST "$(fn_url set_character_temp_hp)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data "character_id=${GROG_ID}&temp_hp=7" >/dev/null
+GROG_TEMP=$(sqlite3 "$TMPDB" "SELECT temp_hp FROM characters WHERE id = $GROG_ID;")
+check "set_character_temp_hp persists temp HP" \
+    "$([ "$GROG_TEMP" = "7" ] && echo 0 || echo 1)"
+
 UNINSTALL_RESP=$(curl -s -b "$COOKIES" \
     -X POST "$(fn_url uninstall_module)" \
     -H 'Content-Type: application/x-www-form-urlencoded' \

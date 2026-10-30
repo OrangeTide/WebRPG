@@ -131,7 +131,7 @@ pub fn place_token(
     .map_err(|e| format!("Failed to get token id: {e}"))?;
 
     // Create a token instance for creature or character tokens
-    let (current_hp, max_hp) = if let Some(cid) = creature_id {
+    let (current_hp, max_hp, temp_hp) = if let Some(cid) = creature_id {
         // Creature token: seed HP from stat block
         let creature: Creature = creatures::table
             .find(cid)
@@ -160,7 +160,7 @@ pub fn place_token(
             .execute(conn)
             .map_err(|e| format!("Failed to create token instance: {e}"))?;
 
-        (Some(hp), Some(hp))
+        (Some(hp), Some(hp), 0)
     } else if let Some(char_id) = character_id {
         // Character token: seed HP from character_resources named "HP"
         let hp_resource: Option<CharacterResource> = character_resources::table
@@ -177,6 +177,13 @@ pub fn place_token(
             .map(|r| (r.current_value, r.max_value))
             .unwrap_or((0, 0));
 
+        // Seed temp HP from the character so a freshly placed token matches the sheet.
+        let char_temp_hp: i32 = characters::table
+            .find(char_id)
+            .select(characters::temp_hp)
+            .first(conn)
+            .unwrap_or(0);
+
         let new_instance = NewTokenInstance {
             token_id,
             creature_id: None,
@@ -191,9 +198,17 @@ pub fn place_token(
             .execute(conn)
             .map_err(|e| format!("Failed to create token instance: {e}"))?;
 
-        (Some(cur), Some(max))
+        if char_temp_hp != 0 {
+            let _ = diesel::update(
+                token_instances::table.filter(token_instances::token_id.eq(token_id)),
+            )
+            .set(token_instances::temp_hp.eq(char_temp_hp))
+            .execute(conn);
+        }
+
+        (Some(cur), Some(max), char_temp_hp)
     } else {
-        (None, None)
+        (None, None, 0)
     };
 
     let facing_color = Some(resolve_facing_color(
@@ -215,6 +230,7 @@ pub fn place_token(
         visible: true,
         current_hp,
         max_hp,
+        temp_hp,
         image_url: image_url.map(|s| s.to_string()),
         rotation: 0.0,
         conditions: vec![],
