@@ -160,6 +160,7 @@ The management bar in the top-right corner provides:
 
 The bottom-right corner shows a zoom toolbar with:
 
+- **↩ Previous View** -- returns to the viewport location and zoom you were at before the last automatic jump. This button appears only when there is a previous view to return to. It is useful after the initiative tracker auto-centers on the active token, after the GM syncs the viewport to players, or after using Find on Map or the Token List to jump to a token. Each jump is remembered, so the button steps back through them one at a time.
 - **+** / **−** -- zoom in or out (centered on the viewport)
 - **Fit** -- zoom and pan to fit the entire map in the viewport
 - **1:1** -- reset zoom to 100% and scroll to the top-left corner

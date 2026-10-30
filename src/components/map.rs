@@ -91,6 +91,10 @@ pub fn MapCanvas() -> impl IntoView {
     // --- Viewport state ---
     let view_offset = RwSignal::new((0.0_f64, 0.0_f64));
     let view_zoom = RwSignal::new(1.0_f64);
+    // Viewport undo: each programmatic jump (GM sync, initiative auto-center,
+    // find-on-map) first pushes the current (offset.0, offset.1, zoom) here so a
+    // "Previous View" button can return to where the user was looking.
+    let viewport_history = RwSignal::new(Vec::<(f64, f64, f64)>::new());
     let panning = RwSignal::new(false);
     let pan_start_screen = RwSignal::new((0.0_f64, 0.0_f64));
     let pan_start_offset = RwSignal::new((0.0_f64, 0.0_f64));
@@ -217,11 +221,27 @@ pub fn MapCanvas() -> impl IntoView {
         None
     };
 
+    // Snapshot the current viewport onto the undo stack before a programmatic
+    // jump. Reads untracked so calling it inside an effect does not subscribe
+    // that effect to pan or zoom changes. Capped so it cannot grow without bound.
+    #[cfg(feature = "hydrate")]
+    let save_viewport = move || {
+        let (x, y) = view_offset.get_untracked();
+        let zoom = view_zoom.get_untracked();
+        viewport_history.update(|h| {
+            h.push((x, y, zoom));
+            if h.len() > 20 {
+                h.remove(0);
+            }
+        });
+    };
+
     // Watch for GM viewport sync
     #[cfg(feature = "hydrate")]
     {
         Effect::new(move |_| {
             if let Some((x, y, zoom)) = ctx.viewport_override.get() {
+                save_viewport();
                 view_offset.set((x, y));
                 view_zoom.set(zoom);
                 ctx.viewport_override.set(None);
@@ -259,6 +279,7 @@ pub fn MapCanvas() -> impl IntoView {
                     let cw = canvas_el.client_width() as f64;
                     let ch = canvas_el.client_height() as f64;
                     let zoom = view_zoom.get();
+                    save_viewport();
                     view_offset.set((world_x - cw / zoom / 2.0, world_y - ch / zoom / 2.0));
                 }
             }
@@ -419,8 +440,10 @@ pub fn MapCanvas() -> impl IntoView {
                 // Update viewport center in grid coords for other components
                 let center_wx = offset.0 + css_w as f64 / zoom / 2.0;
                 let center_wy = offset.1 + css_h as f64 / zoom / 2.0;
-                ctx.map_view_center
-                    .set((((center_wx - ox) / cell) as f32, ((center_wy - oy) / cell) as f32));
+                ctx.map_view_center.set((
+                    ((center_wx - ox) / cell) as f32,
+                    ((center_wy - oy) / cell) as f32,
+                ));
 
                 // Apply viewport transform for world-space drawing
                 ctx2d
@@ -1468,6 +1491,7 @@ pub fn MapCanvas() -> impl IntoView {
                 let cw = canvas_el.client_width() as f64;
                 let ch = canvas_el.client_height() as f64;
                 let zoom = view_zoom.get();
+                save_viewport();
                 view_offset.set((world_x - cw / zoom / 2.0, world_y - ch / zoom / 2.0));
             }
         }
@@ -2206,6 +2230,20 @@ pub fn MapCanvas() -> impl IntoView {
             />
             // Zoom toolbar (bottom-right)
             <div class="map-zoom-bar">
+                {move || (!viewport_history.get().is_empty()).then(|| view! {
+                    <button
+                        class="map-zoom-btn"
+                        data-tooltip="Previous View"
+                        on:click=move |_| {
+                            if let Some((x, y, z)) =
+                                viewport_history.try_update(|h| h.pop()).flatten()
+                            {
+                                view_offset.set((x, y));
+                                view_zoom.set(z);
+                            }
+                        }
+                    >"\u{21A9}"</button>
+                })}
                 <button
                     class="map-zoom-btn"
                     data-tooltip="Zoom In"
