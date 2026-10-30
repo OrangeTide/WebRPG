@@ -303,8 +303,30 @@ h1, h2, h3, h4 {
     text-decoration: none;
 }
 
-.landing-version {
+.landing-links {
     margin-top: 2rem;
+}
+
+.landing-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.landing-links a:hover {
+    color: var(--color-text);
+    text-decoration: underline;
+}
+
+.landing-github-icon {
+    display: block;
+}
+
+.landing-version {
+    margin-top: 1rem;
     font-size: 0.75rem;
     color: var(--color-text-disabled);
 }
