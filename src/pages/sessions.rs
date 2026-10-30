@@ -45,6 +45,13 @@ pub fn SessionsPage() -> impl IntoView {
                     <input type="text" name="name" placeholder="Session name" required />
                     <button type="submit">"Create"</button>
                 </ActionForm>
+                {move || {
+                    create_action
+                        .value()
+                        .get()
+                        .and_then(|result| result.err())
+                        .map(|e| view! { <p class="error">{format!("{e}")}</p> })
+                }}
             </div>
 
             <div class="session-list">

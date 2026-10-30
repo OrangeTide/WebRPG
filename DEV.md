@@ -195,6 +195,14 @@ deployment:
 - **Development:** With no TLS config and no proxy headers, the server runs
   plain HTTP with no redirects.
 
+### Session creation limit
+
+To curb abuse and denial of service, a user may be GM of at most
+`MAX_ACTIVE_SESSIONS_PER_GM` (3) active sessions at once. `create_session` in
+`server/api/session.rs` counts the user's active sessions and rejects the
+request when the limit is reached. Archived (inactive) sessions do not count, so
+an admin archiving or removing a session frees a slot.
+
 ### Server Administration
 
 Administrators reach a console at `/admin` for managing accounts, sessions, and

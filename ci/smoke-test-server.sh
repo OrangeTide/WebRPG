@@ -182,6 +182,25 @@ CREATE_RESP=$(curl -s -b "$COOKIES" \
 SESSION_ID=$(echo "$CREATE_RESP" | grep -oP '"id":(\d+)' | grep -oP '\d+')
 check "Create session (id=$SESSION_ID)" "$([ -n "$SESSION_ID" ] && echo 0 || echo 1)"
 
+# Session creation rate limit: a user may own at most 3 active sessions. The
+# smoketest user now owns 1, so two more succeed and a fourth is rejected.
+for n in 2 3; do
+    CODE=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" \
+        -X POST "$(fn_url create_session)" \
+        -H 'Content-Type: application/x-www-form-urlencoded' \
+        -H 'Accept: application/json' \
+        --data "name=Smoke+Session+${n}")
+    check "Create session ${n} within limit (200)" \
+        "$([ "$CODE" = "200" ] && echo 0 || echo 1)"
+done
+OVER_CODE=$(curl -s -o /dev/null -w "%{http_code}" -b "$COOKIES" \
+    -X POST "$(fn_url create_session)" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Accept: application/json' \
+    --data 'name=Smoke+Session+4')
+check "Fourth session rejected by rate limit (not 200)" \
+    "$([ "$OVER_CODE" != "200" ] && echo 0 || echo 1)"
+
 LIST_RESP=$(curl -s -b "$COOKIES" \
     -X POST "$(fn_url list_sessions)" \
     -H 'Content-Type: application/x-www-form-urlencoded' \

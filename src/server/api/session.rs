@@ -5,6 +5,18 @@ use crate::models::SessionInfo;
 #[cfg(feature = "ssr")]
 use super::get_current_user;
 
+/// The most active sessions a single user may be GM of at one time. Creating a
+/// session past this limit is rejected to curb abuse and denial of service.
+/// Archived (inactive) sessions do not count against it.
+pub const MAX_ACTIVE_SESSIONS_PER_GM: i64 = 3;
+
+/// Whether a user who already owns `active_owned` active sessions is at the
+/// creation limit. Pulled out as a pure function so the rule can be unit tested
+/// without a database.
+pub fn at_session_limit(active_owned: i64) -> bool {
+    active_owned >= MAX_ACTIVE_SESSIONS_PER_GM
+}
+
 #[server]
 pub async fn list_sessions() -> Result<Vec<SessionInfo>, ServerFnError> {
     use crate::db;
@@ -44,6 +56,19 @@ pub async fn create_session(name: String) -> Result<SessionInfo, ServerFnError> 
         .ok_or_else(|| ServerFnError::new("Not logged in"))?;
 
     let conn = &mut db::get_conn();
+
+    // Cap how many active sessions one user can own at a time.
+    let active_owned: i64 = sessions::table
+        .filter(sessions::gm_user_id.eq(user.id))
+        .filter(sessions::active.eq(true))
+        .count()
+        .get_result(conn)
+        .map_err(|e| ServerFnError::new(format!("Database error: {e}")))?;
+    if at_session_limit(active_owned) {
+        return Err(ServerFnError::new(format!(
+            "You already own {MAX_ACTIVE_SESSIONS_PER_GM} active sessions, which is the maximum. One must be removed before you can create another."
+        )));
+    }
 
     let new_session = NewSession {
         name: &name,
@@ -295,4 +320,21 @@ pub async fn join_session(session_id: i32) -> Result<(), ServerFnError> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn under_the_limit_allows_creation() {
+        assert!(!at_session_limit(0));
+        assert!(!at_session_limit(MAX_ACTIVE_SESSIONS_PER_GM - 1));
+    }
+
+    #[test]
+    fn at_or_over_the_limit_blocks_creation() {
+        assert!(at_session_limit(MAX_ACTIVE_SESSIONS_PER_GM));
+        assert!(at_session_limit(MAX_ACTIVE_SESSIONS_PER_GM + 5));
+    }
 }
