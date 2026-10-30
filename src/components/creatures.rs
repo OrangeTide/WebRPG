@@ -215,7 +215,11 @@ pub fn CreaturePanel() -> impl IntoView {
                 })
             }}
 
-            // Creature list — always render <For> to avoid SSR/hydration mismatch
+            // Creature list — shown only in list state, hidden while editing a
+            // creature (feature 68). The initial render (SSR and hydrate) has no
+            // creature being edited, so the list is present at hydration time and
+            // this reactive toggle only takes effect afterward.
+            {move || editing.get().is_none().then(|| view! {
             <div class="item-list">
                 <For
                     each=move || creatures.get()
@@ -237,9 +241,6 @@ pub fn CreaturePanel() -> impl IntoView {
                             }
                             parts.join(" | ")
                         };
-                        let dup_name_card = creature.name.clone();
-                        let dup_stats_card = creature.stat_data.clone();
-                        let dup_image_card = creature.image_url.clone();
                         let roll_name = creature.name.clone();
                         let place_name = creature.name.clone();
                         let place_image = creature.image_url.clone();
@@ -290,18 +291,6 @@ pub fn CreaturePanel() -> impl IntoView {
                                         })}
                                     </div>
                                     <button
-                                        class="btn-duplicate"
-                                        data-tooltip="Duplicate creature"
-                                        on:click:stopPropagation=move |_: leptos::ev::MouseEvent| {
-                                            duplicate_creature(dup_name_card.clone(), dup_stats_card.clone(), dup_image_card.clone());
-                                        }
-                                    >
-                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
-                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-                                        </svg>
-                                    </button>
-                                    <button
                                         class="btn-delete"
                                         data-tooltip="Delete creature"
                                         on:click:stopPropagation=move |_: leptos::ev::MouseEvent| delete_creature(cid)
@@ -331,6 +320,7 @@ pub fn CreaturePanel() -> impl IntoView {
                     }
                 </For>
             </div>
+            })}
         </div>
     }
 }
