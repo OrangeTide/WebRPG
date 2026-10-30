@@ -106,7 +106,10 @@ mod email_tests {
         ] {
             assert!(validate_email(e).is_ok(), "should accept {e:?}");
         }
-        assert_eq!(validate_email("  trimmed@example.com  ").unwrap(), "trimmed@example.com");
+        assert_eq!(
+            validate_email("  trimmed@example.com  ").unwrap(),
+            "trimmed@example.com"
+        );
     }
 
     #[test]

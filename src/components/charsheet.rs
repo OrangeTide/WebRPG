@@ -781,11 +781,7 @@ mod temp_hp_tests {
 /// absorbed by temp HP first and spills into normal HP. The plus button heals
 /// normal HP only, up to the maximum. A separate control sets temp HP directly.
 #[component]
-fn HpResourceBar(
-    resource: ResourceInfo,
-    character_id: i32,
-    temp_hp: i32,
-) -> impl IntoView {
+fn HpResourceBar(resource: ResourceInfo, character_id: i32, temp_hp: i32) -> impl IntoView {
     let rid = resource.id;
     let cid = character_id;
     let max = resource.max_value;

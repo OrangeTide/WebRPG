@@ -144,9 +144,9 @@ pub fn build_snapshot(session_id: i32, user_id: i32) -> GameStateSnapshot {
             cell_size: m.cell_size,
             background_url: m.background_url,
             default_token_color: m.default_token_color,
-        fog_enabled: m.fog_enabled,
-        grid_offset_x: m.grid_offset_x,
-        grid_offset_y: m.grid_offset_y,
+            fog_enabled: m.fog_enabled,
+            grid_offset_x: m.grid_offset_x,
+            grid_offset_y: m.grid_offset_y,
         };
 
         let db_tokens: Vec<Token> = tokens::table

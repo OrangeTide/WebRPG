@@ -444,15 +444,16 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                         });
                         continue;
                     }
-                    let active_map = SESSION_MANAGER
-                        .sessions
-                        .get_mut(&session_id)
-                        .and_then(|mut session| {
-                            for cell in &cells {
-                                session.revealed_fog.insert(*cell);
-                            }
-                            session.active_map_id
-                        });
+                    let active_map =
+                        SESSION_MANAGER
+                            .sessions
+                            .get_mut(&session_id)
+                            .and_then(|mut session| {
+                                for cell in &cells {
+                                    session.revealed_fog.insert(*cell);
+                                }
+                                session.active_map_id
+                            });
                     if let Some(map_id) = active_map {
                         maps::persist_reveal_fog(map_id, &cells);
                     }
@@ -475,15 +476,16 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                         });
                         continue;
                     }
-                    let active_map = SESSION_MANAGER
-                        .sessions
-                        .get_mut(&session_id)
-                        .and_then(|mut session| {
-                            for cell in &cells {
-                                session.revealed_fog.remove(cell);
-                            }
-                            session.active_map_id
-                        });
+                    let active_map =
+                        SESSION_MANAGER
+                            .sessions
+                            .get_mut(&session_id)
+                            .and_then(|mut session| {
+                                for cell in &cells {
+                                    session.revealed_fog.remove(cell);
+                                }
+                                session.active_map_id
+                            });
                     if let Some(map_id) = active_map {
                         maps::persist_hide_fog(map_id, &cells);
                     }

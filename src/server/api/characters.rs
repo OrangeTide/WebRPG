@@ -587,10 +587,7 @@ pub async fn update_character_resource(
 /// is spent by damage before normal HP. It has no maximum; negative values are
 /// clamped to zero. Broadcasts the change and syncs the character's tokens.
 #[server]
-pub async fn set_character_temp_hp(
-    character_id: i32,
-    temp_hp: i32,
-) -> Result<(), ServerFnError> {
+pub async fn set_character_temp_hp(character_id: i32, temp_hp: i32) -> Result<(), ServerFnError> {
     use crate::db;
     use crate::models::db_models::*;
     use crate::schema::*;
@@ -664,11 +661,10 @@ fn sync_character_token_temp_hp(character_id: i32, session_id: i32, temp_hp: i32
         .unwrap_or_default();
 
     for token_id in token_ids {
-        let _ = diesel::update(
-            token_instances::table.filter(token_instances::token_id.eq(token_id)),
-        )
-        .set(token_instances::temp_hp.eq(temp_hp))
-        .execute(conn);
+        let _ =
+            diesel::update(token_instances::table.filter(token_instances::token_id.eq(token_id)))
+                .set(token_instances::temp_hp.eq(temp_hp))
+                .execute(conn);
 
         let instance: Option<TokenInstance> = token_instances::table
             .filter(token_instances::token_id.eq(token_id))
@@ -712,7 +708,13 @@ fn bloodied_conditions(conditions: &[String], current_hp: i32, max_hp: i32) -> O
             next.push("bloodied".to_string());
             Some(next)
         }
-        (false, true) => Some(conditions.iter().filter(|c| *c != "bloodied").cloned().collect()),
+        (false, true) => Some(
+            conditions
+                .iter()
+                .filter(|c| *c != "bloodied")
+                .cloned()
+                .collect(),
+        ),
         _ => None,
     }
 }
@@ -775,12 +777,13 @@ fn sync_character_token_hp(character_id: i32, session_id: i32, current_hp: i32, 
         .unwrap_or_default();
 
     for token_id in token_ids {
-        let _ = diesel::update(token_instances::table.filter(token_instances::token_id.eq(token_id)))
-            .set((
-                token_instances::current_hp.eq(current_hp),
-                token_instances::max_hp.eq(max_hp),
-            ))
-            .execute(conn);
+        let _ =
+            diesel::update(token_instances::table.filter(token_instances::token_id.eq(token_id)))
+                .set((
+                    token_instances::current_hp.eq(current_hp),
+                    token_instances::max_hp.eq(max_hp),
+                ))
+                .execute(conn);
 
         let instance: Option<TokenInstance> = token_instances::table
             .filter(token_instances::token_id.eq(token_id))
