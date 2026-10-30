@@ -11,6 +11,7 @@ pub mod map;
 pub mod media_browser;
 pub mod members_panel;
 pub mod modules_panel;
+pub mod progress_clock;
 pub mod terminal;
 pub mod theme_toggle;
 pub mod window_manager;

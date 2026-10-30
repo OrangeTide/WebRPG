@@ -1,5 +1,6 @@
 mod character;
 mod chat;
+mod clocks;
 mod initiative;
 mod inventory;
 mod maps;
@@ -1134,6 +1135,136 @@ async fn handle_socket(socket: WebSocket, user_id: i32, username: String) {
                 // carried for future presence tracking and ignored for now.
                 if let Some(session_id) = current_session {
                     push_session_to_cache(session_id);
+                }
+            }
+
+            ClientMessage::CreateProgressClock {
+                label,
+                segments,
+                filled_color,
+                unfilled_color,
+            } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can create progress clocks".into(),
+                        });
+                        continue;
+                    }
+                    match clocks::create_clock(
+                        session_id,
+                        &label,
+                        segments,
+                        &filled_color,
+                        &unfilled_color,
+                    ) {
+                        Ok(list) => {
+                            SESSION_MANAGER.broadcast(
+                                session_id,
+                                &ServerMessage::ProgressClocksUpdated { clocks: list },
+                                None,
+                            );
+                        }
+                        Err(e) => {
+                            let _ = tx.send(ServerMessage::Error { message: e });
+                        }
+                    }
+                }
+            }
+
+            ClientMessage::SetProgressClockFilled { clock_id, filled } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can change progress clocks".into(),
+                        });
+                        continue;
+                    }
+                    match clocks::set_filled(session_id, clock_id, filled) {
+                        Ok(list) => {
+                            SESSION_MANAGER.broadcast(
+                                session_id,
+                                &ServerMessage::ProgressClocksUpdated { clocks: list },
+                                None,
+                            );
+                        }
+                        Err(e) => {
+                            let _ = tx.send(ServerMessage::Error { message: e });
+                        }
+                    }
+                }
+            }
+
+            ClientMessage::EditProgressClock {
+                clock_id,
+                label,
+                description,
+            } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can edit progress clocks".into(),
+                        });
+                        continue;
+                    }
+                    match clocks::edit_clock(session_id, clock_id, &label, &description) {
+                        Ok(list) => {
+                            SESSION_MANAGER.broadcast(
+                                session_id,
+                                &ServerMessage::ProgressClocksUpdated { clocks: list },
+                                None,
+                            );
+                        }
+                        Err(e) => {
+                            let _ = tx.send(ServerMessage::Error { message: e });
+                        }
+                    }
+                }
+            }
+
+            ClientMessage::SetProgressClockLock { clock_id, locked } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can lock progress clocks".into(),
+                        });
+                        continue;
+                    }
+                    match clocks::set_lock(session_id, clock_id, locked) {
+                        Ok(list) => {
+                            SESSION_MANAGER.broadcast(
+                                session_id,
+                                &ServerMessage::ProgressClocksUpdated { clocks: list },
+                                None,
+                            );
+                        }
+                        Err(e) => {
+                            let _ = tx.send(ServerMessage::Error { message: e });
+                        }
+                    }
+                }
+            }
+
+            ClientMessage::DeleteProgressClock { clock_id } => {
+                if let Some(session_id) = current_session {
+                    if !is_gm(session_id, user_id) {
+                        let _ = tx.send(ServerMessage::Error {
+                            message: "Only the GM can remove progress clocks".into(),
+                        });
+                        continue;
+                    }
+                    match clocks::delete_clock(session_id, clock_id) {
+                        Ok(list) => {
+                            SESSION_MANAGER.broadcast(
+                                session_id,
+                                &ServerMessage::ProgressClocksUpdated { clocks: list },
+                                None,
+                            );
+                        }
+                        Err(e) => {
+                            let _ = tx.send(ServerMessage::Error { message: e });
+                        }
+                    }
                 }
             }
 

@@ -335,11 +335,18 @@ All message types are fully implemented:
   (which now carries `temp_hp`). Damage spends temp HP before normal HP; the HP
   bars draw current HP in red and temp HP in blue, scaled to max HP + temp HP.
 - **Inventory:** add, remove, update items
+- **Progress clocks:** `CreateProgressClock`, `SetProgressClockFilled` (the +/-
+  buttons), `EditProgressClock` (label and description), `SetProgressClockLock`,
+  and `DeleteProgressClock` (all GM only). Any change reloads the session's clocks
+  and broadcasts the full list as `ProgressClocksUpdated`. Clocks persist in the
+  `progress_clocks` table and are included in `GameStateSnapshot`. A locked clock
+  rejects advance and edit until unlocked. See Progress Clocks under the UI
+  sections for the hub and per-clock windows.
 - **VFS notifications:** `VfsChanged` — server broadcasts file changes on C: drive
 - **Preferences:** `SetSuppressTooltips` — persist tooltip suppression preference
 
 GM role is enforced server-side for token placement/removal, fog, map,
-initiative list updates, and initiative lock/unlock.
+initiative list updates, initiative lock/unlock, and all progress-clock changes.
 
 #### Game masters
 
@@ -586,6 +593,27 @@ Inventory (minimized), Creatures (GM only).
 See [doc/dock-design.md](doc/dock-design.md) for a language-neutral write-up of
 the dock's design, grid/snapping algorithm, lessons learned, and limitations,
 intended for reusing the approach in other projects.
+
+### Progress Clocks
+
+Progress clocks are segmented circles persistent to the session, used to track
+countdowns and mounting threats. A clock has a fixed segment count (set at
+creation), a filled count that advances from the top clockwise, configurable
+filled and empty colors, a label, a description, and a lock.
+
+The UI follows the Character Selection / Character Editor split. A static
+"Progress Clocks" hub window (`components/progress_clock.rs`, `ProgressClockHub`)
+lists every clock in the session; clicking "Open" launches that clock in its own
+dynamic window (`WindowId::ProgressClock(clock_id)`, rendered by
+`DynamicProgressClockWindows` in `pages/game.rs`). Which clock windows are open
+is per-client window-manager state; the clock data itself is shared.
+
+GMs create, advance (+/-), edit, lock, and delete clocks; players see the hub
+and can open clocks but get a read-only view with no controls. The lock guards a
+clock against accidental changes: while locked, advance and edit are rejected
+server-side, and only the GM can unlock it. The clock face is rendered as an
+inline SVG of pie wedges. See the Progress clocks entry under WebSocket Protocol
+for the message set.
 
 ### Media Storage
 

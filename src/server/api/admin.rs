@@ -449,6 +449,8 @@ fn cascade_delete_session(
     diesel::delete(creatures::table.filter(creatures::session_id.eq(session_id))).execute(conn)?;
     diesel::delete(initiative::table.filter(initiative::session_id.eq(session_id)))
         .execute(conn)?;
+    diesel::delete(progress_clocks::table.filter(progress_clocks::session_id.eq(session_id)))
+        .execute(conn)?;
     diesel::delete(inventory_items::table.filter(inventory_items::session_id.eq(session_id)))
         .execute(conn)?;
     diesel::delete(chat_messages::table.filter(chat_messages::session_id.eq(session_id)))

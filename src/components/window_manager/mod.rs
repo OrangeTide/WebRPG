@@ -24,10 +24,14 @@ pub enum WindowId {
     FileBrowser,
     HelpViewer,
     Modules,
+    /// Hub window listing the session's progress clocks.
+    ProgressClocks,
     /// Dynamic window for editing a specific character (by character_id).
     CharacterEditor(i32),
     /// Dynamic additional file browser window (by instance counter).
     FileBrowserExtra(u32),
+    /// Dynamic window showing a single progress clock (by clock_id).
+    ProgressClock(i32),
 }
 
 impl WindowId {
@@ -44,8 +48,10 @@ impl WindowId {
             WindowId::FileBrowser => "File Viewer",
             WindowId::HelpViewer => "Help",
             WindowId::Modules => "Modules",
+            WindowId::ProgressClocks => "Progress Clocks",
             WindowId::CharacterEditor(_) => "Character Sheet",
             WindowId::FileBrowserExtra(_) => "File Viewer",
+            WindowId::ProgressClock(_) => "Progress Clock",
         }
     }
 
@@ -63,6 +69,7 @@ impl WindowId {
             WindowId::FileBrowser,
             WindowId::HelpViewer,
             WindowId::Modules,
+            WindowId::ProgressClocks,
         ]
     }
 
@@ -80,8 +87,10 @@ impl WindowId {
             WindowId::FileBrowser => (450.0, 350.0),
             WindowId::HelpViewer => (400.0, 300.0),
             WindowId::Modules => (420.0, 320.0),
+            WindowId::ProgressClocks => (240.0, 220.0),
             WindowId::CharacterEditor(_) => (300.0, 350.0),
             WindowId::FileBrowserExtra(_) => (450.0, 350.0),
+            WindowId::ProgressClock(_) => (200.0, 240.0),
         }
     }
 
@@ -89,7 +98,9 @@ impl WindowId {
     pub fn is_dynamic(&self) -> bool {
         matches!(
             self,
-            WindowId::CharacterEditor(_) | WindowId::FileBrowserExtra(_)
+            WindowId::CharacterEditor(_)
+                | WindowId::FileBrowserExtra(_)
+                | WindowId::ProgressClock(_)
         )
     }
 
@@ -107,8 +118,10 @@ impl WindowId {
             WindowId::FileBrowser => "\u{1f4c2}",         // 📂 open file folder
             WindowId::HelpViewer => "\u{1f4d6}",          // 📖 open book
             WindowId::Modules => "\u{1f4e6}",             // 📦 package
+            WindowId::ProgressClocks => "\u{23f1}",       // ⏱ stopwatch
             WindowId::CharacterEditor(_) => "\u{1f4dc}",  // 📜 scroll
             WindowId::FileBrowserExtra(_) => "\u{1f4c2}", // 📂 open file folder
+            WindowId::ProgressClock(_) => "\u{25d4}",     // ◔ quarter-filled circle
         }
     }
 
@@ -140,8 +153,10 @@ impl WindowId {
             WindowId::FileBrowser => "Files",
             WindowId::HelpViewer => "Help",
             WindowId::Modules => "Module",
+            WindowId::ProgressClocks => "Clocks",
             WindowId::CharacterEditor(_) => "Sheet",
             WindowId::FileBrowserExtra(_) => "Files",
+            WindowId::ProgressClock(_) => "Clock",
         }
     }
 }
@@ -307,6 +322,43 @@ impl WindowManagerContext {
                     y: 80.0 + offset,
                     width: 340.0,
                     height: 450.0,
+                    z_index: z,
+                    minimized: false,
+                });
+            });
+        }
+    }
+
+    /// Open a dynamic progress clock window. If already open, brings it to front.
+    pub fn open_progress_clock(&self, clock_id: i32, label: &str) {
+        let win_id = WindowId::ProgressClock(clock_id);
+
+        let exists = self
+            .windows
+            .with_untracked(|wins| wins.iter().any(|w| w.id == win_id));
+
+        if exists {
+            self.restore_window(win_id);
+        } else {
+            let z = self.next_z.get_untracked();
+            self.next_z.set(z + 1);
+
+            // Offset new windows slightly so they don't stack exactly
+            let count = self.windows.with_untracked(|wins| {
+                wins.iter()
+                    .filter(|w| matches!(w.id, WindowId::ProgressClock(_)))
+                    .count()
+            });
+            let offset = (count as f64) * 25.0;
+
+            self.windows.update(|wins| {
+                wins.push(WindowState {
+                    id: win_id,
+                    title: Some(label.to_string()),
+                    x: 160.0 + offset,
+                    y: 120.0 + offset,
+                    width: 240.0,
+                    height: 300.0,
                     z_index: z,
                     minimized: false,
                 });
@@ -642,6 +694,16 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 z_index: 10,
                 minimized: true,
             },
+            WindowState {
+                id: WindowId::ProgressClocks,
+                title: None,
+                x: pad,
+                y: pad,
+                width: win_w.min(300.0),
+                height: 300.0,
+                z_index: 11,
+                minimized: true,
+            },
         ]
     } else if vw < 1400.0 {
         // Medium screen: two-column layout
@@ -760,6 +822,16 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 width: 520.0,
                 height: 460.0,
                 z_index: 10,
+                minimized: true,
+            },
+            WindowState {
+                id: WindowId::ProgressClocks,
+                title: None,
+                x: 140.0,
+                y: 100.0,
+                width: 300.0,
+                height: 320.0,
+                z_index: 11,
                 minimized: true,
             },
         ]
@@ -882,6 +954,16 @@ fn default_window_layout_for_size(vw: f64, vh: f64) -> Vec<WindowState> {
                 width: 600.0,
                 height: 520.0,
                 z_index: 10,
+                minimized: true,
+            },
+            WindowState {
+                id: WindowId::ProgressClocks,
+                title: None,
+                x: 180.0,
+                y: 120.0,
+                width: 320.0,
+                height: 340.0,
+                z_index: 11,
                 minimized: true,
             },
         ]

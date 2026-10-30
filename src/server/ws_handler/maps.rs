@@ -264,6 +264,8 @@ pub fn build_snapshot(session_id: i32, user_id: i32) -> GameStateSnapshot {
         .map(|s| s.initiative_locked)
         .unwrap_or(false);
 
+    let progress_clocks = super::clocks::load_clocks(session_id);
+
     GameStateSnapshot {
         session_id,
         session_name,
@@ -291,6 +293,7 @@ pub fn build_snapshot(session_id: i32, user_id: i32) -> GameStateSnapshot {
                 .unwrap_or(0)
                 != 0
         },
+        progress_clocks,
     }
 }
 

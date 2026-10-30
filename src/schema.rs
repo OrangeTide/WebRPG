@@ -123,6 +123,22 @@ diesel::table! {
 }
 
 diesel::table! {
+    progress_clocks (id) {
+        id -> Integer,
+        session_id -> Integer,
+        label -> Text,
+        description -> Text,
+        segments -> Integer,
+        filled -> Integer,
+        filled_color -> Text,
+        unfilled_color -> Text,
+        locked -> Bool,
+        sort_order -> Integer,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     rpg_templates (id) {
         id -> Integer,
         name -> Text,
@@ -240,6 +256,7 @@ diesel::joinable!(inventory_items -> sessions (session_id));
 diesel::joinable!(maps -> sessions (session_id));
 diesel::joinable!(media -> users (uploaded_by));
 diesel::joinable!(media_tags -> media (media_id));
+diesel::joinable!(progress_clocks -> sessions (session_id));
 diesel::joinable!(session_gms -> sessions (session_id));
 diesel::joinable!(session_gms -> users (user_id));
 diesel::joinable!(session_players -> sessions (session_id));
@@ -265,6 +282,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     maps,
     media,
     media_tags,
+    progress_clocks,
     rpg_templates,
     session_gms,
     session_players,

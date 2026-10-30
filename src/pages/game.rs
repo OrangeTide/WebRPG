@@ -10,12 +10,14 @@ use crate::components::help_viewer::{HelpContext, HelpViewerPanel};
 use crate::components::initiative::InitiativeTracker;
 use crate::components::inventory::InventoryPanel;
 use crate::components::map::MapCanvas;
+use crate::components::progress_clock::{ProgressClockHub, ProgressClockWindowPanel};
 use crate::components::terminal::TerminalPanel;
 use crate::components::window_manager::{
     GameWindow, WindowId, WindowManager, WindowManagerContext,
 };
 use crate::models::{
-    CharacterInfo, ChatMessageInfo, InitiativeEntryInfo, InventoryItemInfo, MapInfo, TokenInfo,
+    CharacterInfo, ChatMessageInfo, InitiativeEntryInfo, InventoryItemInfo, MapInfo,
+    ProgressClockInfo, TokenInfo,
 };
 use crate::ws::messages::{ClientMessage, GameStateSnapshot, ServerMessage};
 
@@ -192,6 +194,9 @@ pub struct GameContext {
     pub members: RwSignal<Vec<crate::ws::messages::SessionMemberInfo>>,
     /// Whether the current user may manage the GM list (the session owner only).
     pub can_manage_gms: RwSignal<bool>,
+    /// The session's progress clocks. The GM mutates them; every client renders
+    /// this list. Replaced wholesale on each `ProgressClocksUpdated`.
+    pub progress_clocks: RwSignal<Vec<ProgressClockInfo>>,
     /// Decremented for each locally-created message to avoid ID collisions with DB rows.
     next_local_id: std::sync::Arc<std::sync::atomic::AtomicI32>,
 }
@@ -272,6 +277,7 @@ impl GameContext {
         self.is_gm.set(snapshot.is_gm);
         self.ping_color.set(snapshot.ping_color);
         self.suppress_tooltips.set(snapshot.suppress_tooltips);
+        self.progress_clocks.set(snapshot.progress_clocks);
         self.connected.set(true);
         // Clear loading modal — game is ready
         self.loading.set(None);
@@ -307,6 +313,9 @@ impl GameContext {
                 if self.is_gm.get_untracked() {
                     self.send.send(ClientMessage::ListMembers);
                 }
+            }
+            ServerMessage::ProgressClocksUpdated { clocks } => {
+                self.progress_clocks.set(clocks);
             }
             ServerMessage::ChatBroadcast { message } => {
                 self.chat_messages.update(|msgs| msgs.push(message));
@@ -824,6 +833,7 @@ pub fn GamePage() -> impl IntoView {
         modules: RwSignal::new(Default::default()),
         members: RwSignal::new(vec![]),
         can_manage_gms: RwSignal::new(false),
+        progress_clocks: RwSignal::new(vec![]),
         next_local_id: std::sync::Arc::new(std::sync::atomic::AtomicI32::new(-1)),
     };
 
@@ -1158,8 +1168,12 @@ pub fn GamePage() -> impl IntoView {
                 <GameWindow id=WindowId::Modules>
                     <crate::components::modules_panel::ModulesPanel />
                 </GameWindow>
+                <GameWindow id=WindowId::ProgressClocks>
+                    <ProgressClockHub />
+                </GameWindow>
                 <DynamicCharacterWindows />
                 <DynamicFileBrowserWindows />
+                <DynamicProgressClockWindows />
             </WindowManager>
         </div>
     }
@@ -1196,6 +1210,43 @@ fn DynamicCharacterWindows() -> impl IntoView {
                 view! {
                     <GameWindow id=win_id>
                         <CharacterEditorPanel character_id=char_id />
+                    </GameWindow>
+                }
+            }
+        </For>
+    }
+}
+
+/// Renders dynamic GameWindow instances for each open progress clock window.
+#[component]
+fn DynamicProgressClockWindows() -> impl IntoView {
+    let wm = expect_context::<WindowManagerContext>();
+
+    let open_clocks = move || {
+        wm.windows
+            .get()
+            .into_iter()
+            .filter_map(|w| {
+                if let WindowId::ProgressClock(clock_id) = w.id {
+                    Some((w.id, clock_id))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+    };
+
+    view! {
+        <For
+            each=open_clocks
+            key=|(_, clock_id)| *clock_id
+            let:item
+        >
+            {
+                let (win_id, clock_id) = item;
+                view! {
+                    <GameWindow id=win_id>
+                        <ProgressClockWindowPanel clock_id=clock_id />
                     </GameWindow>
                 }
             }

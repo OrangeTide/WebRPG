@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::models::{ChatMessageInfo, InitiativeEntryInfo, InventoryItemInfo, MapInfo, TokenInfo};
+use crate::models::{
+    ChatMessageInfo, InitiativeEntryInfo, InventoryItemInfo, MapInfo, ProgressClockInfo, TokenInfo,
+};
 
 /// One modifier a player applied to a check, and why.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -225,6 +227,34 @@ pub enum ClientMessage {
     Keepalive {
         idle: bool,
     },
+    /// GM creates a new progress clock with a fixed number of segments.
+    CreateProgressClock {
+        label: String,
+        segments: i32,
+        filled_color: String,
+        unfilled_color: String,
+    },
+    /// GM sets how many segments of a clock are filled (the +/- buttons).
+    SetProgressClockFilled {
+        clock_id: i32,
+        filled: i32,
+    },
+    /// GM edits a clock's label and description.
+    EditProgressClock {
+        clock_id: i32,
+        label: String,
+        description: String,
+    },
+    /// GM locks or unlocks a clock. A locked clock cannot be advanced or edited
+    /// until it is unlocked.
+    SetProgressClockLock {
+        clock_id: i32,
+        locked: bool,
+    },
+    /// GM removes a progress clock.
+    DeleteProgressClock {
+        clock_id: i32,
+    },
     /// A GM requests the session's member list (for the GM management panel).
     ListMembers,
     /// The session owner grants or revokes co-GM status for a member.
@@ -389,6 +419,11 @@ pub enum ServerMessage {
     /// Broadcast when the GM list changed, prompting GM clients to refetch the
     /// member list.
     MembersChanged,
+    /// The session's full progress-clock list. Sent on any create, edit,
+    /// advance, lock, or delete, so every client re-renders them together.
+    ProgressClocksUpdated {
+        clocks: Vec<ProgressClockInfo>,
+    },
 }
 
 /// A session member as shown in the GM management panel.
@@ -417,4 +452,6 @@ pub struct GameStateSnapshot {
     pub is_gm: bool,
     pub ping_color: String,
     pub suppress_tooltips: bool,
+    #[serde(default)]
+    pub progress_clocks: Vec<ProgressClockInfo>,
 }

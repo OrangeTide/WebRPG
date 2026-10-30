@@ -11,7 +11,7 @@ echo "PASS: migrations applied"
 
 echo ""
 echo "=== Verifying expected tables ==="
-EXPECTED_TABLES="users sessions session_players session_gms rpg_templates characters character_resources maps fog_of_war creatures tokens token_instances chat_messages inventory_items initiative media media_tags"
+EXPECTED_TABLES="users sessions session_players session_gms rpg_templates characters character_resources maps fog_of_war creatures tokens token_instances chat_messages inventory_items initiative progress_clocks media media_tags"
 
 for table in $EXPECTED_TABLES; do
     if ! sqlite3 "$TMPDB" ".tables" | grep -qw "$table"; then

@@ -316,6 +316,23 @@ pub struct InitiativeEntryInfo {
     pub character_id: Option<i32>,
 }
 
+/// A progress clock: a segmented circle persistent to the session. The GM
+/// creates and advances them; players see them update live. `segments` is fixed
+/// at creation; `filled` ranges from 0 to `segments` and fills from the top
+/// clockwise.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProgressClockInfo {
+    pub id: i32,
+    pub label: String,
+    pub description: String,
+    pub segments: i32,
+    pub filled: i32,
+    pub filled_color: String,
+    pub unfilled_color: String,
+    pub locked: bool,
+    pub sort_order: i32,
+}
+
 // ===== VFS DTOs =====
 
 /// VFS file/directory metadata (serializable version of `vfs::VfsEntry`).
@@ -625,6 +642,33 @@ pub mod db_models {
         pub uses_max: Option<i32>,
         pub uses_left: Option<i32>,
         pub tags: &'a str,
+    }
+
+    #[derive(Debug, Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::progress_clocks)]
+    pub struct ProgressClock {
+        pub id: i32,
+        pub session_id: i32,
+        pub label: String,
+        pub description: String,
+        pub segments: i32,
+        pub filled: i32,
+        pub filled_color: String,
+        pub unfilled_color: String,
+        pub locked: bool,
+        pub sort_order: i32,
+        pub created_at: String,
+    }
+
+    #[derive(Debug, Insertable)]
+    #[diesel(table_name = crate::schema::progress_clocks)]
+    pub struct NewProgressClock<'a> {
+        pub session_id: i32,
+        pub label: &'a str,
+        pub segments: i32,
+        pub filled_color: &'a str,
+        pub unfilled_color: &'a str,
+        pub sort_order: i32,
     }
 
     #[derive(Debug, Insertable)]

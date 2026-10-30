@@ -24,6 +24,7 @@ pub(super) const STATIC_WINDOWS: &[(WindowId, &str)] = &[
     (WindowId::FileBrowser, "File Viewer"),
     (WindowId::HelpViewer, "Help"),
     (WindowId::Modules, "Modules"),
+    (WindowId::ProgressClocks, "Progress Clocks"),
 ];
 
 /// Load startup window preferences from localStorage.
